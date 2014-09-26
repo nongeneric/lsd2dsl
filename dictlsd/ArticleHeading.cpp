@@ -29,12 +29,14 @@ bool ArticleHeading::Load(
             chars.emplace_back(idx, chr);
         }
         std::u16string str;
-        int idx = chars[0].first;
+        int idx = chars.at(0).first;
         for (size_t i = 0; i < chars.size(); ++i) {
-            str += chars[i].second;
-            if (i == chars.size() - 1 || chars[i + 1].first != chars[i].first + 1) {
+            str += chars.at(i).second;
+            if (i == chars.size() - 1 || chars.at(i + 1).first != chars.at(i).first + 1) {
                 _extensions.emplace_back(idx, str);
-                idx = chars[i + 1].first;
+                if (i != chars.size() - 1) {
+                    idx = chars.at(i + 1).first;
+                }
                 str = u"";
             }
         }
