@@ -15,13 +15,12 @@ bool advance(unsigned& bitPos) {
 }
 
 unsigned BitStreamAdapter::readBit() {
-    uint8_t byte;
-    _ras->readSome(&byte, 1);
-    std::bitset<8> bset(byte);
-    unsigned bit = bset[7 - _bitPos];
-    if (!advance(_bitPos)) {
-        _ras->seek(_ras->tell() - 1);
+    if (_bitPos == 0) {
+        readSome(&_cache, 1);
     }
+    std::bitset<8> bset(_cache);
+    unsigned bit = bset[7 - _bitPos];
+    advance(_bitPos);
     return bit;
 }
 
@@ -49,10 +48,7 @@ void BitStreamAdapter::seek(unsigned pos) {
 }
 
 void BitStreamAdapter::toNearestByte() {
-    if (_bitPos != 0) {
-        _bitPos = 0;
-        _ras->seek(_ras->tell() + 1);
-    }
+    _bitPos = 0;
 }
 
 unsigned BitStreamAdapter::tell() {
@@ -130,21 +126,6 @@ void XoringStreamAdapter::readSome(void *dest, unsigned byteCount) {
 void XoringStreamAdapter::seek(unsigned pos) {
     BitStreamAdapter::seek(pos);
     _key = 0x7f;
-}
-
-unsigned XoringStreamAdapter::readBit() {
-    uint8_t byte;
-    _ras->readSome(&byte, 1);
-    auto originalByte = byte;
-    byte ^= _key;
-    std::bitset<8> bset(byte);
-    unsigned bit = bset[7 - _bitPos];
-    if (!advance(_bitPos)) {
-        _ras->seek(_ras->tell() - 1);
-    } else {
-        _key = xor_pad[originalByte];
-    }
-    return bit;
 }
 
 }

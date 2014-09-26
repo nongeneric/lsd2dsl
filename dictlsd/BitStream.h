@@ -25,6 +25,7 @@ protected:
     IRandomAccessStream* _ras;
     unsigned _bitPos;
     virtual unsigned readBit();
+    char _cache;
 public:
     BitStreamAdapter(IRandomAccessStream* ras);
     virtual unsigned read(unsigned len) override;
@@ -40,8 +41,6 @@ public:
     XoringStreamAdapter(IRandomAccessStream* bstr);
     virtual void readSome(void* dest, unsigned byteCount) override;
     virtual void seek(unsigned pos) override;
-protected:
-    virtual unsigned readBit() override;
 };
 
 class InMemoryStream : public IRandomAccessStream {
