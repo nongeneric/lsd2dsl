@@ -48,12 +48,11 @@ void zlibInflate(std::vector<uint8_t>& res,
 LSDOverlayReader::LSDOverlayReader(IBitStream* bstr,
                                    DictionaryReader *dictionaryReader)
     : _reader(dictionaryReader), _bstr(bstr)
-{
-    _bstr->seek(_reader->overlayHeadingsOffset());
-    _bstr->readSome(&_entriesCount, 4);
-}
+{ }
 
 std::vector<OverlayHeading> LSDOverlayReader::readHeadings() {
+    _bstr->seek(_reader->overlayHeadingsOffset());
+    _bstr->readSome(&_entriesCount, 4);
     std::vector<OverlayHeading> entries;
     for (unsigned i = 0; i < _entriesCount; ++i) {
         OverlayHeading entry;

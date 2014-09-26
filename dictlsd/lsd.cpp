@@ -12,7 +12,7 @@ namespace dictlsd {
 
 std::vector<ArticleHeading> collectHeadingFromPage(IBitStream& bstr, DictionaryReader& reader, unsigned pageNumber) {
     std::vector<ArticleHeading> res;
-    bstr.seek(reader.header()->pagesOffset + 512 * pageNumber);
+    bstr.seek(reader.header().pagesOffset + 512 * pageNumber);
     CachePage page;
     page.loadHeader(bstr);
     if (page.isLeaf()) {
@@ -34,7 +34,7 @@ LSDDictionary::LSDDictionary(IBitStream *bitstream)
     _overlayReader.reset(new LSDOverlayReader(_bstr, _reader.get()));
 }
 
-std::vector<ArticleHeading> LSDDictionary::readHeadings() {
+std::vector<ArticleHeading> LSDDictionary::readHeadings() const {
     std::vector<ArticleHeading> headings;
     for (size_t i = 0; i < _reader->pagesCount(); ++i) {
         auto page = collectHeadingFromPage(*_bstr, *_reader, i);
@@ -47,15 +47,13 @@ std::u16string LSDDictionary::readArticle(unsigned reference) const {
     return _reader->decodeArticle(*_bstr, reference);
 }
 
-std::vector<OverlayHeading> LSDDictionary::readOverlayHeadings() {
+std::vector<OverlayHeading> LSDDictionary::readOverlayHeadings() const {
     return _overlayReader->readHeadings();
 }
 
-std::vector<uint8_t> LSDDictionary::readOverlayEntry(OverlayHeading const& heading) {
+std::vector<uint8_t> LSDDictionary::readOverlayEntry(OverlayHeading const& heading) const {
     return _overlayReader->readEntry(heading);
 }
-
-LSDDictionary::~LSDDictionary() { }
 
 std::u16string LSDDictionary::name() const {
     return _reader->name();
@@ -65,12 +63,14 @@ std::u16string LSDDictionary::annotation() const {
     return _reader->annotation();
 }
 
-std::vector<char> LSDDictionary::icon() const {
+std::vector<unsigned char> const& LSDDictionary::icon() const {
     return _reader->icon();
 }
 
-LSDHeader LSDDictionary::header() const {
-    return *_reader->header();
+LSDHeader const& LSDDictionary::header() const {
+    return _reader->header();
 }
+
+LSDDictionary::~LSDDictionary() { }
 
 }

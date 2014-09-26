@@ -37,8 +37,9 @@ unsigned BitLength(unsigned num) {
 std::u16string readUnicodeString(IBitStream* bstr, int len, bool bigEndian) {
     std::u16string str;
     for (int i = 0; i < len; ++i) {
-        uint16_t ch = bstr->read(16);
-        str += bigEndian ? ch : reverse16(ch);
+        uint16_t ch;
+        bstr->readSome(&ch, 2);
+        str += bigEndian ? reverse16(ch) : ch;
     }
     return str;
 }
@@ -419,7 +420,7 @@ std::map<int, std::u16string> langMap {
 
 std::u16string langFromCode(int code) {
     if (langMap.find(code) == langMap.end())
-        throw std::runtime_error("unsupported language");
+        return u"unknown";
     return langMap[code];
 }
 

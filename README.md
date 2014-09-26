@@ -6,7 +6,7 @@ ABBYY Lingvo dictionaries decompiler. Supports the Lingvo x5 and x6 formats.
 ## Building on Fedora 20
 Install required libraries
 
-    yum install libzip-devel boost-devel cmake
+    yum install libzip-devel boost-devel cmake qt5-qtbase-devel
     
 Compile
 
@@ -15,7 +15,7 @@ Compile
 
 To cross-compile for windows you'll need MinGW
 
-    yum install mingw32-gcc-c++ mingw32-libzip mingw32-boost
+    yum install mingw32-gcc-c++ mingw32-libzip mingw32-boost mingw32-qt5-qtbase-devel
     
 Compile
 

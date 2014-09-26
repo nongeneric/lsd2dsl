@@ -35,9 +35,8 @@ struct OverlayHeading {
     uint32_t streamSize;
 };
 
-class DictionaryReader;
 class LSDOverlayReader;
-
+class DictionaryReader;
 class LSDDictionary {
     IBitStream* _bstr;
     std::unique_ptr<DictionaryReader> _reader;
@@ -46,12 +45,12 @@ public:
     LSDDictionary(IBitStream* bitstream);
     std::u16string name() const;
     std::u16string annotation() const;
-    std::vector<char> icon() const;
-    LSDHeader header() const;
-    std::vector<ArticleHeading> readHeadings();
+    std::vector<unsigned char> const& icon() const;
+    LSDHeader const& header() const;
+    std::vector<ArticleHeading> readHeadings() const;
     std::u16string readArticle(unsigned reference) const;
-    std::vector<OverlayHeading> readOverlayHeadings();
-    std::vector<uint8_t> readOverlayEntry(OverlayHeading const& heading);
+    std::vector<OverlayHeading> readOverlayHeadings() const;
+    std::vector<uint8_t> readOverlayEntry(OverlayHeading const& heading) const;
     ~LSDDictionary();
 };
 

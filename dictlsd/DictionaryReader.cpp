@@ -12,12 +12,24 @@
 
 namespace dictlsd {
 
+void DictionaryReader::loadDecoder() const {
+    if (!_isSupported)
+        throw std::runtime_error("unsuported dictionary version");
+    if (!_decoderLoaded) {
+        auto pos = _bstr->tell();
+        _bstr->seek(_header.dictionaryEncoderOffset);
+        _decoder->Read(_bstr);
+        _decoderLoaded = true;
+        _bstr->seek(pos);
+    }
+}
+
 DictionaryReader::DictionaryReader(IBitStream *bstr)
-    : _bstr(bstr)
+    : _bstr(bstr), _isSupported(true), _decoderLoaded(false)
 {
     _bstr->readSome(&_header, sizeof(LSDHeader));
     if (strcmp("LingVo", _header.magic) != 0)
-        throw std::runtime_error("incorrect lsd file");
+        throw NotLSDException();
     if (_header.version == 0x142001 || _header.version == 0x152001) {
         _decoder.reset(new UserDictionaryDecoder());
     } else if (_header.version == 0x141004) {
@@ -27,37 +39,45 @@ DictionaryReader::DictionaryReader(IBitStream *bstr)
     } else if (_header.version == 0x151005) {
         _decoder.reset(new SystemDictionaryDecoder(true));
     } else {
-        throw std::runtime_error(str(boost::format("not supported version %x") % _header.version));
+        _isSupported = false;
+        return;
     }
 
-    _name = readUnicodeString(bstr, bstr->read(8), false);
+    uint8_t nameLen;
+    bstr->readSome(&nameLen, 1);
+    _name = readUnicodeString(bstr, nameLen, false);
     auto firstHeading = readUnicodeString(bstr, bstr->read(8), false); (void)firstHeading;
-    auto lastHeading = readUnicodeString(bstr, bstr->read(8), false); (void)lastHeading;
+    auto lastHeading = readUnicodeString(bstr, bstr->read(8), false); (void)lastHeading;    
     auto capitals = readUnicodeString(bstr, reverse32(bstr->read(32)), false); (void)capitals;
-    unsigned iconLen = reverse16(bstr->read(16));
+    uint16_t iconLen;
+    bstr->readSome(&iconLen, 2);
     _icon.resize(iconLen);
     bstr->readSome(&_icon[0], iconLen);
-    auto checksum = bstr->read(32); (void)checksum;
-    _pagesEnd = reverse32(bstr->read(32));
-    _overlayData = reverse32(bstr->read(32));
-
-    bstr->seek(_header.dictionaryEncoderOffset);
-    _decoder->Read(bstr);
+    bstr->seek(bstr->tell() + 4); // checksum
+    bstr->readSome(&_pagesEnd, 4);
+    bstr->readSome(&_overlayData, 4);
 }
 
-std::u16string DictionaryReader::name() {
+bool DictionaryReader::supported() const {
+    return _isSupported;
+}
+
+std::u16string DictionaryReader::name() const {
     return _name;
 }
 
-std::u16string DictionaryReader::prefix() {
+std::u16string DictionaryReader::prefix() const {
+    loadDecoder();
     return _decoder->Prefix();
 }
 
-std::u16string DictionaryReader::annotation() {
+std::u16string DictionaryReader::annotation() const {
+    loadDecoder();
     _bstr->seek(_header.annotationOffset);
     std::u16string anno;
     bool decoded = _decoder->DecodeArticle(_bstr, anno);
-    assert(decoded);
+    if (!decoded)
+        throw std::runtime_error("can't decode annotation");
     return anno;
 }
 
@@ -69,28 +89,35 @@ unsigned DictionaryReader::overlayHeadingsOffset() const {
     return _pagesEnd;
 }
 
-std::vector<char> DictionaryReader::icon() const {
+std::vector<unsigned char> const& DictionaryReader::icon() const {
     return _icon;
 }
 
 std::u16string DictionaryReader::decodeArticle(IBitStream &bstr, unsigned reference) {
-    bstr.seek(header()->articlesOffset + reference);
+    loadDecoder();
+    bstr.seek(header().articlesOffset + reference);
     std::u16string body;
     bool res = decoder()->DecodeArticle(&bstr, body);
-    assert(res);
+    if (!res)
+        throw std::runtime_error("can't decode article");
     return body;
 }
 
 IDictionaryDecoder *DictionaryReader::decoder() {
+    loadDecoder();
     return _decoder.get();
 }
 
-LSDHeader *DictionaryReader::header() {
-    return &_header;
+LSDHeader const& DictionaryReader::header() const {
+    return _header;
 }
 
 unsigned DictionaryReader::overlayDataOffset() const {
     return _overlayData;
+}
+
+const char *NotLSDException::what() const noexcept {
+    return "Not an LSD file.";
 }
 
 }
