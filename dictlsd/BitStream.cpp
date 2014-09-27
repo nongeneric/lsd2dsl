@@ -38,8 +38,8 @@ unsigned BitStreamAdapter::read(unsigned count) {
     return res;
 }
 
-void BitStreamAdapter::readSome(void *dest, unsigned byteCount) {
-    _ras->readSome(dest, byteCount);
+unsigned BitStreamAdapter::readSome(void *dest, unsigned byteCount) {
+    return _ras->readSome(dest, byteCount);
 }
 
 void BitStreamAdapter::seek(unsigned pos) {
@@ -58,10 +58,11 @@ unsigned BitStreamAdapter::tell() {
 InMemoryStream::InMemoryStream(const void *buf, unsigned size)
     : _buf((const uint8_t*)buf), _size(size), _pos(0) { }
 
-void InMemoryStream::readSome(void *dest, unsigned byteCount) {
-    assert(_pos + byteCount <= _size);
+unsigned InMemoryStream::readSome(void *dest, unsigned byteCount) {
+    byteCount = std::max(byteCount, _size - _pos);
     memcpy(dest, _buf + _pos, byteCount);
     _pos += byteCount;
+    return byteCount;
 }
 
 void InMemoryStream::seek(unsigned pos) {
@@ -113,19 +114,40 @@ unsigned char xor_pad[256] = {
 XoringStreamAdapter::XoringStreamAdapter(IRandomAccessStream* ras)
     : BitStreamAdapter(ras), _key(0x7f) { }
 
-void XoringStreamAdapter::readSome(void *dest, unsigned byteCount) {
-    BitStreamAdapter::readSome(dest, byteCount);
+unsigned XoringStreamAdapter::readSome(void *dest, unsigned byteCount) {
+    unsigned bytesRead = BitStreamAdapter::readSome(dest, byteCount);
     auto bytes = static_cast<unsigned char*>(dest);
     for (unsigned i = 0; i < byteCount; ++i) {
         unsigned char byte = bytes[i];
         bytes[i] ^= _key;
         _key = xor_pad[byte];
     }
+    return bytesRead;
 }
 
 void XoringStreamAdapter::seek(unsigned pos) {
     BitStreamAdapter::seek(pos);
     _key = 0x7f;
+}
+
+FileStream::FileStream(std::string path)
+    : _ifstr(path, std::ios::binary)
+{
+    if (!_ifstr.is_open())
+        throw std::runtime_error("can't open file");
+}
+
+unsigned FileStream::readSome(void *dest, unsigned byteCount) {
+    _ifstr.read(reinterpret_cast<char*>(dest), byteCount);
+    return _ifstr.gcount();
+}
+
+void FileStream::seek(unsigned pos) {
+    _ifstr.seekg(pos);
+}
+
+unsigned FileStream::tell() {
+    return _ifstr.tellg();
 }
 
 }

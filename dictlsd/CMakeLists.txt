@@ -27,6 +27,12 @@ set(SRC_LIST
     AbbreviationDictionaryDecoder.cpp
     LSDOverlayReader.h
     LSDOverlayReader.cpp
+    LSAReader.h
+    LSAReader.cpp
+    OggReader.h
+    OggReader.cpp
+    WavWriter.h
+    WavWriter.cpp
 )
 add_library(${PROJECT_NAME} ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} z)
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} z vorbisfile sndfile)

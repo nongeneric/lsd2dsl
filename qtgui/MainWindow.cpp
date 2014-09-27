@@ -2,6 +2,7 @@
 
 #include "../DslWriter.h"
 #include "../dictlsd/lsd.h"
+#include "../dictlsd/LSAReader.h"
 #include "../dictlsd/tools.h"
 
 #include <QTableView>
@@ -35,53 +36,84 @@
 
 using namespace dictlsd;
 
-class FileStream : public IRandomAccessStream {
-    QFile _file;
+class DictionaryEntry {
+    std::unique_ptr<FileStream> _stream;
+    QString _path;
+    QString _fileName;
+protected:
+    std::unique_ptr<BitStreamAdapter> _adapter;
 public:
-    FileStream(QString path) : _file(path) {
-        if (!_file.open(QIODevice::ReadOnly)) {
-            throw std::runtime_error("can't read file");
-        }
+    DictionaryEntry(QString path)
+        : _stream(new FileStream(path.toStdString())),
+          _path(path),
+          _fileName(QFileInfo(path).fileName()),
+          _adapter(new BitStreamAdapter(_stream.get()))
+    { }
+    QString path() { return _path; }
+    QString fileName() { return _fileName; }
+    virtual QString name() = 0;
+    virtual QString source() = 0;
+    virtual QString target() = 0;
+    virtual unsigned entries() = 0;
+    virtual QString version() = 0;
+    virtual std::vector<unsigned char> const& icon() = 0;
+    virtual void dump(QString outDir, std::function<void(int)> log) = 0;
+};
+
+class LSDDictionaryEntry : public DictionaryEntry {
+    LSDDictionary _reader;
+    QString printLanguage(int code) {
+        return QString::fromStdString(toUtf8(langFromCode(code)));
     }
-    virtual void readSome(void *dest, unsigned byteCount) {
-        _file.read(static_cast<char*>(dest), byteCount);
+public:
+    LSDDictionaryEntry(QString path)
+        : DictionaryEntry(path),
+          _reader(_adapter.get()) { }
+    virtual QString name(){
+        return QString::fromStdString(toUtf8(_reader.name()));
     }
-    virtual void seek(unsigned pos) {
-        _file.seek(pos);
+    virtual QString source() {
+        auto source = _reader.header().sourceLanguage;
+        return QString("%1 (%2)").arg(source).arg(printLanguage(source));
     }
-    virtual unsigned tell() {
-        return _file.pos();
+    virtual QString target() {
+        auto target = _reader.header().targetLanguage;
+        return QString("%1 (%2)").arg(target).arg(printLanguage(target));
+    }
+    virtual unsigned entries() {
+        return _reader.header().entriesCount;
+    }
+    virtual QString version() {
+        return QString("%1").arg(_reader.header().version, 1, 16);
+    }
+    virtual const std::vector<unsigned char> &icon() {
+        return _reader.icon();
+    }
+    virtual void dump(QString outDir, std::function<void(int)> log) {
+        writeDSL(&_reader, fileName().toStdString(), outDir.toStdString(), [&](int i, std::string) { log(i); });
     }
 };
 
-class Dictionary {
-    FileStream _stream;
-    BitStreamAdapter _adapter;
-    std::unique_ptr<LSDDictionary> _reader;
-    QString _path;
-    QString _fileName;
+class LSADictionaryEntry : public DictionaryEntry {
+    LSAReader _reader;
+    std::vector<unsigned char> _icon = {};
 public:
-    Dictionary(QString path)
-        : _stream(path),
-          _adapter(&_stream),
-          _reader(new LSDDictionary(&_adapter)),
-          _path(path)
-    {
-        _fileName = QFileInfo(path).fileName();
-    }
-    QString path() const {
-        return _path;
-    }
-    QString fileName() const {
-        return _fileName;
-    }
-    LSDDictionary const& reader() const {
-        return *_reader;
+    LSADictionaryEntry(QString path)
+        : DictionaryEntry(path),
+          _reader(_adapter.get()) { }
+    virtual QString name() { return ""; }
+    virtual QString source() { return ""; }
+    virtual QString target() { return ""; }
+    virtual unsigned entries() { return _reader.entriesCount(); }
+    virtual QString version() { return ""; }
+    virtual const std::vector<unsigned char> &icon() { return _icon; }
+    virtual void dump(QString outDir, std::function<void(int)> log) {
+        decodeLSA(path().toStdString(), outDir.toStdString(), log);
     }
 };
 
 class LSDListModel : public QAbstractListModel {
-    std::vector<std::unique_ptr<Dictionary>> _dicts;
+    std::vector<std::unique_ptr<DictionaryEntry>> _dicts;
     std::vector<QString> _columns;
 public:
     LSDListModel() {
@@ -111,8 +143,13 @@ public:
             return true;
         for (QUrl fileUri : data->urls()) {
             QString path = fileUri.toLocalFile();
-            try {                
-                _dicts.emplace_back(new Dictionary(path));
+            try {
+                QString ext = QFileInfo(path).suffix().toLower();
+                if (ext == "lsd") {
+                    _dicts.emplace_back(new LSDDictionaryEntry(path));
+                } else if (ext == "lsa") {
+                    _dicts.emplace_back(new LSADictionaryEntry(path));
+                }
             } catch(std::exception& e) {
                 QMessageBox::warning(nullptr, QString(e.what()), path);
             }
@@ -127,35 +164,26 @@ public:
     virtual int rowCount(const QModelIndex &) const {
         return _dicts.size();
     }
-    std::vector<std::unique_ptr<Dictionary>>& dicts() {
+    std::vector<std::unique_ptr<DictionaryEntry>>& dicts() {
         return _dicts;
     }
-    QString printLanguage(int code) const {
-        return QString::fromStdString(toUtf8(langFromCode(code)));
-    }
     virtual QVariant data(const QModelIndex &index, int role) const {
-        int row = index.row();        
-        auto&& reader = _dicts.at(row)->reader();
-
+        auto& dict = _dicts.at(index.row());
         if (role == Qt::DecorationRole && index.column() == 0) {
             QPixmap icon;
-            auto&& rawBytes = reader.icon();
+            auto&& rawBytes = dict->icon();
             icon.loadFromData(rawBytes.data(), rawBytes.size());
             return QVariant(icon);
         }
 
-        LSDHeader const& header = reader.header();
-        int source = header.sourceLanguage;
-        int target = header.targetLanguage;
-
         if (role == Qt::DisplayRole) {
             switch(index.column()) {
-            case 1: return _dicts.at(row)->fileName();
-            case 2: return QString::fromStdString(toUtf8(reader.name()));
-            case 3: return QString("%1 (%2)").arg(source).arg(printLanguage(source));
-            case 4: return QString("%1 (%2)").arg(target).arg(printLanguage(target));
-            case 5: return header.entriesCount;
-            case 6: return QString("%1").arg(header.version, 1, 16);
+            case 1: return dict->fileName();
+            case 2: return dict->name();
+            case 3: return dict->source();
+            case 4: return dict->target();
+            case 5: return dict->entries();
+            case 6: return dict->version();
             }
         }
         return QVariant();
@@ -182,20 +210,20 @@ public:
 
 class ConvertWithProgress : public QObject {
     Q_OBJECT
-    std::vector<Dictionary*> _dicts;
+    std::vector<DictionaryEntry*> _dicts;
     QString _outDir;
 signals:
     void statusUpdated(int percent);
     void nextDictionary(QString name);
     void done();
 public:
-    ConvertWithProgress(std::vector<Dictionary*> dicts, QString outDir)
+    ConvertWithProgress(std::vector<DictionaryEntry*> dicts, QString outDir)
         : _dicts(dicts), _outDir(outDir) { }
 public slots:
     void start() {
-        for (Dictionary* dict : _dicts) {
-            emit nextDictionary(dict->fileName());            
-            writeDSL(&dict->reader(), dict->fileName().toStdString(), _outDir.toStdString(), [&](int percent, std::string) {
+        for (DictionaryEntry* dict : _dicts) {
+            emit nextDictionary(dict->fileName());
+            dict->dump(_outDir, [&](int percent) {
                 emit statusUpdated(percent);
             });
             emit statusUpdated(100);
@@ -208,7 +236,7 @@ void MainWindow::convert(bool selectedOnly) {
     QString dir = QFileDialog::getExistingDirectory(this, "Select directory to save DSL");
     if (dir.isEmpty())
         return;
-    std::vector<Dictionary*> dicts;
+    std::vector<DictionaryEntry*> dicts;
     if (selectedOnly) {
         for (auto index : _tableView->selectionModel()->selectedRows()) {
             dicts.push_back(_model->dicts()[index.row()].get());
@@ -219,7 +247,7 @@ void MainWindow::convert(bool selectedOnly) {
         }
     }
 
-    _progress->setMaximum(dicts.size());
+    _progress->setMaximum(dicts.size() + 1);
     _progress->setValue(0);    
 
     auto thread = new QThread();
@@ -235,6 +263,7 @@ void MainWindow::convert(bool selectedOnly) {
         _currentDict->setText("Decoding " + name + "...");
     });
     connect(converter, &ConvertWithProgress::done, this, [=] {
+        _progress->setValue(_progress->maximum());
         _currentDict->setText("");
         _tableView->setEnabled(true);
         _convertAllButton->setEnabled(true);
@@ -288,7 +317,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto topDock = new QDockWidget(this, Qt::FramelessWindowHint);
     topDock->setTitleBarWidget(new QWidget());
     topDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    auto dragDropLabel = new QLabel("Drag and drop LSD files here");
+    auto dragDropLabel = new QLabel("Drag and drop LSD/LSA files here");
     dragDropLabel->setMargin(5);
     topDock->setWidget(dragDropLabel);
     addDockWidget(Qt::TopDockWidgetArea, topDock);

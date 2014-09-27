@@ -3,6 +3,7 @@
 #include "DslWriter.h"
 #include "dictlsd/lsd.h"
 #include "dictlsd/tools.h"
+#include "dictlsd/LSAReader.h"
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -24,14 +25,6 @@ struct Entry {
     std::u16string article;
 };
 
-unsigned getFileSize(std::fstream& file) {
-    unsigned pos = file.tellg();
-    file.seekg(0, std::ios_base::end);
-    unsigned size = file.tellg();
-    file.seekg(pos, std::ios_base::beg);
-    return size;
-}
-
 template <typename T>
 std::vector<T>& append(std::vector<T>& vec, std::vector<T> const& rhs) {
     std::copy(rhs.begin(), rhs.end(), std::back_inserter(vec));
@@ -44,15 +37,7 @@ int parseLSD(fs::path lsdPath,
              int targetFilter,
              std::ostream& log)
 {
-    std::fstream lsd(lsdPath.string(), std::ios::in | std::ios::binary);
-    if (!lsd.is_open())
-        throw std::runtime_error("Can't open the LSD file.");
-
-    unsigned fileSize = getFileSize(lsd);
-    std::unique_ptr<char[]> buf(new char[fileSize]);
-    lsd.read(buf.get(), fileSize);
-
-    InMemoryStream ras(buf.get(), fileSize);
+    FileStream ras(lsdPath.string());
     BitStreamAdapter bstr(&ras);
     LSDDictionary reader(&bstr);
     LSDHeader header = reader.header();
@@ -79,13 +64,14 @@ int parseLSD(fs::path lsdPath,
 }
 
 int main(int argc, char* argv[]) {
-    std::string lsdPath, outputPath;
+    std::string lsdPath, lsaPath, outputPath;
     int sourceFilter = -1, targetFilter = -1;
     po::options_description console_desc("Allowed options");
     try {
         console_desc.add_options()
             ("help", "produce help message")
             ("lsd", po::value<std::string>(&lsdPath), "LSD dictionary to decode")
+            ("lsa", po::value<std::string>(&lsaPath), "LSA sound archive to decode")
             ("source-filter", po::value<int>(&sourceFilter),
                 "ignore dictionaries with source language != source-filter")
             ("target-filter", po::value<int>(&targetFilter),
@@ -119,6 +105,9 @@ int main(int argc, char* argv[]) {
                      sourceFilter,
                      targetFilter,
                      std::cout);
+        }
+        if (!lsaPath.empty()) {
+            decodeLSA(lsaPath, outputPath, [](int i) { std::cout << i << std::endl; });
         }
     } catch (std::exception& exc) {
         std::cout << "an error occured while processing dictionary: " << exc.what() << std::endl;

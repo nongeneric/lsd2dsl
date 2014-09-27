@@ -2,12 +2,13 @@
 
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 namespace dictlsd {
 
 class IRandomAccessStream {
 public:
-    virtual void readSome(void* dest, unsigned byteCount) = 0;
+    virtual unsigned readSome(void* dest, unsigned byteCount) = 0;
     virtual void seek(unsigned pos) = 0;
     virtual unsigned tell() = 0;
     virtual ~IRandomAccessStream();
@@ -29,7 +30,7 @@ protected:
 public:
     BitStreamAdapter(IRandomAccessStream* ras);
     virtual unsigned read(unsigned len) override;
-    virtual void readSome(void* dest, unsigned byteCount) override;
+    virtual unsigned readSome(void* dest, unsigned byteCount) override;
     virtual void seek(unsigned pos) override;
     virtual void toNearestByte() override;
     virtual unsigned tell() override;
@@ -39,7 +40,7 @@ class XoringStreamAdapter : public BitStreamAdapter {
     unsigned char _key;
 public:
     XoringStreamAdapter(IRandomAccessStream* bstr);
-    virtual void readSome(void* dest, unsigned byteCount) override;
+    virtual unsigned readSome(void* dest, unsigned byteCount) override;
     virtual void seek(unsigned pos) override;
 };
 
@@ -49,9 +50,18 @@ class InMemoryStream : public IRandomAccessStream {
     unsigned _pos;
 public:
     InMemoryStream(const void* buf, unsigned size);
-    virtual void readSome(void* dest, unsigned byteCount) override;
+    virtual unsigned readSome(void* dest, unsigned byteCount) override;
     virtual void seek(unsigned pos) override;
     virtual unsigned tell() override;
+};
+
+class FileStream : public IRandomAccessStream {
+    std::ifstream _ifstr;
+public:
+    FileStream(std::string path);
+    virtual unsigned readSome(void *dest, unsigned byteCount);
+    virtual void seek(unsigned pos);
+    virtual unsigned tell();
 };
 
 }
