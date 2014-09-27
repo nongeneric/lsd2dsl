@@ -55,6 +55,10 @@ std::vector<uint8_t> LSDDictionary::readOverlayEntry(OverlayHeading const& headi
     return _overlayReader->readEntry(heading);
 }
 
+bool LSDDictionary::supported() const {
+    return _reader->supported();
+}
+
 std::u16string LSDDictionary::name() const {
     return _reader->name();
 }

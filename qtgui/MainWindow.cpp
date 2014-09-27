@@ -57,6 +57,7 @@ public:
     virtual unsigned entries() = 0;
     virtual QString version() = 0;
     virtual std::vector<unsigned char> const& icon() = 0;
+    virtual bool supported() = 0;
     virtual void dump(QString outDir, std::function<void(int)> log) = 0;
 };
 
@@ -89,6 +90,9 @@ public:
     virtual const std::vector<unsigned char> &icon() {
         return _reader.icon();
     }
+    virtual bool supported() {
+        return _reader.supported();
+    }
     virtual void dump(QString outDir, std::function<void(int)> log) {
         writeDSL(&_reader, fileName().toStdString(), outDir.toStdString(), [&](int i, std::string) { log(i); });
     }
@@ -107,6 +111,7 @@ public:
     virtual unsigned entries() { return _reader.entriesCount(); }
     virtual QString version() { return ""; }
     virtual const std::vector<unsigned char> &icon() { return _icon; }
+    virtual bool supported() { return true; }
     virtual void dump(QString outDir, std::function<void(int)> log) {
         decodeLSA(path().toStdString(), outDir.toStdString(), log);
     }
@@ -153,7 +158,7 @@ public:
             } catch(std::exception& e) {
                 QMessageBox::warning(nullptr, QString(e.what()), path);
             }
-        }        
+        }
         beginInsertRows(parent, 0, _dicts.size() - 1);
         endInsertRows();
         return true;
@@ -174,6 +179,10 @@ public:
             auto&& rawBytes = dict->icon();
             icon.loadFromData(rawBytes.data(), rawBytes.size());
             return QVariant(icon);
+        }
+
+        if (role == Qt::BackgroundColorRole && !dict->supported()) {
+            return QColor("#fbe3e4");
         }
 
         if (role == Qt::DisplayRole) {
@@ -215,6 +224,7 @@ class ConvertWithProgress : public QObject {
 signals:
     void statusUpdated(int percent);
     void nextDictionary(QString name);
+    void error(QString dict, QString message);
     void done();
 public:
     ConvertWithProgress(std::vector<DictionaryEntry*> dicts, QString outDir)
@@ -223,9 +233,14 @@ public slots:
     void start() {
         for (DictionaryEntry* dict : _dicts) {
             emit nextDictionary(dict->fileName());
-            dict->dump(_outDir, [&](int percent) {
-                emit statusUpdated(percent);
-            });
+            try {
+                dict->dump(_outDir, [&](int percent) {
+                    emit statusUpdated(percent);
+                });
+            } catch (std::exception& e) {
+                emit error(dict->fileName(), e.what());
+                return;
+            }
             emit statusUpdated(100);
         }
         emit done();
@@ -246,9 +261,18 @@ void MainWindow::convert(bool selectedOnly) {
             dicts.push_back(dict.get());
         }
     }
+    auto it = std::remove_if(begin(dicts), end(dicts), [&](DictionaryEntry* dict) {
+        return !dict->supported();
+    });
+
+    if (it != end(dicts)) {
+        dicts.erase(it, end(dicts));
+        QMessageBox::warning(this, "Unsupported dictionaries",
+            "Some dictionaries in the list aren't supported and wont be decompiled.");
+    }
 
     _progress->setMaximum(dicts.size() + 1);
-    _progress->setValue(0);    
+    _progress->setValue(0);
 
     auto thread = new QThread();
     auto converter = new ConvertWithProgress(dicts, dir);
@@ -262,12 +286,21 @@ void MainWindow::convert(bool selectedOnly) {
         _dictProgress->setValue(0);
         _currentDict->setText("Decoding " + name + "...");
     });
-    connect(converter, &ConvertWithProgress::done, this, [=] {
-        _progress->setValue(_progress->maximum());
-        _currentDict->setText("");
+    auto enable = [=]{
         _tableView->setEnabled(true);
         _convertAllButton->setEnabled(true);
         _convertSelectedButton->setEnabled(true);
+    };
+    connect(converter, &ConvertWithProgress::done, this, [=] {
+        _currentDict->setText("");
+        _progress->setValue(_progress->maximum());
+        enable();
+    });
+    connect(converter, &ConvertWithProgress::error, this, [=](QString dict, QString message) {
+        QMessageBox::critical(this, "An error occurred",
+            QString("Decompiling of %1 failed with error\n%2").arg(dict, message));
+        _progress->setValue(0);
+        enable();
     });
 
     _tableView->setEnabled(false);

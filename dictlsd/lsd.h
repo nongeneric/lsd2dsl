@@ -51,6 +51,7 @@ public:
     std::u16string readArticle(unsigned reference) const;
     std::vector<OverlayHeading> readOverlayHeadings() const;
     std::vector<uint8_t> readOverlayEntry(OverlayHeading const& heading) const;
+    bool supported() const;
     ~LSDDictionary();
 };
 
