@@ -61,7 +61,8 @@ SF_VIRTUAL_IO vio_vec_callbacks {
 };
 
 void createWav(std::vector<short> const& samples, std::vector<char> &wav) {
-    SF_INFO sfinfo = {0};
+    SF_INFO sfinfo;
+    memset(&sfinfo, 0, sizeof sfinfo);
     sfinfo.samplerate = 48000;
     sfinfo.channels = 1; // mono
     sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
@@ -72,7 +73,8 @@ void createWav(std::vector<short> const& samples, std::vector<char> &wav) {
         throw std::runtime_error("can't create wav");
     }
     unsigned written = sf_writef_short(outfile, &samples[0], samples.size());
-    assert(written == samples.size());
+    if (written != samples.size())
+        throw std::runtime_error("can't write wav file");
     sf_close(outfile);
 }
 
