@@ -20,7 +20,4 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
-protected:
-    virtual void keyPressEvent(QKeyEvent *);
 };

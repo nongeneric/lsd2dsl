@@ -208,13 +208,6 @@ public:
         }
         return QVariant();
     }
-    virtual bool removeRows(int row, int count, const QModelIndex &parent) {
-        assert(count == 1); (void)count;
-        beginRemoveRows(parent, row, row);
-        _dicts.erase(begin(_dicts) + row);
-        endRemoveRows();
-        return true;
-    }
 };
 
 class ConvertWithProgress : public QObject {
@@ -284,7 +277,7 @@ void MainWindow::convert(bool selectedOnly) {
     connect(converter, &ConvertWithProgress::nextDictionary, this, [=](QString name) {
         _progress->setValue(_progress->value() + 1);
         _dictProgress->setValue(0);
-        _currentDict->setText("Decoding " + name + "...");
+        _currentDict->setText(name + "...");
     });
     auto enable = [=]{
         _tableView->setEnabled(true);
@@ -383,15 +376,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(_model, &QAbstractItemModel::rowsRemoved, updateRowCount);
     connect(_convertAllButton, &QPushButton::clicked, [=] { convert(false); });
     connect(_convertSelectedButton, &QPushButton::clicked, [=] { convert(true); });
-}
-
-void MainWindow::keyPressEvent(QKeyEvent *event) {
-    if (!event->matches(QKeySequence::Delete))
-        return;
-    auto rows = _tableView->selectionModel()->selectedRows();
-    for (int i = rows.size() - 1; i >= 0; --i) {
-        _model->removeRow(rows[i].row());
-    }
 }
 
 MainWindow::~MainWindow() { }
