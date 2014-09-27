@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "../version.h"
 
 #include "../DslWriter.h"
 #include "../dictlsd/lsd.h"
@@ -313,7 +314,7 @@ MainWindow::MainWindow(QWidget *parent)
     setMinimumWidth(1200);
     setMinimumHeight(800);
 
-    setWindowTitle("lsd2dsl");
+    setWindowTitle(QString("lsd2dsl - %1").arg(g_version));
 
     auto form = new QFormLayout(this);
     auto totalLabel = new QLabel("0");

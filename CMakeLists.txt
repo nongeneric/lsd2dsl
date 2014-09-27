@@ -27,6 +27,7 @@ add_executable(lsd2dsl
     ZipWriter.cpp
     DslWriter.h
     DslWriter.cpp
+    version.h
 )
 
 if(NOT CMAKE_RELEASE)

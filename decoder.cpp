@@ -1,5 +1,5 @@
+#include "version.h"
 #include "ZipWriter.h"
-
 #include "DslWriter.h"
 #include "dictlsd/lsd.h"
 #include "dictlsd/tools.h"
@@ -78,6 +78,7 @@ int main(int argc, char* argv[]) {
                 "ignore dictionaries with target language != target-filter")
             ("codes", "print supported languages and their codes")
             ("out", po::value<std::string>(&outputPath)->required(), "output directory")
+            ("version", "print version")
             ;
         po::variables_map console_vm;
         po::store(po::parse_command_line(argc, argv, console_desc), console_vm);
@@ -87,6 +88,10 @@ int main(int argc, char* argv[]) {
         }
         if (console_vm.count("codes")) {
             printLanguages(std::cout);
+            return 0;
+        }
+        if (console_vm.count("version")) {
+            std::cout << "lsd2dsl version " << g_version << std::endl;
             return 0;
         }
         po::notify(console_vm);
