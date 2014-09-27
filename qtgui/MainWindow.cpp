@@ -246,7 +246,8 @@ void MainWindow::convert(bool selectedOnly) {
         return;
     std::vector<DictionaryEntry*> dicts;
     if (selectedOnly) {
-        for (auto index : _tableView->selectionModel()->selectedRows()) {
+        for (auto proxyIndex : _tableView->selectionModel()->selectedRows()) {
+            auto index = _proxyModel->mapToSource(proxyIndex);
             dicts.push_back(_model->dicts()[index.row()].get());
         }
     } else {
@@ -343,18 +344,20 @@ MainWindow::MainWindow(QWidget *parent)
     auto topDock = new QDockWidget(this, Qt::FramelessWindowHint);
     topDock->setTitleBarWidget(new QWidget());
     topDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    auto dragDropLabel = new QLabel("Drag and drop LSD/LSA files here");
+    auto dragDropLabel = new QLabel("Drag and drop LSD/LSA files here");    
     dragDropLabel->setMargin(5);
+    topDock->setMinimumHeight(30);
+    topDock->setMaximumHeight(30);
     topDock->setWidget(dragDropLabel);
     addDockWidget(Qt::TopDockWidgetArea, topDock);
 
     _tableView = new QTableView(this);
     _tableView->setDropIndicatorShown(true);
     _tableView->setAcceptDrops(true);
-    auto proxy = new QSortFilterProxyModel;
+    _proxyModel = new QSortFilterProxyModel;
     _model = new LSDListModel;
-    proxy->setSourceModel(_model);
-    _tableView->setModel(proxy);
+    _proxyModel->setSourceModel(_model);
+    _tableView->setModel(_proxyModel);
     _tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     _tableView->setSortingEnabled(true);
     _tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
