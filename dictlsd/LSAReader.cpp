@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <fstream>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace dictlsd {
 
@@ -15,7 +16,7 @@ namespace fs = boost::filesystem;
 
 std::u16string readLSAString(IRandomAccessStream* bstr) {
     std::u16string res;
-    char16_t chr, nextchr;
+    unsigned char chr, nextchr;
     for (;;) {
         bstr->readSome(&chr, 1);
         if (chr == 0xFF)
@@ -76,7 +77,7 @@ void LSAReader::dump(std::string path,
         }
 
         std::string name = toUtf8(entry.name);
-        name.erase(name.length() - 2, 2);
+        boost::algorithm::trim(name);
 
         oggReader.readSamples(entry.sampleSize, samples);
         createWav(samples, wav);
