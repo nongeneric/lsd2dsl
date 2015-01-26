@@ -58,15 +58,9 @@ void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outp
 
     log(45, "decoding dictionary");
 
-    typedef std::vector<std::tuple<std::u16string, std::u16string>> dvec;
-    dvec dict;
     auto headings = reader->readHeadings();
     if (headings.size() != reader->header().entriesCount) {
         throw std::runtime_error("decoding error");
-    }
-
-    for (auto heading : headings) {
-        dict.push_back(make_tuple(heading.extText(), reader->readArticle(heading.articleReference())));
     }
 
     log(80, "writing dsl: " + dslPath.string());
@@ -88,11 +82,11 @@ void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outp
         dslwrite(u"#ICON_FILE\t\"" + toUtf16(iconPath.filename().string()) + u"\"\n");
     }
     dslwrite(u"\n");
-    for (auto& pair : dict) {
-        const std::u16string& heading = std::get<0>(pair);
-        std::u16string article = std::get<1>(pair);
+    for (auto& heading : headings) {
+        const std::u16string& headingText = heading.extText();
+        std::u16string article = reader->readArticle(heading.articleReference());
         normalizeArticle(article);
-        dslwrite(heading.c_str());
+        dslwrite(headingText.c_str());
         dslwrite(u"\n\t");
         dslwrite(article.c_str());
         dslwrite(u"\n");
