@@ -59,7 +59,7 @@ InMemoryStream::InMemoryStream(const void *buf, unsigned size)
     : _buf((const uint8_t*)buf), _size(size), _pos(0) { }
 
 unsigned InMemoryStream::readSome(void *dest, unsigned byteCount) {
-    byteCount = std::max(byteCount, _size - _pos);
+    byteCount = std::min(byteCount, _size - _pos);
     memcpy(dest, _buf + _pos, byteCount);
     _pos += byteCount;
     return byteCount;

@@ -6,6 +6,9 @@
 
 namespace dictlsd {
 
+ArticleHeading::ArticleHeading()
+    : _hasExtText(false) { }
+
 bool ArticleHeading::Load(
         IDictionaryDecoder &decoder,
         IBitStream &bstr,
@@ -21,24 +24,11 @@ bool ArticleHeading::Load(
     decoder.ReadReference2(bstr, _reference);
     _text = knownPrefix.substr(0, prefixLen) + _text;
     if (bstr.read(1)) {
-        std::vector<std::pair<int,char16_t>> chars;
         unsigned len = bstr.read(8);
         for (unsigned i = 0; i < len; ++i) {
-            int idx = bstr.read(8);
+            unsigned char idx = bstr.read(8);
             char16_t chr = bstr.read(16);
-            chars.emplace_back(idx, chr);
-        }
-        std::u16string str;
-        int idx = chars.at(0).first;
-        for (size_t i = 0; i < chars.size(); ++i) {
-            str += chars.at(i).second;
-            if (i == chars.size() - 1 || chars.at(i + 1).first != chars.at(i).first + 1) {
-                _extensions.emplace_back(idx, str);
-                if (i != chars.size() - 1) {
-                    idx = chars.at(i + 1).first;
-                }
-                str = u"";
-            }
+            _pairs.push_back({idx, chr});
         }
     }
     return true;
@@ -48,24 +38,65 @@ std::u16string ArticleHeading::text() const {
     return _text;
 }
 
-std::u16string ArticleHeading::extText() const {
-    if (_extensions.empty()) {
+struct CharInfo {
+    bool sorted;
+    bool escaped;
+    char16_t chr;
+};
+
+std::u16string ArticleHeading::extText() {
+    if (_pairs.empty())
         return _text;
-    }
-    std::u16string extText = _text;
-    int offset = 0;
-    for (size_t i = 0; i < _extensions.size(); ++i) {
-        std::u16string str = _extensions[i].second;
-        bool addBraces = str != u"\\";
-        if (addBraces) {
-            str = u"{" + str + u"}";
+
+    if (_hasExtText)
+        return _extText;
+
+    std::deque<char16_t> text(begin(_text), end(_text));
+    size_t idx = 0;
+    std::vector<CharInfo> chars;
+    auto nextChar = [&](char16_t& chr) {
+        if (!_pairs.empty() && _pairs.front().idx == idx) {
+            chr = _pairs.front().chr;
+            _pairs.pop_front();
+            return false;
         }
-        extText.insert(_extensions[i].first + offset, str);
-        if (addBraces) {
-            offset += 2;
+        chr = text.front();
+        text.pop_front();
+        return true;
+    };
+
+    while (!text.empty() || !_pairs.empty()) {
+        CharInfo info;
+        info.escaped = false;
+        info.sorted = nextChar(info.chr);
+        if (info.chr == '\\') {
+            idx++;
+            info.sorted = nextChar(info.chr);
+            info.escaped = true;
         }
+        chars.push_back(info);
+        idx++;
     }
-    return extText;
+
+    bool group = false;
+    for (CharInfo& info : chars) {
+        if (group && info.sorted) {
+            _extText += u"}";
+            group = false;
+        } else if (!group && !info.sorted) {
+            _extText += u"{";
+            group = true;
+        }
+        if (info.escaped)
+            _extText += '\\';
+        _extText += info.chr;
+    }
+    if (group) {
+        _extText += u"}";
+    }
+
+    _hasExtText = true;
+    return _extText;
 }
 
 unsigned ArticleHeading::articleReference() const {

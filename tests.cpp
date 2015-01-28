@@ -24,11 +24,6 @@ static_assert(sizeof(unsigned) == 4, "");
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    int count = 2;
-    char* args[] = {
-        argv[0], (char*)"--gtest_filter=*decoder2Test2"
-    };
-    ::testing::InitGoogleTest(&count, args);
     return RUN_ALL_TESTS();
 }
 
@@ -161,4 +156,27 @@ TEST(Tests, extHeadingsTest) {
     auto heads = reader.readHeadings();
     ASSERT_EQ(u"Abc {[sub]}e{[/sub]}", heads[0].extText());
     ASSERT_EQ(u"bipolar {(}affective{)} disorder", heads[1].extText());
+}
+
+TEST(Tests, unsortedHeadingsTest) {
+    std::fstream f("simple_testdict1/unsorted_testdict.lsd", std::ios::in | std::ios::binary);
+    ASSERT_TRUE(f.is_open());
+    char buf[1280];
+    f.read(buf, 1280);
+    BitStreamAdapter bstr(new InMemoryStream(buf, 1390));
+    LSDDictionary reader(&bstr);
+
+    ASSERT_EQ(10, reader.header().entriesCount);
+
+    auto heads = reader.readHeadings();
+    ASSERT_EQ(uR"!(\[\\{ab}\])!", heads[0].extText());
+    ASSERT_EQ(uR"!(\[{ab}\])!", heads[1].extText());
+    ASSERT_EQ(uR"!(\[a\~b{cd}ef\])!", heads[2].extText());
+    ASSERT_EQ(uR"!(\[ab\{{cd}ef\])!", heads[3].extText());
+    ASSERT_EQ(uR"!(\[ab{cd}ef\])!", heads[4].extText());
+    ASSERT_EQ(uR"!(\\1ab{cd}\])!", heads[5].extText());
+    ASSERT_EQ(uR"!(\\2ab{(cd)}\])!", heads[6].extText());
+    ASSERT_EQ(uR"!(\\3ab{abcd})!", heads[7].extText());
+    ASSERT_EQ(uR"!(ab{cd}ef)!", heads[8].extText());
+    ASSERT_EQ(uR"!(bb{c\~d}e)!", heads[9].extText());
 }
