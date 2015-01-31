@@ -356,14 +356,19 @@ std::vector<ArticleHeading>::iterator tryCollapsePair(
 }
 
 void foreachReferenceSet(std::vector<ArticleHeading>& groupedHeadings,
-                         std::function<void(ArticleHeadingIter, ArticleHeadingIter)> func)
+                         std::function<void(ArticleHeadingIter, ArticleHeadingIter)> func,
+                         bool dontGroup)
 {
     for (auto it = begin(groupedHeadings); it != end(groupedHeadings);) {
         auto first = it;
         auto ref = first->articleReference();
-        it = std::find_if(it, end(groupedHeadings), [ref](auto& h) {
-            return h.articleReference() != ref;
-        });
+        if (dontGroup) {
+            ++it;
+        } else {
+            it = std::find_if(it, end(groupedHeadings), [ref](auto& h) {
+                return h.articleReference() != ref;
+            });
+        }
         func(first, it);
     }
 }
@@ -378,16 +383,17 @@ void collapseVariants(std::vector<ArticleHeading>& headings) {
                 auto j = tryCollapsePair(first, last);
                 if (j == last)
                     break;
-                toRemove[std::distance(j, end(headings))] = true;
+                toRemove[std::distance(begin(headings), j)] = true;
             }
         }
     });
     // compress the vector of headings and remove the collapsed tail
-    auto last = std::stable_partition(begin(headings), end(headings), [&](auto& h) {
+    std::vector<ArticleHeading> compressed;
+    std::copy_if(begin(headings), end(headings), std::back_inserter(compressed), [&](auto& h) {
         auto idx = &h - &headings[0];
         return !toRemove[idx];
     });
-    headings.erase(last, end(headings));
+    std::swap(headings, compressed);
 }
 
 bool CharInfo::operator==(CharInfo const& other) const {

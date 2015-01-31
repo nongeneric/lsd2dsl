@@ -53,6 +53,7 @@ void collapseVariants(std::vector<ArticleHeading> &headings);
 void groupHeadingsByReference(std::vector<ArticleHeading>& headings);
 typedef std::vector<ArticleHeading>::iterator ArticleHeadingIter;
 void foreachReferenceSet(std::vector<ArticleHeading>& groupedHeadings,
-                         std::function<void(ArticleHeadingIter, ArticleHeadingIter)> func);
+                         std::function<void(ArticleHeadingIter, ArticleHeadingIter)> func,
+                         bool dontGroup = false);
 
 }

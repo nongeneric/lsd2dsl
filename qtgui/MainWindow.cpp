@@ -95,7 +95,7 @@ public:
         return _reader.supported();
     }
     virtual void dump(QString outDir, std::function<void(int)> log) {
-        writeDSL(&_reader, fileName().toStdString(), outDir.toStdString(), [&](int i, std::string) { log(i); });
+        writeDSL(&_reader, fileName().toStdString(), outDir.toStdString(), false, [&](int i, std::string) { log(i); });
     }
 };
 
@@ -345,7 +345,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto topDock = new QDockWidget(this, Qt::FramelessWindowHint);
     topDock->setTitleBarWidget(new QWidget());
     topDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    auto dragDropLabel = new QLabel("Drag and drop LSD/LSA files here");    
+    auto dragDropLabel = new QLabel("Drag and drop LSD/LSA files here");
     dragDropLabel->setMargin(5);
     topDock->setMinimumHeight(30);
     topDock->setMaximumHeight(30);

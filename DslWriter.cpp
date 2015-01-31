@@ -16,7 +16,12 @@ void normalizeArticle(std::u16string& str) {
     }
 }
 
-void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outputPath, std::function<void(int,std::string)> log) {
+void writeDSL(const LSDDictionary* reader,
+              std::string lsdName,
+              std::string outputPath,
+              bool dumb,
+              std::function<void(int,std::string)> log)
+{
     fs::path dslPath = outputPath / fs::path(lsdName).replace_extension("dsl");
     fs::path annoPath = dslPath;
     fs::path iconPath = dslPath;
@@ -63,8 +68,10 @@ void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outp
         throw std::runtime_error("decoding error");
     }
 
-    log(60, "collapsing variant headings");
-    collapseVariants(headings);
+    if (!dumb) {
+        log(60, "collapsing variant headings");
+        collapseVariants(headings);
+    }
 
     log(80, "writing dsl: " + dslPath.string());
     std::fstream dsl(dslPath.string(), std::ios_base::binary | std::ios_base::out);
@@ -96,5 +103,5 @@ void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outp
         normalizeArticle(article);
         dslwrite(article.c_str());
         dslwrite(u"\n");
-    });
+    }, dumb);
 }

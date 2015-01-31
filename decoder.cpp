@@ -35,6 +35,7 @@ int parseLSD(fs::path lsdPath,
              fs::path outputPath,
              int sourceFilter,
              int targetFilter,
+             bool dumb,
              std::ostream& log)
 {
     FileStream ras(lsdPath.string());
@@ -58,7 +59,7 @@ int parseLSD(fs::path lsdPath,
     }
 
     writeDSL(&reader, lsdPath.filename().string(), outputPath.string(),
-             [&](int, std::string s) { log << s << std::endl; });
+             dumb, [&](int, std::string s) { log << s << std::endl; });
 
     return 0;
 }
@@ -66,6 +67,7 @@ int parseLSD(fs::path lsdPath,
 int main(int argc, char* argv[]) {
     std::string lsdPath, lsaPath, outputPath;
     int sourceFilter = -1, targetFilter = -1;
+    bool isDumb;
     po::options_description console_desc("Allowed options");
     try {
         console_desc.add_options()
@@ -78,6 +80,8 @@ int main(int argc, char* argv[]) {
                 "ignore dictionaries with target language != target-filter")
             ("codes", "print supported languages and their codes")
             ("out", po::value<std::string>(&outputPath)->required(), "output directory")
+            ("dumb", "don't combine variant headings and headings "
+                     "referencing the same article")
             ("version", "print version")
             ;
         po::variables_map console_vm;
@@ -94,6 +98,7 @@ int main(int argc, char* argv[]) {
             std::cout << "lsd2dsl version " << g_version << std::endl;
             return 0;
         }
+        isDumb = console_vm.count("dumb");
         po::notify(console_vm);
     } catch(std::exception& e) {
         std::cout << "can't parse program options:\n";
@@ -109,6 +114,7 @@ int main(int argc, char* argv[]) {
                      outputPath,
                      sourceFilter,
                      targetFilter,
+                     isDumb,
                      std::cout);
         }
         if (!lsaPath.empty()) {
