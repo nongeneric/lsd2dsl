@@ -50,7 +50,7 @@ std::string printCode(int val, int len) {
 }
 
 TEST(Tests, bitStreamTest) {
-    uint8_t buf[] = { 0x13, 0xF0, 0xF9, 0x11, 0x12, 0x45 };    
+    uint8_t buf[] = { 0x13, 0xF0, 0xF9, 0x11, 0x12, 0x45 };
     BitStreamAdapter bstr(new InMemoryStream(buf, sizeof(buf)));
     unsigned b1 = bstr.read(3);
     unsigned b2 = bstr.read(4);
@@ -163,7 +163,7 @@ TEST(Tests, unsortedHeadingsTest) {
     ASSERT_TRUE(f.is_open());
     char buf[1280];
     f.read(buf, 1280);
-    BitStreamAdapter bstr(new InMemoryStream(buf, 1390));
+    BitStreamAdapter bstr(new InMemoryStream(buf, 1280));
     LSDDictionary reader(&bstr);
 
     ASSERT_EQ(10, reader.header().entriesCount);
@@ -179,4 +179,45 @@ TEST(Tests, unsortedHeadingsTest) {
     ASSERT_EQ(uR"!(\\3ab{abcd})!", heads[7].extText());
     ASSERT_EQ(uR"!(ab{cd}ef)!", heads[8].extText());
     ASSERT_EQ(uR"!(bb{c\~d}e)!", heads[9].extText());
+}
+
+TEST(Tests, collapseVariantHeadingsTest) {
+    std::fstream f("simple_testdict1/variants_testdict.lsd", std::ios::in | std::ios::binary);
+    ASSERT_TRUE(f.is_open());
+    char buf[1291];
+    f.read(buf, 1291);
+    BitStreamAdapter bstr(new InMemoryStream(buf, 1291));
+    LSDDictionary reader(&bstr);
+
+    ASSERT_EQ(12, reader.header().entriesCount);
+    auto heads = reader.readHeadings();
+    ASSERT_EQ(12, heads.size());
+    collapseVariants(heads);
+    ASSERT_EQ(5, heads.size());
+
+    ASSERT_EQ(u"(1)z", heads[0].extText());
+    ASSERT_EQ(u"bbb(12)34", heads[1].extText());
+    ASSERT_EQ(u"ccc(12)dd(34)", heads[2].extText());
+    ASSERT_EQ(u"ddd(12)e{e(34)}", heads[3].extText());
+    ASSERT_EQ(u"e(ab{12}cd)ef", heads[4].extText());
+}
+
+TEST(Tests, collapseVariantHeadingsTest2) {
+    std::fstream f("simple_testdict1/variants_testdict2.lsd", std::ios::in | std::ios::binary);
+    ASSERT_TRUE(f.is_open());
+    char buf[1306];
+    f.read(buf, 1306);
+    BitStreamAdapter bstr(new InMemoryStream(buf, 1306));
+    LSDDictionary reader(&bstr);
+
+    ASSERT_EQ(6, reader.header().entriesCount);
+    auto heads = reader.readHeadings();
+    ASSERT_EQ(6, heads.size());
+    collapseVariants(heads);
+    //ASSERT_EQ(4, heads.size());
+
+    ASSERT_EQ(u"abc (123)", heads[0].extText());
+    ASSERT_EQ(u"bbb (123) z", heads[1].extText());
+    ASSERT_EQ(u"alternative", heads[2].extText());
+    ASSERT_EQ(u"headings", heads[3].extText());
 }

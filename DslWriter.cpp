@@ -63,6 +63,9 @@ void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outp
         throw std::runtime_error("decoding error");
     }
 
+    log(60, "collapsing variant headings");
+    collapseVariants(headings);
+
     log(80, "writing dsl: " + dslPath.string());
     std::fstream dsl(dslPath.string(), std::ios_base::binary | std::ios_base::out);
     if (!dsl.is_open()) {
@@ -82,13 +85,16 @@ void writeDSL(const LSDDictionary* reader, std::string lsdName, std::string outp
         dslwrite(u"#ICON_FILE\t\"" + toUtf16(iconPath.filename().string()) + u"\"\n");
     }
     dslwrite(u"\n");
-    for (auto& heading : headings) {
-        const std::u16string& headingText = heading.extText();
-        std::u16string article = reader->readArticle(heading.articleReference());
+    foreachReferenceSet(headings, [&](auto first, auto last) {
+        for (auto it = first; it != last; ++it) {
+            const std::u16string& headingText = it->extText();
+            dslwrite(headingText.c_str());
+            dslwrite(u"\n");
+        }
+        dslwrite(u"\t");
+        std::u16string article = reader->readArticle(first->articleReference());
         normalizeArticle(article);
-        dslwrite(headingText.c_str());
-        dslwrite(u"\n\t");
         dslwrite(article.c_str());
         dslwrite(u"\n");
-    }
+    });
 }

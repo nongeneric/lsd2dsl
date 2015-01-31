@@ -43,7 +43,7 @@ int parseLSD(fs::path lsdPath,
     LSDHeader header = reader.header();
     log << "Header:";
     log << "\n  Version:  " << std::hex << header.version << std::dec;
-    log << "\n  Entries:  " << header.entriesCount;
+    log << "\n  Headings: " << header.entriesCount;
     log << "\n  Source:   " << header.sourceLanguage
         << " (" << toUtf8(langFromCode(header.sourceLanguage)) << ")";
     log << "\n  Target:   " << header.targetLanguage
