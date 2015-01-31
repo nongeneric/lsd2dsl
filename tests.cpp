@@ -214,10 +214,10 @@ TEST(Tests, collapseVariantHeadingsTest2) {
     auto heads = reader.readHeadings();
     ASSERT_EQ(6, heads.size());
     collapseVariants(heads);
-    //ASSERT_EQ(4, heads.size());
+    ASSERT_EQ(4, heads.size());
 
     ASSERT_EQ(u"abc (123)", heads[0].extText());
-    ASSERT_EQ(u"bbb (123) z", heads[1].extText());
-    ASSERT_EQ(u"alternative", heads[2].extText());
-    ASSERT_EQ(u"headings", heads[3].extText());
+    ASSERT_EQ(u"alternative", heads[1].extText());
+    ASSERT_EQ(u"headings", heads[2].extText());
+    ASSERT_EQ(u"bbb (123) z", heads[3].extText());
 }

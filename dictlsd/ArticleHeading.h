@@ -19,6 +19,9 @@ struct CharInfo {
     bool operator==(const CharInfo& other) const;
 };
 
+typedef std::vector<CharInfo> CharVec;
+typedef std::function<bool(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right)> Matcher;
+
 class IDictionaryDecoder;
 class ArticleHeading {
     std::vector<CharInfo> _chars;
@@ -29,7 +32,13 @@ class ArticleHeading {
     unsigned _reference;
     void makeExtTextFromChars();
     friend void collapseVariants(std::vector<ArticleHeading> &);
-    friend bool tryCollapse(ArticleHeading&, ArticleHeading&, ArticleHeading&);
+    friend bool tryCollapse(ArticleHeading& variant1,
+                            ArticleHeading& variant2,
+                            ArticleHeading& collapsed,
+                            CharVec const& beforeMiddle,
+                            CharVec const& afterMiddle,
+                            Matcher matcherA,
+                            Matcher matcherB);
 public:
     ArticleHeading();
     bool Load(IDictionaryDecoder& decoder,

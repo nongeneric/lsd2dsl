@@ -146,8 +146,8 @@ unsigned ArticleHeading::articleReference() const {
  * There exists a pattern which helps to combine two headings produced with the variant
  * encoding. The pattern looks like this 'u(' denotes an unsorted parenthesis):
  *
- *   ??? u(   u*n u) ???   ->   ??? s( s|u*n s) ???
- *   ??? u( s|u*n u) ???
+ *   (A)  ??? u(   u*n u) ???   ->   ??? s( s|u*n s) ???
+ *   (B)  ??? u( s|u*n u) ???
  *
  * An optional part can contain an unsorted part as well, so this pattern allow for a
  * combination of sorted/unsorted parts in an optional part (denoted as 's|u*n').
@@ -164,68 +164,179 @@ unsigned ArticleHeading::articleReference() const {
  *   bbb (123) z
  *
  *   bbb {(123) }z  and   bbb {(}123{)} z
- *   sssS uuuuuU s        sssS u sss u Us
+ *   sssS uuuuuU s        sssS u sss u Ss
  *
  * Another two patterns account for these special cases.
  *
- *   ??? Su(   u*n u)  ->  ??? Ss( s|u*n s)
- *   ??? Uu( s|u*n u)
+ *   (C) ??? Uu(   u*n u)  ->  ??? Ss( s|u*n s)
+ *   (D) ??? Su( s|u*n u)
  *
- *   ??? S u(   u*n u)U ???  ->  ??? S s( s|u*n s) S ???
- *   ??? S u( s|u*n u)S ???
+ *   (E) ??? Su(   u*n u)U ???  ->  ??? Ss( s|u*n s)S ???
+ *   (F) ??? Su( s|u*n u)S ???
  *
- * The headings that can't be collapsed by these three rules are left as is.
+ * The headings that can't be collapsed using one of these three rules are left as is.
  *
  */
 
-typedef std::vector<CharInfo> CharVec;
-
-void splitVariantChars(CharVec& chars,
-                       CharVec& left,
-                       CharVec& middle,
-                       CharVec& right)
-{
-    auto m = std::find_if(begin(chars), end(chars), [](CharInfo i) { return !i.escaped && !i.sorted && i.chr == '('; });
-    auto r = std::find_if(m, end(chars), [](CharInfo i) { return !i.escaped && !i.sorted && i.chr == ')'; });
-    if (r != end(chars))
-        ++r;
-    left = CharVec(begin(chars), m);
-    middle = CharVec(m, r);
-    right = CharVec(r, end(chars));
+std::function<bool(CharInfo const&, CharInfo const&)> makePred(bool ignoreSortedness) {
+    return [ignoreSortedness](CharInfo const& l, CharInfo const& r) {
+        return l.escaped == r.escaped
+            && l.chr == r.chr
+            && (l.sorted == r.sorted || ignoreSortedness);
+    };
 }
 
-bool tryCollapse(ArticleHeading& variant1, ArticleHeading& variant2, ArticleHeading& collapsed) {
-    if (variant1.extText().size() < 3 ||
-        variant2.extText().size() < 3)
+CharVec::const_iterator find(CharVec::const_iterator first, CharVec::const_iterator last, CharVec const& subrange) {
+    return std::search(first, last, begin(subrange), end(subrange), makePred(false));
+}
+
+bool isUnsorted(CharInfo const& info) {
+    return !info.sorted;
+}
+
+bool compare(CharVec const& a, CharVec const& b, bool ignoreSortedness) {
+    if (a.size() != b.size())
         return false;
-    auto& v1chars = variant1._chars;
-    auto& v2chars = variant2._chars;
-    CharVec v1left, v1middle, v1right;
-    CharVec v2left, v2middle, v2right;
-    splitVariantChars(v1chars, v1left, v1middle, v1right);
-    splitVariantChars(v2chars, v2left, v2middle, v2right);
-    if (v1middle.empty() || v2middle.empty())
+    return std::equal(begin(a), end(a), begin(b), makePred(ignoreSortedness));
+}
+
+void append(CharVec& vec, CharVec const& another) {
+    std::copy(begin(another), end(another), std::back_inserter(vec));
+}
+
+bool matchB(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right) {
+    auto m = find(begin(chars), end(chars), { { false, false, '(' } });
+    auto r = find(m, end(chars), { { false, false, ')' } } );
+    if (m == end(chars) || r == end(chars))
         return false;
-    if (v1left != v2left || v1right != v2right)
-        return false;
-    if (!(v1middle.front() == v2middle.front() &&
-        v1middle.back() == v2middle.back()))
-        return false;
-    for (size_t i = 1; i < v1middle.size() - 1; ++i) {
-        if (v1middle.at(i).escaped != v2middle.at(i).escaped ||
-            v1middle.at(i).chr != v2middle.at(i).chr)
-            return false;
-    }
-    auto isUnsorted = [](CharInfo info) { return !info.sorted; };
-    bool v1middleIsUnsorted = std::all_of(begin(v1middle), end(v1middle), isUnsorted);
-    bool v2middleIsUnsorted = std::all_of(begin(v2middle), end(v2middle), isUnsorted);
-    if (!(v1middleIsUnsorted || v2middleIsUnsorted))
-        return false;
-    collapsed = v1middleIsUnsorted ? variant2 : variant1;
-    collapsed._chars.at(v1left.size()).sorted = true;
-    collapsed._chars.at(v1left.size() + v1middle.size() - 1).sorted = true;
-    collapsed.makeExtTextFromChars();
+    left = CharVec(begin(chars), m);
+    middle = CharVec(m + 1, r);
+    ++m;
+    ++r;
+    right = CharVec(r, end(chars));
     return true;
+}
+
+bool matchA(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right) {
+    bool isB = matchB(chars, left, middle, right);
+    return isB && std::all_of(begin(middle), end(middle), isUnsorted);
+}
+
+bool matchCD(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right, bool isFirstSpaceSorted) {
+    auto m = find(begin(chars), end(chars), {
+        { isFirstSpaceSorted, false, ' ' }, { false, false, '(' }
+    });
+    auto r = find(m, end(chars), {
+        { false, false, ')' }
+    });
+    if (m == end(chars) || r == end(chars))
+        return false;
+    if (r + 1 != end(chars))
+        return false;
+    left = CharVec(begin(chars), m);
+    std::advance(m, 2);
+    middle = CharVec(m, r);
+    right.clear();
+    return true;
+}
+
+bool matchC(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right) {
+    bool match = matchCD(chars, left, middle, right, false);
+    return match && std::all_of(begin(middle), end(middle), isUnsorted);
+}
+
+bool matchD(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right) {
+    return matchCD(chars, left, middle, right, true);
+}
+
+bool matchEF(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right, bool isLastSpaceSorted) {
+    auto m = find(begin(chars), end(chars), {
+        { true, false, ' ' }, { false, false, '(' }
+    });
+    auto r = find(m, end(chars), {
+        { false, false, ')' }, { isLastSpaceSorted, false, ' ' }
+    });
+    if (m == end(chars) || r == end(chars))
+        return false;
+    left = CharVec(begin(chars), m);
+    std::advance(m, 2);
+    middle = CharVec(m, r);
+    std::advance(r, 2);
+    right = CharVec(r, end(chars));
+    return true;
+}
+
+bool matchE(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right) {
+    bool match = matchEF(chars, left, middle, right, false);
+    return match && std::all_of(begin(middle), end(middle), isUnsorted);
+}
+
+bool matchF(CharVec const& chars, CharVec& left, CharVec& middle, CharVec& right) {
+    return matchEF(chars, left, middle, right, true);
+}
+
+bool tryCollapse(ArticleHeading& variant1,
+                 ArticleHeading& variant2,
+                 ArticleHeading& collapsed,
+                 CharVec const& beforeMiddle,
+                 CharVec const& afterMiddle,
+                 Matcher matcherA,
+                 Matcher matcherB)
+{
+    variant1.extText();
+    variant2.extText();
+    CharVec const& chars1 = variant1._chars;
+    CharVec const& chars2 = variant2._chars;
+    CharVec aleft, amiddle, aright;
+    CharVec bleft, bmiddle, bright;
+    bool match = false;
+    if (matcherA(chars1, aleft, amiddle, aright)) {
+        match = matcherB(chars2, bleft, bmiddle, bright);
+    } else if (matcherB(chars1, bleft, bmiddle, bright)){
+        match = matcherA(chars2, aleft, amiddle, aright);
+    }
+    if (match
+        && compare(aleft, bleft, false)
+        && compare(amiddle, bmiddle, true)
+        && compare(aright, bright, false)) {
+        collapsed = variant1;
+        collapsed._chars.clear();
+        append(collapsed._chars, bleft);
+        append(collapsed._chars, beforeMiddle);
+        append(collapsed._chars, bmiddle);
+        append(collapsed._chars, afterMiddle);
+        append(collapsed._chars, bright);
+        collapsed.makeExtTextFromChars();
+        return true;
+    }
+    return false;
+}
+
+bool tryCollapseAB(ArticleHeading& variant1, ArticleHeading& variant2, ArticleHeading& collapsed) {
+    static CharVec beforeMiddle { { true, false, '(' } };
+    static CharVec afterMiddle { { true, false, ')' } };
+    return tryCollapse(variant1, variant2, collapsed, beforeMiddle, afterMiddle, matchA, matchB);
+}
+
+bool tryCollapseCD(ArticleHeading& variant1, ArticleHeading& variant2, ArticleHeading& collapsed) {
+    static CharVec beforeMiddle {
+        { true, false, ' ' },
+        { true, false, '(' }
+    };
+    static CharVec afterMiddle { { true, false, ')' } };
+    return tryCollapse(variant1, variant2, collapsed, beforeMiddle, afterMiddle, matchC, matchD);
+}
+
+bool tryCollapseEF(ArticleHeading& variant1, ArticleHeading& variant2, ArticleHeading& collapsed) {
+    static CharVec beforeMiddle {
+        { true, false, ' ' },
+        { true, false, '(' }
+    };
+    static CharVec afterMiddle {
+        { true, false, ')' },
+        { true, false, ' ' }
+    };
+    return tryCollapse(variant1, variant2, collapsed, beforeMiddle, afterMiddle, matchE, matchF);
 }
 
 std::vector<ArticleHeading>::iterator tryCollapsePair(
@@ -234,14 +345,15 @@ std::vector<ArticleHeading>::iterator tryCollapsePair(
 {
     for (auto i = first; i != last; ++i) {
         for (auto j = std::next(i); j != last; ++j) {
-            if (tryCollapse(*i, *j, *i)) {
+            if (tryCollapseAB(*i, *j, *i) ||
+                tryCollapseCD(*i, *j, *i) ||
+                tryCollapseEF(*i, *j, *i)) {
                 return j;
             }
         }
     }
     return last;
 }
-
 
 void foreachReferenceSet(std::vector<ArticleHeading>& groupedHeadings,
                          std::function<void(ArticleHeadingIter, ArticleHeadingIter)> func)
