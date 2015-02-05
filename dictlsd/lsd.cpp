@@ -20,7 +20,6 @@ std::vector<ArticleHeading> collectHeadingFromPage(IBitStream& bstr, DictionaryR
         for (size_t idx = 0; idx < page.headingsCount(); ++idx) {
             ArticleHeading h;
             h.Load(*reader.decoder(), bstr, prefix);
-            prefix = h.text();
             res.push_back(h);
         }
     }

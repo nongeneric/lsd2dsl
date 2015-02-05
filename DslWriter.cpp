@@ -94,7 +94,7 @@ void writeDSL(const LSDDictionary* reader,
     dslwrite(u"\n");
     foreachReferenceSet(headings, [&](auto first, auto last) {
         for (auto it = first; it != last; ++it) {
-            const std::u16string& headingText = it->extText();
+            const std::u16string& headingText = it->dslText();
             dslwrite(headingText.c_str());
             dslwrite(u"\n");
         }

@@ -134,13 +134,13 @@ TEST(Tests, userLsdHeadingsTest) {
     ASSERT_EQ(7, page.headingsCount());
 
     auto heads = reader.readHeadings();
-    ASSERT_EQ(u"Abc", heads[0].extText());
-    ASSERT_EQ(u"Abcde", heads[1].extText());
-    ASSERT_EQ(u"Abcdefg", heads[2].extText());
-    ASSERT_EQ(u"Abcdefg123", heads[3].extText());
-    ASSERT_EQ(u"Abcdefg123ZzzzZ", heads[4].extText());
-    ASSERT_EQ(u"anotherone", heads[5].extText());
-    ASSERT_EQ(u"Zzxx", heads[6].extText());
+    ASSERT_EQ(u"Abc", heads[0].dslText());
+    ASSERT_EQ(u"Abcde", heads[1].dslText());
+    ASSERT_EQ(u"Abcdefg", heads[2].dslText());
+    ASSERT_EQ(u"Abcdefg123", heads[3].dslText());
+    ASSERT_EQ(u"Abcdefg123ZzzzZ", heads[4].dslText());
+    ASSERT_EQ(u"anotherone", heads[5].dslText());
+    ASSERT_EQ(u"Zzxx", heads[6].dslText());
 }
 
 TEST(Tests, extHeadingsTest) {
@@ -154,8 +154,8 @@ TEST(Tests, extHeadingsTest) {
     ASSERT_EQ(2, reader.header().entriesCount);
 
     auto heads = reader.readHeadings();
-    ASSERT_EQ(u"Abc {[sub]}e{[/sub]}", heads[0].extText());
-    ASSERT_EQ(u"bipolar {(}affective{)} disorder", heads[1].extText());
+    ASSERT_EQ(u"Abc {[sub]}e{[/sub]}", heads[0].dslText());
+    ASSERT_EQ(u"bipolar {(}affective{)} disorder", heads[1].dslText());
 }
 
 TEST(Tests, unsortedHeadingsTest) {
@@ -169,16 +169,16 @@ TEST(Tests, unsortedHeadingsTest) {
     ASSERT_EQ(10, reader.header().entriesCount);
 
     auto heads = reader.readHeadings();
-    ASSERT_EQ(uR"!(\[\\{ab}\])!", heads[0].extText());
-    ASSERT_EQ(uR"!(\[{ab}\])!", heads[1].extText());
-    ASSERT_EQ(uR"!(\[a\~b{cd}ef\])!", heads[2].extText());
-    ASSERT_EQ(uR"!(\[ab\{{cd}ef\])!", heads[3].extText());
-    ASSERT_EQ(uR"!(\[ab{cd}ef\])!", heads[4].extText());
-    ASSERT_EQ(uR"!(\\1ab{cd}\])!", heads[5].extText());
-    ASSERT_EQ(uR"!(\\2ab{(cd)}\])!", heads[6].extText());
-    ASSERT_EQ(uR"!(\\3ab{abcd})!", heads[7].extText());
-    ASSERT_EQ(uR"!(ab{cd}ef)!", heads[8].extText());
-    ASSERT_EQ(uR"!(bb{c\~d}e)!", heads[9].extText());
+    ASSERT_EQ(uR"!(\[\\{ab}\])!", heads[0].dslText());
+    ASSERT_EQ(uR"!(\[{ab}\])!", heads[1].dslText());
+    ASSERT_EQ(uR"!(\[a\~b{cd}ef\])!", heads[2].dslText());
+    ASSERT_EQ(uR"!(\[ab\{{cd}ef\])!", heads[3].dslText());
+    ASSERT_EQ(uR"!(\[ab{cd}ef\])!", heads[4].dslText());
+    ASSERT_EQ(uR"!(\\1ab{cd}\])!", heads[5].dslText());
+    ASSERT_EQ(uR"!(\\2ab{(cd)}\])!", heads[6].dslText());
+    ASSERT_EQ(uR"!(\\3ab{abcd})!", heads[7].dslText());
+    ASSERT_EQ(uR"!(ab{cd}ef)!", heads[8].dslText());
+    ASSERT_EQ(uR"!(bb{c\~d}e)!", heads[9].dslText());
 }
 
 TEST(Tests, collapseVariantHeadingsTest) {
@@ -195,11 +195,11 @@ TEST(Tests, collapseVariantHeadingsTest) {
     collapseVariants(heads);
     ASSERT_EQ(5, heads.size());
 
-    ASSERT_EQ(u"(1)z", heads[0].extText());
-    ASSERT_EQ(u"bbb(12)34", heads[1].extText());
-    ASSERT_EQ(u"ccc(12)dd(34)", heads[2].extText());
-    ASSERT_EQ(u"ddd(12)e{e(34)}", heads[3].extText());
-    ASSERT_EQ(u"e(ab{12}cd)ef", heads[4].extText());
+    ASSERT_EQ(u"(1)z", heads[0].dslText());
+    ASSERT_EQ(u"bbb(12)34", heads[1].dslText());
+    ASSERT_EQ(u"ccc(12)dd(34)", heads[2].dslText());
+    ASSERT_EQ(u"ddd(12)e{e(34)}", heads[3].dslText());
+    ASSERT_EQ(u"e(ab{12}cd)ef", heads[4].dslText());
 }
 
 TEST(Tests, collapseVariantHeadingsTest2) {
@@ -216,8 +216,8 @@ TEST(Tests, collapseVariantHeadingsTest2) {
     collapseVariants(heads);
     ASSERT_EQ(4, heads.size());
 
-    ASSERT_EQ(u"abc (123)", heads[0].extText());
-    ASSERT_EQ(u"alternative", heads[1].extText());
-    ASSERT_EQ(u"headings", heads[2].extText());
-    ASSERT_EQ(u"bbb (123) z", heads[3].extText());
+    ASSERT_EQ(u"abc (123)", heads[0].dslText());
+    ASSERT_EQ(u"alternative", heads[1].dslText());
+    ASSERT_EQ(u"headings", heads[2].dslText());
+    ASSERT_EQ(u"bbb (123) z", heads[3].dslText());
 }

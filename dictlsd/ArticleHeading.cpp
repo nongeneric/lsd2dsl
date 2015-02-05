@@ -6,82 +6,26 @@
 #include <map>
 #include <algorithm>
 #include <list>
+#include <memory>
 
 namespace dictlsd {
 
-void ArticleHeading::makeExtTextFromChars() {
-    _extText.clear();
-    bool group = false;
-    for (CharInfo& info : _chars) {
-        if (group && info.sorted) {
-            _extText += u"}";
-            group = false;
-        } else if (!group && !info.sorted) {
-            _extText += u"{";
-            group = true;
-        }
-        if (info.escaped)
-            _extText += '\\';
-        _extText += info.chr;
-    }
-    if (group) {
-        _extText += u"}";
-    }
-}
-
-ArticleHeading::ArticleHeading()
-    : _hasExtText(false) { }
-
-bool ArticleHeading::Load(
-        IDictionaryDecoder &decoder,
-        IBitStream &bstr,
-        std::u16string &knownPrefix)
-{
-    _text.clear();
-
-    unsigned prefixLen;
-    decoder.DecodePrefixLen(bstr, prefixLen);
-    unsigned postfixLen;
-    decoder.DecodePostfixLen(bstr, postfixLen);
-    decoder.DecodeHeading(&bstr, postfixLen, _text);
-    decoder.ReadReference2(bstr, _reference);
-    _text = knownPrefix.substr(0, prefixLen) + _text;
-    if (bstr.read(1)) {
-        unsigned len = bstr.read(8);
-        for (unsigned i = 0; i < len; ++i) {
-            unsigned char idx = bstr.read(8);
-            char16_t chr = bstr.read(16);
-            _pairs.push_back({idx, chr});
-        }
-    }
-    return true;
-}
-
-std::u16string ArticleHeading::text() const {
-    return _text;
-}
-
-std::u16string ArticleHeading::extText() {
-    if (_hasExtText)
-        return _extText;
-
-    if (_pairs.empty())
-        return _text;
-
-    std::deque<char16_t> text(begin(_text), end(_text));
+void ArticleHeading::makeCharsFromPairs(std::deque<ExtPair>& pairs, std::u16string const& text) {
+    std::deque<char16_t> textDeque(begin(text), end(text));
     size_t idx = 0;
+    _chars.reserve(pairs.size());
     auto nextChar = [&](char16_t& chr) {
-        if (!_pairs.empty() && _pairs.front().idx == idx) {
-            chr = _pairs.front().chr;
-            _pairs.pop_front();
+        if (!pairs.empty() && pairs.front().idx == idx) {
+            chr = pairs.front().chr;
+            pairs.pop_front();
             return false;
         }
-        chr = text.front();
-        text.pop_front();
+        chr = textDeque.front();
+        textDeque.pop_front();
         return true;
     };
 
-    while (!text.empty() || !_pairs.empty()) {
+    while (!textDeque.empty() || !pairs.empty()) {
         CharInfo info;
         info.escaped = false;
         info.sorted = nextChar(info.chr);
@@ -93,11 +37,65 @@ std::u16string ArticleHeading::extText() {
         _chars.push_back(info);
         idx++;
     }
+}
 
-    makeExtTextFromChars();
+bool ArticleHeading::Load(
+        IDictionaryDecoder &decoder,
+        IBitStream &bstr,
+        std::u16string &knownPrefix)
+{
+    std::u16string text;
+    std::deque<ExtPair> pairs;
 
-    _hasExtText = true;
-    return _extText;
+    unsigned prefixLen;
+    decoder.DecodePrefixLen(bstr, prefixLen);
+    unsigned postfixLen;
+    decoder.DecodePostfixLen(bstr, postfixLen);
+    decoder.DecodeHeading(&bstr, postfixLen, text);
+    decoder.ReadReference2(bstr, _reference);
+    knownPrefix = knownPrefix.substr(0, prefixLen) + text;
+    if (bstr.read(1)) {
+        unsigned len = bstr.read(8);
+        for (unsigned i = 0; i < len; ++i) {
+            unsigned char idx = bstr.read(8);
+            char16_t chr = bstr.read(16);
+            pairs.push_back({idx, chr});
+        }
+    }
+    makeCharsFromPairs(pairs, knownPrefix);
+    return true;
+}
+
+std::u16string ArticleHeading::text() const {
+    std::u16string text;
+    for (auto& info : _chars) {
+        if (info.sorted) {
+            text += info.chr;
+        }
+    }
+    return text;
+}
+
+std::u16string ArticleHeading::dslText() {
+    std::u16string extText;
+    extText.clear();
+    bool group = false;
+    for (CharInfo& info : _chars) {
+        if (group && info.sorted) {
+            extText += u"}";
+            group = false;
+        } else if (!group && !info.sorted) {
+            extText += u"{";
+            group = true;
+        }
+        if (info.escaped)
+            extText += '\\';
+        extText += info.chr;
+    }
+    if (group) {
+        extText += u"}";
+    }
+    return extText;
 }
 
 unsigned ArticleHeading::articleReference() const {
@@ -283,8 +281,8 @@ bool tryCollapse(ArticleHeading& variant1,
                  Matcher matcherA,
                  Matcher matcherB)
 {
-    variant1.extText();
-    variant2.extText();
+    variant1.dslText();
+    variant2.dslText();
     CharVec const& chars1 = variant1._chars;
     CharVec const& chars2 = variant2._chars;
     CharVec aleft, amiddle, aright;
@@ -298,7 +296,8 @@ bool tryCollapse(ArticleHeading& variant1,
     if (match
         && compare(aleft, bleft, false)
         && compare(amiddle, bmiddle, true)
-        && compare(aright, bright, false)) {
+        && compare(aright, bright, false))
+    {
         collapsed = variant1;
         collapsed._chars.clear();
         append(collapsed._chars, bleft);
@@ -306,7 +305,6 @@ bool tryCollapse(ArticleHeading& variant1,
         append(collapsed._chars, bmiddle);
         append(collapsed._chars, afterMiddle);
         append(collapsed._chars, bright);
-        collapsed.makeExtTextFromChars();
         return true;
     }
     return false;
@@ -399,7 +397,7 @@ void collapseVariants(std::vector<ArticleHeading>& headings) {
 bool CharInfo::operator==(CharInfo const& other) const {
     return sorted == other.sorted
         && escaped == other.escaped
-        && chr == chr;
+        && chr == other.chr;
 }
 
 void groupHeadingsByReference(std::vector<ArticleHeading>& vec) {

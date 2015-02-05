@@ -25,12 +25,9 @@ typedef std::function<bool(CharVec const& chars, CharVec& left, CharVec& middle,
 class IDictionaryDecoder;
 class ArticleHeading {
     std::vector<CharInfo> _chars;
-    std::deque<ExtPair> _pairs;
-    std::u16string _text;
-    bool _hasExtText;
-    std::u16string _extText;
     unsigned _reference;
     void makeExtTextFromChars();
+    void makeCharsFromPairs(std::deque<ExtPair>& pairs, std::u16string const& text);
     friend void collapseVariants(std::vector<ArticleHeading> &);
     friend bool tryCollapse(ArticleHeading& variant1,
                             ArticleHeading& variant2,
@@ -40,12 +37,11 @@ class ArticleHeading {
                             Matcher matcherA,
                             Matcher matcherB);
 public:
-    ArticleHeading();
     bool Load(IDictionaryDecoder& decoder,
               IBitStream& bstr,
               std::u16string& knownPrefix);
     std::u16string text() const;
-    std::u16string extText();
+    std::u16string dslText();
     unsigned articleReference() const;
 };
 
