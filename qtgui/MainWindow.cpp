@@ -311,8 +311,9 @@ void MainWindow::convert(bool selectedOnly) {
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    setMinimumWidth(1200);
-    setMinimumHeight(800);
+    setMinimumWidth(500);
+    setMinimumHeight(250);
+    resize(800, 400);
 
     setWindowTitle(QString("lsd2dsl - %1").arg(g_version));
 
@@ -336,7 +337,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto rightDock = new QDockWidget(this);
     rightDock->setTitleBarWidget(new QWidget());
     auto rightPanel = new QWidget(this);
-    rightPanel->setMinimumWidth(300);
+    rightPanel->setMinimumWidth(250);
     rightPanel->setLayout(vbox);
     rightDock->setWidget(rightPanel);
     rightDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
