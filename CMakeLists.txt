@@ -1,6 +1,8 @@
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required (VERSION 3.1)
 
 project(lsd2dsl)
+
+set(CMAKE_CXX_STANDARD 14)
 
 set(Boost_USE_STATIC_LIBS       OFF)
 set(Boost_USE_MULTITHREADED      ON)
@@ -10,11 +12,13 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 option(CMAKE_RELEASE "CMAKE_RELEASE" FALSE)
 
+set(CMAKE_CXX_FLAGS "-Werror=return-type -Wall -Wextra -Werror -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
+
 if(CMAKE_RELEASE)
     add_definitions(-DNDEBUG)
-    set(CMAKE_CXX_FLAGS "-std=c++1y -O3 -Werror=return-type -Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
 else()
-    set(CMAKE_CXX_FLAGS "-std=c++1y -O0 -g -Werror=return-type -Wall ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-O0 -g ${CMAKE_CXX_FLAGS}")
 endif()
 
 add_subdirectory(dictlsd)
