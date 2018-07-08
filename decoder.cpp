@@ -51,6 +51,15 @@ int parseLSD(fs::path lsdPath,
         << " (" << toUtf8(langFromCode(header.targetLanguage)) << ")";
     log << "\n  Name:     " << toUtf8(reader.name()) << std::endl;
 
+    if (!reader.supported()) {
+        log << "Unsupported dictionary version\n"
+            "Only the following versions are implemented\n"
+            "  User: 142001, 152001\n"
+            "  System: 141004, 151005\n"
+            "  Abbreviation: 145001, 155001\n";
+        return 1;
+    }
+
     if ((sourceFilter != -1 && sourceFilter != header.sourceLanguage) ||
         (targetFilter != -1 && targetFilter != header.targetLanguage))
     {
@@ -108,6 +117,7 @@ int main(int argc, char* argv[]) {
     }
 
     try {
+        outputPath = fs::canonical(outputPath).string();
         fs::create_directories(outputPath);
         if (!lsdPath.empty()) {
             parseLSD(lsdPath,
