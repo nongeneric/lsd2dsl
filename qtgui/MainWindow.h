@@ -18,7 +18,9 @@ class MainWindow : public QMainWindow {
     QProgressBar* _dictProgress;
     QLabel* _currentDict;
     QSortFilterProxyModel* _proxyModel;
+    QLabel* _selectedLabel;
     void convert(bool selectedOnly);
+    void updateConvertSelected();
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();

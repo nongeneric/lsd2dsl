@@ -1,6 +1,15 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.11)
 
 project(lsd2dsl)
+
+set(lsd2dsl_VERSION "0.3.1")
+
+configure_file (
+    "${lsd2dsl_SOURCE_DIR}/version.h.in"
+    "${lsd2dsl_BINARY_DIR}/version.h"
+)
+
+include_directories("${lsd2dsl_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -18,7 +27,7 @@ if(CMAKE_RELEASE)
     add_definitions(-DNDEBUG)
     set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
 else()
-    set(CMAKE_CXX_FLAGS "-O0 -g ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-O0 -ggdb ${CMAKE_CXX_FLAGS}")
 endif()
 
 add_subdirectory(dictlsd)
@@ -41,3 +50,39 @@ endif()
 
 target_link_libraries(lsd2dsl dictlsd zip)
 add_subdirectory(qtgui)
+
+if(WIN32)
+    install(TARGETS lsd2dsl RUNTIME DESTINATION .)
+
+    include(GetPrerequisites)
+
+    set(MINGW_ROOT /usr/i686-w64-mingw32/sys-root/mingw)
+
+    set(gp_tool objdump)
+    get_prerequisites("${lsd2dsl_BINARY_DIR}/lsd2dsl.exe" prereq 0 1 "" "${MINGW_ROOT}/bin")
+    get_prerequisites("${qtgui_BINARY_DIR}/lsd2dsl-qtgui.exe" prereq 0 1 "" "${MINGW_ROOT}/bin")
+    get_prerequisites("${MINGW_ROOT}/lib/qt5/plugins/platforms/qwindows.dll" prereq 0 1 "" "${MINGW_ROOT}/bin")
+    foreach(dll IN LISTS prereq)
+        set(path "/usr/i686-w64-mingw32/sys-root/mingw/bin/${dll}")
+        if(EXISTS ${path})
+            install(FILES ${path} DESTINATION .)
+        endif()
+    endforeach()
+
+    install(FILES
+        ${MINGW_ROOT}/lib/qt5/plugins/platforms/qwindows.dll
+        DESTINATION platforms
+    )
+
+    install(CODE "
+        file(GLOB_RECURSE files \"\${CMAKE_INSTALL_PREFIX}/*dll\"
+                                \"\${CMAKE_INSTALL_PREFIX}/*exe\")
+        foreach(binary IN LISTS files)
+            execute_process(COMMAND mingw-strip \"-s\" \${binary})
+        endforeach()
+    ")
+
+    set(CPACK_PACKAGE_FILE_NAME "lsd2dsl-${lsd2dsl_VERSION}-win32")
+    set(CPACK_GENERATOR "ZIP")
+    include(CPack)
+endif()

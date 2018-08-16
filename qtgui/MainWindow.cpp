@@ -241,6 +241,12 @@ public slots:
     }
 };
 
+void MainWindow::updateConvertSelected() {
+    int count = _tableView->selectionModel()->selectedRows().size();
+    _convertSelectedButton->setEnabled(count > 0);
+    _selectedLabel->setText(QString::number(count));
+}
+
 void MainWindow::convert(bool selectedOnly) {
     QString dir = QFileDialog::getExistingDirectory(this, "Select directory to save DSL");
     if (dir.isEmpty())
@@ -284,7 +290,7 @@ void MainWindow::convert(bool selectedOnly) {
     auto enable = [=]{
         _tableView->setEnabled(true);
         _convertAllButton->setEnabled(true);
-        _convertSelectedButton->setEnabled(true);
+        updateConvertSelected();
     };
     connect(converter, &ConvertWithProgress::done, this, [=] {
         _currentDict->setText("");
@@ -319,9 +325,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     auto form = new QFormLayout(this);
     auto totalLabel = new QLabel("0");
-    auto selectedLabel = new QLabel("0");
+    _selectedLabel = new QLabel("0");
     form->addRow("Total:", totalLabel);
-    form->addRow("Selected:", selectedLabel);
+    form->addRow("Selected:", _selectedLabel);
 
     auto vbox = new QVBoxLayout(this);
     auto rightPanelWidget = new QWidget(this);
@@ -369,9 +375,7 @@ MainWindow::MainWindow(QWidget *parent)
     _convertSelectedButton->setEnabled(false);
 
     connect(_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, [=] {
-        int count = _tableView->selectionModel()->selectedRows().size();
-        _convertSelectedButton->setEnabled(count > 0);
-        selectedLabel->setText(QString::number(count));
+        updateConvertSelected();
     });
     auto updateRowCount = [=]() {
         totalLabel->setText(QString::number(_model->rowCount(QModelIndex())));

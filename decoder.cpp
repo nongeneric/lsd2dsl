@@ -67,8 +67,10 @@ int parseLSD(fs::path lsdPath,
         return 0;
     }
 
-    writeDSL(&reader, lsdPath.filename().string(), outputPath.string(),
-             dumb, [&](int, std::string s) { log << s << std::endl; });
+    if (!outputPath.empty()) {
+        writeDSL(&reader, lsdPath.filename().string(), outputPath.string(),
+                 dumb, [&](int, std::string s) { log << s << std::endl; });
+    }
 
     return 0;
 }
@@ -88,7 +90,7 @@ int main(int argc, char* argv[]) {
             ("target-filter", po::value<int>(&targetFilter),
                 "ignore dictionaries with target language != target-filter")
             ("codes", "print supported languages and their codes")
-            ("out", po::value<std::string>(&outputPath)->required(), "output directory")
+            ("out", po::value<std::string>(&outputPath), "output directory")
             ("dumb", "don't combine variant headings and headings "
                      "referencing the same article")
             ("version", "print version")
@@ -116,9 +118,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    if (lsdPath.empty() && lsaPath.empty()) {
+        std::cout << console_desc;
+        return 0;
+    }
+
     try {
-        outputPath = fs::canonical(outputPath).string();
-        fs::create_directories(outputPath);
+        if (!outputPath.empty()) {
+            fs::create_directories(outputPath);
+            outputPath = fs::canonical(outputPath).string();
+        }
         if (!lsdPath.empty()) {
             parseLSD(lsdPath,
                      outputPath,
