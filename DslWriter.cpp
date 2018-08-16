@@ -28,6 +28,7 @@ void writeDSL(const LSDDictionary* reader,
     fs::path overlayPath = fs::path(dslPath).string() + ".files.zip";
     annoPath.replace_extension("ann");
     iconPath.replace_extension("bmp");
+
     auto overlayHeadings = reader->readOverlayHeadings();
     if (overlayHeadings.size() > 0) {
         log(5, str(boost::format("decoding overlay (%1% entries): %2%") % overlayHeadings.size() % overlayPath.string()));

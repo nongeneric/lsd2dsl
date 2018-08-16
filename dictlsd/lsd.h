@@ -20,7 +20,7 @@ struct LSDHeader {
     uint32_t articlesOffset;
     uint32_t pagesOffset;
     uint32_t unk1;
-    uint16_t unk2;
+    uint16_t lastPage;
     uint16_t unk3;
     uint16_t sourceLanguage;
     uint16_t targetLanguage;

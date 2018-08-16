@@ -40,6 +40,8 @@ DictionaryReader::DictionaryReader(IBitStream *bstr)
         _decoder.reset(new AbbreviationDictionaryDecoder());
     } else if (_header.version == 0x151005) {
         _decoder.reset(new SystemDictionaryDecoder(true));
+    } else if (_header.version == 0x120001 || _header.version == 0x110001) {
+        _decoder.reset(new UserDictionaryDecoder(false));
     } else {
         _isSupported = false;
         return;
@@ -51,16 +53,20 @@ DictionaryReader::DictionaryReader(IBitStream *bstr)
     auto firstHeading = readUnicodeString(bstr, bstr->read(8), false); (void)firstHeading;
     auto lastHeading = readUnicodeString(bstr, bstr->read(8), false); (void)lastHeading;    
     auto capitals = readUnicodeString(bstr, reverse32(bstr->read(32)), false); (void)capitals;
-    uint16_t iconLen;
-    bstr->readSome(&iconLen, 2);
-    _icon.resize(iconLen);
-    bstr->readSome(&_icon[0], iconLen);
+    if (_header.version > 0x120000) {
+        uint16_t iconLen;
+        bstr->readSome(&iconLen, 2);
+        _icon.resize(iconLen);
+        bstr->readSome(&_icon[0], iconLen);
+    }
     if (_header.version > 0x140000) {
         bstr->seek(bstr->tell() + 4); // checksum
     }
     bstr->readSome(&_pagesEnd, 4);
     bstr->readSome(&_overlayData, 4);
-    if (_header.version < 0x140000) {
+    if (_header.version < 0x120000) {
+        _overlayData = -1;
+    } else if (_header.version < 0x140000) {
         _overlayData = 0; // headings use absolute offsets
     }
 }
@@ -89,7 +95,7 @@ std::u16string DictionaryReader::annotation() const {
 }
 
 unsigned DictionaryReader::pagesCount() const {
-    return (_pagesEnd - _header.pagesOffset) / 512;
+    return _header.lastPage + 1;
 }
 
 unsigned DictionaryReader::overlayHeadingsOffset() const {

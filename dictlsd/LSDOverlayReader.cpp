@@ -51,6 +51,9 @@ LSDOverlayReader::LSDOverlayReader(IBitStream* bstr,
 { }
 
 std::vector<OverlayHeading> LSDOverlayReader::readHeadings() {
+    auto offset = _reader->overlayDataOffset();
+    if (offset == -1u)
+        return {};
     _bstr->seek(_reader->overlayHeadingsOffset());
     _bstr->readSome(&_entriesCount, 4);
     std::vector<OverlayHeading> entries;

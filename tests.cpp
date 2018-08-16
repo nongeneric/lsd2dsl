@@ -132,11 +132,9 @@ void assertFilesAreEqual(std::string path1, std::string path2) {
 }
 
 TEST(Tests, userLsdHeadingsTest) {
-    auto files = {
-        "simple_testdict1/headingsTestDict1.lsd",
-        "simple_testdict1/headingsTestDict1_x3.lsd",
-    };
-    for (auto path : files) {
+    for (auto path : {"simple_testdict1/headingsTestDict1_12.lsd",
+                      "simple_testdict1/headingsTestDict1_x3.lsd",
+                      "simple_testdict1/headingsTestDict1_x5.lsd"}) {
         auto buf = read_all_bytes(path);
         BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
         LSDDictionary reader(&bstr);
@@ -159,22 +157,26 @@ TEST(Tests, userLsdHeadingsTest) {
     }
 }
 
-TEST(Tests, x3overlayTest) {
-    auto buf = read_all_bytes("simple_testdict1/overlay_x3.lsd");
-    BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
-    LSDDictionary reader(&bstr);
-    auto headings = reader.readOverlayHeadings();
-    ASSERT_EQ(2, headings.size());
-    ASSERT_EQ(u"image1.bmp", headings[0].name);
-    ASSERT_EQ(u"image2.bmp", headings[1].name);
+TEST(Tests, overlayTest) {
+    for (auto path : {"simple_testdict1/overlay_12.lsd",
+                      "simple_testdict1/overlay_x3.lsd",
+                      "simple_testdict1/overlay_x5.lsd"}) {
+        auto buf = read_all_bytes(path);
+        BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
+        LSDDictionary reader(&bstr);
+        auto headings = reader.readOverlayHeadings();
+        ASSERT_EQ(2, headings.size());
+        ASSERT_EQ(u"image1.bmp", headings[0].name);
+        ASSERT_EQ(u"image2.bmp", headings[1].name);
 
-    auto entry1 = reader.readOverlayEntry(headings[0]);
-    auto entry2 = reader.readOverlayEntry(headings[1]);
+        auto entry1 = reader.readOverlayEntry(headings[0]);
+        auto entry2 = reader.readOverlayEntry(headings[1]);
 
-    auto image1 = read_all_bytes("simple_testdict1/image1.bmp");
-    auto image2 = read_all_bytes("simple_testdict1/image2.bmp");
-    ASSERT_EQ(image1, entry1);
-    ASSERT_EQ(image2, entry2);
+        auto image1 = read_all_bytes("simple_testdict1/image1.bmp");
+        auto image2 = read_all_bytes("simple_testdict1/image2.bmp");
+        ASSERT_EQ(image1, entry1);
+        ASSERT_EQ(image2, entry2);
+    }
 }
 
 TEST(Tests, extHeadingsTest) {
