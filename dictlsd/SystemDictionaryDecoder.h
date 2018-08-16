@@ -21,6 +21,13 @@ class SystemDictionaryDecoder : public IDictionaryDecoder {
     bool _xoring;
 public:
     SystemDictionaryDecoder(bool xoring);
+    static bool DecodeArticle(
+        IBitStream *bstr,
+        std::u16string &res,
+        std::u16string const& prefix,
+        bool xoring,
+        LenTable& ltArticles,
+        std::vector<char32_t>& articleSymbols);
     virtual void Read(IBitStream* bstr) override;
     virtual void DecodeHeading(IBitStream* bstr, unsigned len, std::u16string& body) override;
     virtual bool DecodeArticle(IBitStream* bstr, std::u16string& body) override;

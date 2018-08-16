@@ -18,7 +18,9 @@ class UserDictionaryDecoder : public IDictionaryDecoder {
     LenTable _ltPostfixLengths;
     unsigned _huffman1Number;
     unsigned _huffman2Number;
+    bool _legacySystem;
 public:
+    UserDictionaryDecoder(bool legacySystem);
     static bool DecodeArticle(
         IBitStream *bstr,
         std::u16string &res,

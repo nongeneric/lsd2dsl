@@ -22,6 +22,19 @@ using namespace dictlsd;
 
 static_assert(sizeof(unsigned) == 4, "");
 
+std::vector<uint8_t> read_all_bytes(const char* path) {
+    auto f = fopen(path, "r");
+    if (!f)
+        throw std::runtime_error("can't open file");
+    fseek(f, 0, SEEK_END);
+    auto filesize = ftell(f);
+    std::vector<uint8_t> res(filesize);
+    fseek(f, 0, SEEK_SET);
+    fread(&res[0], 1, res.size(), f);
+    fclose(f);
+    return res;
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
@@ -119,28 +132,49 @@ void assertFilesAreEqual(std::string path1, std::string path2) {
 }
 
 TEST(Tests, userLsdHeadingsTest) {
-    std::fstream f("simple_testdict1/headingsTestDict1.lsd", std::ios::in | std::ios::binary);
-    ASSERT_TRUE(f.is_open());
-    char buf[1447];
-    f.read(buf, 1447);
-    BitStreamAdapter bstr(new InMemoryStream(buf, 1447));
+    auto files = {
+        "simple_testdict1/headingsTestDict1.lsd",
+        "simple_testdict1/headingsTestDict1_x3.lsd",
+    };
+    for (auto path : files) {
+        auto buf = read_all_bytes(path);
+        BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
+        LSDDictionary reader(&bstr);
+        LSDHeader header = reader.header();
+        bstr.seek(header.pagesOffset);
+
+        CachePage page;
+        page.loadHeader(bstr);
+        ASSERT_EQ(true, page.isLeaf());
+        ASSERT_EQ(7, page.headingsCount());
+
+        auto heads = reader.readHeadings();
+        ASSERT_EQ(u"Abc", heads[0].dslText());
+        ASSERT_EQ(u"Abcde", heads[1].dslText());
+        ASSERT_EQ(u"Abcdefg", heads[2].dslText());
+        ASSERT_EQ(u"Abcdefg123", heads[3].dslText());
+        ASSERT_EQ(u"Abcdefg123ZzzzZ", heads[4].dslText());
+        ASSERT_EQ(u"anotherone", heads[5].dslText());
+        ASSERT_EQ(u"Zzxx", heads[6].dslText());
+    }
+}
+
+TEST(Tests, x3overlayTest) {
+    auto buf = read_all_bytes("simple_testdict1/overlay_x3.lsd");
+    BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
     LSDDictionary reader(&bstr);
-    LSDHeader header = reader.header();
-    bstr.seek(header.pagesOffset);
+    auto headings = reader.readOverlayHeadings();
+    ASSERT_EQ(2, headings.size());
+    ASSERT_EQ(u"image1.bmp", headings[0].name);
+    ASSERT_EQ(u"image2.bmp", headings[1].name);
 
-    CachePage page;
-    page.loadHeader(bstr);
-    ASSERT_EQ(true, page.isLeaf());
-    ASSERT_EQ(7, page.headingsCount());
+    auto entry1 = reader.readOverlayEntry(headings[0]);
+    auto entry2 = reader.readOverlayEntry(headings[1]);
 
-    auto heads = reader.readHeadings();
-    ASSERT_EQ(u"Abc", heads[0].dslText());
-    ASSERT_EQ(u"Abcde", heads[1].dslText());
-    ASSERT_EQ(u"Abcdefg", heads[2].dslText());
-    ASSERT_EQ(u"Abcdefg123", heads[3].dslText());
-    ASSERT_EQ(u"Abcdefg123ZzzzZ", heads[4].dslText());
-    ASSERT_EQ(u"anotherone", heads[5].dslText());
-    ASSERT_EQ(u"Zzxx", heads[6].dslText());
+    auto image1 = read_all_bytes("simple_testdict1/image1.bmp");
+    auto image2 = read_all_bytes("simple_testdict1/image2.bmp");
+    ASSERT_EQ(image1, entry1);
+    ASSERT_EQ(image2, entry2);
 }
 
 TEST(Tests, extHeadingsTest) {

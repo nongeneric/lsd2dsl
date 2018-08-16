@@ -7,6 +7,44 @@ namespace dictlsd {
 SystemDictionaryDecoder::SystemDictionaryDecoder(bool xoring)
     : _xoring(xoring) { }
 
+bool SystemDictionaryDecoder::DecodeArticle(
+        IBitStream *bstr,
+        std::u16string &res,
+        std::u16string const& prefix,
+        bool xoring,
+        LenTable& ltArticles,
+        std::vector<char32_t>& articleSymbols)
+{
+    XoringStreamAdapter adapter(bstr);
+    if (xoring) {
+        bstr = &adapter;
+    }
+    unsigned maxlen = bstr->read(16);
+    if (maxlen == 0xFFFF) {
+        maxlen = bstr->read(32);
+    }
+    res.clear();
+    unsigned symIdx;
+    while ((unsigned)res.length() < maxlen) {
+        ltArticles.Decode(*bstr, symIdx);
+        unsigned sym = articleSymbols.at(symIdx);
+        if (sym - 0x80 >= 0x10000) {
+            if (sym <= 0x3F) {
+                unsigned startIdx = bstr->read(BitLength(prefix.length()));
+                unsigned len = sym + 3;
+                res += prefix.substr(startIdx, len);
+            } else {
+                unsigned startIdx = bstr->read(BitLength(maxlen));
+                unsigned len = sym - 0x3d;
+                res += res.substr(startIdx, len);
+            }
+        } else {
+            res += (char16_t)(sym - 0x80);
+        }
+    }
+    return true;
+}
+
 void SystemDictionaryDecoder::Read(IBitStream *bstr) {
     XoringStreamAdapter adapter(bstr);
     if (_xoring) {
@@ -39,34 +77,7 @@ void SystemDictionaryDecoder::DecodeHeading(IBitStream *bstr, unsigned len, std:
 }
 
 bool SystemDictionaryDecoder::DecodeArticle(IBitStream *bstr, std::u16string &res) {
-    XoringStreamAdapter adapter(bstr);
-    if (_xoring) {
-        bstr = &adapter;
-    }
-    unsigned maxlen = bstr->read(16);
-    if (maxlen == 0xFFFF) {
-        maxlen = bstr->read(32);
-    }
-    res.clear();
-    unsigned symIdx;
-    while ((unsigned)res.length() < maxlen) {
-        _ltArticles.Decode(*bstr, symIdx);
-        unsigned sym = _articleSymbols.at(symIdx);
-        if (sym - 0x80 >= 0x10000) {
-            if (sym <= 0x3F) {
-                unsigned startIdx = bstr->read(BitLength(_prefix.length()));
-                unsigned len = sym + 3;
-                res += _prefix.substr(startIdx, len);
-            } else {
-                unsigned startIdx = bstr->read(BitLength(maxlen));
-                unsigned len = sym - 0x3d;
-                res += res.substr(startIdx, len);
-            }
-        } else {
-            res += (char16_t)(sym - 0x80);
-        }
-    }
-    return true;
+    return DecodeArticle(bstr, res, _prefix, _xoring, _ltArticles, _articleSymbols);
 }
 
 bool SystemDictionaryDecoder::DecodePrefixLen(IBitStream &bstr, unsigned &len) {

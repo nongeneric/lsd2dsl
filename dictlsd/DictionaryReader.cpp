@@ -30,10 +30,12 @@ DictionaryReader::DictionaryReader(IBitStream *bstr)
     _bstr->readSome(&_header, sizeof(LSDHeader));
     if (strcmp("LingVo", _header.magic) != 0)
         throw NotLSDException();
-    if (_header.version == 0x142001 || _header.version == 0x152001) {
-        _decoder.reset(new UserDictionaryDecoder());
+    if (_header.version == 0x132001 || _header.version == 0x142001 || _header.version == 0x152001) {
+        _decoder.reset(new UserDictionaryDecoder(false));
     } else if (_header.version == 0x141004) {
         _decoder.reset(new SystemDictionaryDecoder(false));
+    } else if (_header.version == 0x131001) {
+        _decoder.reset(new UserDictionaryDecoder(true));
     } else if (_header.version == 0x145001 || _header.version == 0x155001) {
         _decoder.reset(new AbbreviationDictionaryDecoder());
     } else if (_header.version == 0x151005) {
@@ -53,9 +55,14 @@ DictionaryReader::DictionaryReader(IBitStream *bstr)
     bstr->readSome(&iconLen, 2);
     _icon.resize(iconLen);
     bstr->readSome(&_icon[0], iconLen);
-    bstr->seek(bstr->tell() + 4); // checksum
+    if (_header.version > 0x140000) {
+        bstr->seek(bstr->tell() + 4); // checksum
+    }
     bstr->readSome(&_pagesEnd, 4);
     bstr->readSome(&_overlayData, 4);
+    if (_header.version < 0x140000) {
+        _overlayData = 0; // headings use absolute offsets
+    }
 }
 
 bool DictionaryReader::supported() const {

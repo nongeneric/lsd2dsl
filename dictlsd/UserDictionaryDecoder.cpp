@@ -1,4 +1,5 @@
 #include "UserDictionaryDecoder.h"
+#include "SystemDictionaryDecoder.h"
 #include "tools.h"
 
 #include <stdint.h>
@@ -7,6 +8,8 @@
 #include <fstream>
 
 namespace dictlsd {
+
+UserDictionaryDecoder::UserDictionaryDecoder(bool legacySystem) : _legacySystem(legacySystem) {}
 
 bool UserDictionaryDecoder::DecodeArticle(
         IBitStream *bstr,
@@ -70,6 +73,8 @@ void UserDictionaryDecoder::DecodeHeading(IBitStream *bstr, unsigned len, std::u
 }
 
 bool UserDictionaryDecoder::DecodeArticle(IBitStream *bstr, std::u16string &res) {
+    if (_legacySystem)
+        return SystemDictionaryDecoder::DecodeArticle(bstr, res, _prefix, false, _ltArticles, _articleSymbols);
     return DecodeArticle(bstr, res, _prefix, _ltArticles, _articleSymbols);
 }
 
