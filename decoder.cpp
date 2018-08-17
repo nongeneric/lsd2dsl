@@ -54,9 +54,11 @@ int parseLSD(fs::path lsdPath,
     if (!reader.supported()) {
         log << "Unsupported dictionary version\n"
             "Only the following versions are implemented\n"
-            "  User: 142001, 152001\n"
-            "  System: 141004, 151005\n"
-            "  Abbreviation: 145001, 155001\n";
+            "  Lingvo x6: 151005, 152001, 155001\n"
+            "  Lingvo x5: 141004, 142001, 145001\n"
+            "  Lingvo x3: 131001, 132001\n"
+            "  Lingvo 12: 120001\n"
+            "  Lingvo 11: 110001\n";
         return 1;
     }
 
