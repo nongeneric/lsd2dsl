@@ -21,8 +21,4 @@ set(SRC
     ../DslWriter.cpp
 )
 add_executable(lsd2dsl-qtgui ${SRC} ${QT_RESOURCES})
-target_link_libraries(lsd2dsl-qtgui Qt5::Core Qt5::Widgets dictlsd zip)
-
-if(WIN32)
-    install(TARGETS lsd2dsl-qtgui RUNTIME DESTINATION .)
-endif()
+target_link_libraries(lsd2dsl-qtgui Qt5::Core Qt5::Widgets dictlsd minizip)

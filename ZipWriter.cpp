@@ -1,50 +1,49 @@
 #include "ZipWriter.h"
 
-#define ZIP_EXTERN __attribute__ ((visibility ("default")))
-
-#include <zip.h>
+#include <minizip/zip.h>
 #include <stdexcept>
 #include <cstring>
+#include <time.h>
 
-unsigned const BUFFERS_LIMIT = 200 * 1024 * 1024;
-
-ZipWriter::ZipWriter(std::string path)
-    : _path(path), _memoryInBuffers(0) {
-    _zip = zip_open(_path.c_str(), ZIP_CREATE | ZIP_TRUNCATE, NULL);
-    if (!_zip) {
+ZipWriter::ZipWriter(std::string path) {
+    _zip = zipOpen64(path.c_str(), false);
+    if (!_zip)
         throw std::runtime_error("can't create zip file");
-    }
 }
 
-void ZipWriter::flushZip() {
-    zip_close(_zip);
-    _zip = zip_open(_path.c_str(), 0, NULL);
-    if (!_zip) {
-        throw std::runtime_error("error reopening zip file after flush");
-    }
-}
-
-void ZipWriter::addFile(std::string name, void *ptr, unsigned size) {
-    if (_memoryInBuffers + size > BUFFERS_LIMIT) {
-        flushZip();
-        _memoryInBuffers = 0;
-        _buffers.clear();
-    }
-    _memoryInBuffers += size;
-    std::vector<char> buf;
-    buf.resize(size);
-    memcpy(&buf[0], ptr, size);
-    _buffers.push_back(std::move(buf));
-    zip_source* source = zip_source_buffer(
-                _zip, _buffers.back().data(), _buffers.back().size(), 0);
-    zip_file_add(_zip, name.c_str(), source, 0);
-}
-
-void ZipWriter::close() {
-    zip_close(_zip);
-    _zip = 0;
+void ZipWriter::addFile(std::string name, const void* ptr, unsigned size) {
+    auto t = time(nullptr);
+    auto tm = *localtime(&t);
+    zip_fileinfo info{{(unsigned)tm.tm_sec,
+                       (unsigned)tm.tm_min,
+                       (unsigned)tm.tm_hour,
+                       (unsigned)tm.tm_mday,
+                       (unsigned)tm.tm_mon,
+                       (unsigned)tm.tm_year + 1900},
+                      0,
+                      0,
+                      0};
+    auto ret = zipOpenNewFileInZip64(_zip,
+                          name.c_str(),
+                          &info,
+                          nullptr,
+                          0,
+                          nullptr,
+                          0,
+                          nullptr,
+                          Z_DEFLATED,
+                          Z_DEFAULT_COMPRESSION,
+                          1);
+    if (ret)
+        throw std::runtime_error("can't add a new file to zip");
+    ret = zipWriteInFileInZip(_zip, ptr, size);
+    if (ret)
+        throw std::runtime_error("can't write to zip");
+    ret = zipCloseFileInZip(_zip);
+    if (ret)
+        throw std::runtime_error("can't save zip");
 }
 
 ZipWriter::~ZipWriter() {
-    zip_close(_zip);
+    zipClose(_zip, nullptr);
 }

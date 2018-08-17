@@ -2,14 +2,14 @@ cmake_minimum_required (VERSION 3.11)
 
 project(lsd2dsl)
 
-set(lsd2dsl_VERSION "0.3.1")
+set(lsd2dsl_VERSION "0.4.0")
 
 configure_file (
-    "${lsd2dsl_SOURCE_DIR}/version.h.in"
-    "${lsd2dsl_BINARY_DIR}/version.h"
+    "${CMAKE_SOURCE_DIR}/version.h.in"
+    "${CMAKE_BINARY_DIR}/version.h"
 )
 
-include_directories("${lsd2dsl_BINARY_DIR}")
+include_directories("${CMAKE_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -32,7 +32,7 @@ endif()
 
 add_subdirectory(dictlsd)
 
-FILE(COPY simple_testdict1 DESTINATION .)
+file(COPY simple_testdict1 DESTINATION .)
 
 add_executable(lsd2dsl
     decoder.cpp
@@ -48,40 +48,16 @@ if(NOT CMAKE_RELEASE)
     target_link_libraries(tests dictlsd gtest)
 endif()
 
-target_link_libraries(lsd2dsl dictlsd zip)
+target_link_libraries(lsd2dsl dictlsd minizip)
 add_subdirectory(qtgui)
 
 if(WIN32)
-    install(TARGETS lsd2dsl RUNTIME DESTINATION .)
-
-    include(GetPrerequisites)
-
-    set(MINGW_ROOT /usr/i686-w64-mingw32/sys-root/mingw)
-
-    set(gp_tool objdump)
-    get_prerequisites("${lsd2dsl_BINARY_DIR}/lsd2dsl.exe" prereq 0 1 "" "${MINGW_ROOT}/bin")
-    get_prerequisites("${qtgui_BINARY_DIR}/lsd2dsl-qtgui.exe" prereq 0 1 "" "${MINGW_ROOT}/bin")
-    get_prerequisites("${MINGW_ROOT}/lib/qt5/plugins/platforms/qwindows.dll" prereq 0 1 "" "${MINGW_ROOT}/bin")
-    foreach(dll IN LISTS prereq)
-        set(path "/usr/i686-w64-mingw32/sys-root/mingw/bin/${dll}")
-        if(EXISTS ${path})
-            install(FILES ${path} DESTINATION .)
-        endif()
-    endforeach()
-
-    install(FILES
-        ${MINGW_ROOT}/lib/qt5/plugins/platforms/qwindows.dll
-        DESTINATION platforms
+    configure_file (
+        "${CMAKE_SOURCE_DIR}/install.cmake.in"
+        "${CMAKE_BINARY_DIR}/install.cmake"
+        @ONLY
     )
-
-    install(CODE "
-        file(GLOB_RECURSE files \"\${CMAKE_INSTALL_PREFIX}/*dll\"
-                                \"\${CMAKE_INSTALL_PREFIX}/*exe\")
-        foreach(binary IN LISTS files)
-            execute_process(COMMAND mingw-strip \"-s\" \${binary})
-        endforeach()
-    ")
-
+    install(SCRIPT "${CMAKE_BINARY_DIR}/install.cmake")
     set(CPACK_PACKAGE_FILE_NAME "lsd2dsl-${lsd2dsl_VERSION}-win32")
     set(CPACK_GENERATOR "ZIP")
     include(CPack)
