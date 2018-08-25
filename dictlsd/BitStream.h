@@ -1,8 +1,8 @@
 #pragma once
 
+#include "UnicodePathFile.h"
 #include <vector>
 #include <iostream>
-#include <fstream>
 
 namespace dictlsd {
 
@@ -56,7 +56,7 @@ public:
 };
 
 class FileStream : public IRandomAccessStream {
-    std::ifstream _ifstr;
+    UnicodePathFile _file;
 public:
     FileStream(std::string path);
     virtual unsigned readSome(void *dest, unsigned byteCount);

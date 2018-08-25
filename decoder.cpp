@@ -10,7 +10,6 @@
 #include <boost/format.hpp>
 
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <vector>
 #include <tuple>

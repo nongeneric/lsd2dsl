@@ -23,7 +23,7 @@ using namespace dictlsd;
 static_assert(sizeof(unsigned) == 4, "");
 
 std::vector<uint8_t> read_all_bytes(const char* path) {
-    auto f = fopen(path, "r");
+    auto f = fopen(path, "rb");
     if (!f)
         throw std::runtime_error("can't open file");
     fseek(f, 0, SEEK_END);
@@ -256,4 +256,24 @@ TEST(Tests, collapseVariantHeadingsTest2) {
     ASSERT_EQ(u"alternative", heads[1].dslText());
     ASSERT_EQ(u"headings", heads[2].dslText());
     ASSERT_EQ(u"bbb (123) z", heads[3].dslText());
+}
+
+TEST(Tests, unicodePath) {
+    {
+        UnicodePathFile f(u8"éa", true);
+        f.write("abc", 3);
+    }
+
+    char buf[4] = {0};
+    UnicodePathFile f(u8"éa", false);
+    auto read = f.read(buf, 10);
+    ASSERT_EQ(3, read);
+}
+
+TEST(Tests, unicodePath2) {
+    char buf[6] = {0};
+    UnicodePathFile f(u8"simple_testdict1/é", false);
+    auto read = f.read(buf, 10);
+    ASSERT_EQ(5, read);
+    ASSERT_EQ(std::string("1234\n"), buf);
 }

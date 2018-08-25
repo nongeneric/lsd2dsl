@@ -1,9 +1,9 @@
 #include "DslWriter.h"
 #include "ZipWriter.h"
+#include "dictlsd/UnicodePathFile.h"
 #include "dictlsd/tools.h"
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <fstream>
 
 using namespace dictlsd;
 namespace fs = boost::filesystem;
@@ -44,10 +44,7 @@ void writeDSL(const LSDDictionary* reader,
     std::u16string annoStr = reader->annotation();
     if (!annoStr.empty()) {
         log(25, "writing annotation: " + annoPath.string());
-        std::fstream anno(annoPath.string(), std::ios_base::binary | std::ios_base::out);
-        if (!anno.is_open()) {
-            throw std::runtime_error("can't create the annotation file");
-        }
+        UnicodePathFile anno(annoPath.string(), true);
         anno.write((char*)bom, 2);
         anno.write((char*)annoStr.c_str(), 2 * annoStr.length());
     }
@@ -55,10 +52,7 @@ void writeDSL(const LSDDictionary* reader,
     auto iconArr = reader->icon();
     if (!iconArr.empty()) {
         log(35, "writing icon: " + iconPath.string());
-        std::fstream icon(iconPath.string(), std::ios_base::binary | std::ios_base::out);
-        if (!icon.is_open()) {
-            throw std::runtime_error("can't create the icon file");
-        }
+        UnicodePathFile icon(iconPath.string(), true);
         icon.write(reinterpret_cast<const char*>(&iconArr[0]), iconArr.size());
     }
 
@@ -75,11 +69,8 @@ void writeDSL(const LSDDictionary* reader,
     }
 
     log(80, "writing dsl: " + dslPath.string());
-    std::fstream dsl(dslPath.string(), std::ios_base::binary | std::ios_base::out);
-    if (!dsl.is_open()) {
-        throw std::runtime_error("can't create the dsl file");
-    }
 
+    UnicodePathFile dsl(dslPath.string(), true);
     dsl.write((char*)bom, 2);
 
     auto dslwrite = [&](std::u16string const& line) {

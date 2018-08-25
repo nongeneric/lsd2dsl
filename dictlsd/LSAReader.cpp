@@ -4,9 +4,9 @@
 #include "WavWriter.h"
 #include "BitStream.h"
 #include "tools.h"
+#include "UnicodePathFile.h"
 #include <stdexcept>
 #include <assert.h>
-#include <fstream>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -85,10 +85,8 @@ void LSAReader::dump(std::string path,
         if (samples.size() != entry.sampleSize)
             throw std::runtime_error("error reading LSA");
 
-        std::fstream f(path + "/" + name, std::ios_base::out | std::ios_base::binary);
-        if (!f.is_open())
-            throw std::runtime_error("can't create file");
-        f.write(wav.data(), wav.size());
+        UnicodePathFile file(path + "/" + name, true);
+        file.write(wav.data(), wav.size());
 
         progress = (100 - initialProgress) * curSample / _totalSamples + initialProgress;
         if (progress != prevProgress) {

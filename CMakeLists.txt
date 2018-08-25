@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.11)
 
 project(lsd2dsl)
 
-set(lsd2dsl_VERSION "0.4.0")
+set(lsd2dsl_VERSION "0.4.1")
 
 configure_file (
     "${CMAKE_SOURCE_DIR}/version.h.in"

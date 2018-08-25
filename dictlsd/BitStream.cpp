@@ -25,7 +25,7 @@ unsigned BitStreamAdapter::readBit() {
 }
 
 BitStreamAdapter::BitStreamAdapter(IRandomAccessStream* ras)
-    : _ras(std::move(ras)), _bitPos(0) { }
+    : _ras(ras), _bitPos(0) { }
 
 unsigned BitStreamAdapter::read(unsigned count) {
     assert(count <= sizeof(unsigned) * 8);
@@ -131,23 +131,18 @@ void XoringStreamAdapter::seek(unsigned pos) {
 }
 
 FileStream::FileStream(std::string path)
-    : _ifstr(path, std::ios::binary)
-{
-    if (!_ifstr.is_open())
-        throw std::runtime_error("can't open file");
-}
+    : _file(path, false) { }
 
 unsigned FileStream::readSome(void *dest, unsigned byteCount) {
-    _ifstr.read(reinterpret_cast<char*>(dest), byteCount);
-    return _ifstr.gcount();
+    return _file.read(reinterpret_cast<char*>(dest), byteCount);
 }
 
 void FileStream::seek(unsigned pos) {
-    _ifstr.seekg(pos);
+    _file.seek(pos);
 }
 
 unsigned FileStream::tell() {
-    return _ifstr.tellg();
+    return _file.tell();
 }
 
 }

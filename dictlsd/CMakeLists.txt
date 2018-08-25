@@ -33,6 +33,8 @@ set(SRC_LIST
     OggReader.cpp
     WavWriter.h
     WavWriter.cpp
+    UnicodePathFile.h
+    UnicodePathFile.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SRC_LIST})
