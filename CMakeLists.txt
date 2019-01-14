@@ -19,6 +19,12 @@ set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost 1.50 COMPONENTS system program_options filesystem REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
+find_library(GTEST gtest)
+find_library(MINIZIP minizip)
+find_library(Z z)
+find_library(VORBISFILE vorbisfile)
+find_library(SNDFILE sndfile)
+
 option(CMAKE_RELEASE "CMAKE_RELEASE" FALSE)
 
 set(CMAKE_CXX_FLAGS "-Werror=return-type -Wall -Wextra -Werror -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
@@ -45,10 +51,10 @@ add_executable(lsd2dsl
 
 if(NOT CMAKE_RELEASE)
     add_executable(tests tests.cpp)
-    target_link_libraries(tests dictlsd gtest)
+    target_link_libraries(tests dictlsd ${GTEST})
 endif()
 
-target_link_libraries(lsd2dsl dictlsd minizip)
+target_link_libraries(lsd2dsl dictlsd ${MINIZIP})
 add_subdirectory(qtgui)
 
 if(WIN32)

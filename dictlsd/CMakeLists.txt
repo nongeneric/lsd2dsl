@@ -38,4 +38,4 @@ set(SRC_LIST
 )
 
 add_library(${PROJECT_NAME} STATIC ${SRC_LIST})
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} z vorbisfile sndfile)
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${Z} ${VORBISFILE} ${SNDFILE})
