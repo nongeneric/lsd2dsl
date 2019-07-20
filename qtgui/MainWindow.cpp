@@ -50,6 +50,7 @@ public:
           _fileName(QFileInfo(path).fileName()),
           _adapter(new BitStreamAdapter(_stream.get()))
     { }
+    virtual ~DictionaryEntry() = default;
     QString path() { return _path; }
     QString fileName() { return _fileName; }
     virtual QString name() = 0;

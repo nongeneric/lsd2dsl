@@ -3,11 +3,20 @@
 #include "DslWriter.h"
 #include "dictlsd/lsd.h"
 #include "dictlsd/tools.h"
+#include "tools/bformat.h"
 #include "dictlsd/LSAReader.h"
+#include "duden/Duden.h"
+#include "duden/InfFile.h"
+#include "duden/Dictionary.h"
+#include "duden/Writer.h"
+#include "duden/text/TextRun.h"
+#include "duden/text/Parser.h"
+#include "duden/text/Printers.h"
+#include "duden/HtmlRenderer.h"
 
+#include <QtGui/QApplication>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/format.hpp>
 
 #include <iostream>
 #include <string>
@@ -23,12 +32,6 @@ struct Entry {
     std::u16string heading;
     std::u16string article;
 };
-
-template <typename T>
-std::vector<T>& append(std::vector<T>& vec, std::vector<T> const& rhs) {
-    std::copy(rhs.begin(), rhs.end(), std::back_inserter(vec));
-    return vec;
-}
 
 int parseLSD(fs::path lsdPath,
              fs::path outputPath,
@@ -76,15 +79,104 @@ int parseLSD(fs::path lsdPath,
     return 0;
 }
 
+int parseDuden(fs::path infPath, fs::path outputPath, bool verbose, std::ostream& log) {
+    FileStream infStream(infPath.string());
+    auto inf = duden::parseInfFile(&infStream);
+    duden::FileSystem fs(infPath.parent_path().string());
+    duden::fixFileNameCase(inf, &fs);
+    duden::Dictionary dict(&fs, inf);
+
+    log << "Header:";
+    log << "\n  Headings: " << dict.articleCount();
+    log << "\n  Version:  " << std::hex << inf.version << std::dec;
+    log << "\n  Name:     " << inf.name << std::endl;
+
+    if (!inf.supported) {
+        log << "Unsupported dictionary version\n";
+        return 1;
+    }
+
+    auto progress = [&](int i, auto level, auto message) {
+        if (level == duden::LogLevel::Verbose && verbose) {
+            log << message << std::endl;
+        } else if (level == duden::LogLevel::Regular) {
+            log << bformat("% 3d %s", i, message) << std::endl;
+        }
+    };
+
+    if (!outputPath.empty()) {
+        duden::writeDSL(infPath.parent_path().string(),
+                        dict,
+                        inf,
+                        outputPath.string(),
+                        progress);
+    }
+
+    return 0;
+}
+
+void decodeBofIdx(std::string bofPath,
+                  std::string idxPath,
+                  std::string fsiPath,
+                  bool dudenEncoding,
+                  std::string output) {
+    FileStream fBof(bofPath);
+    FileStream fIdx(idxPath);
+    duden::Archive archive(&fIdx, &fBof);
+    std::vector<char> vec;
+
+    if (fsiPath.empty()) {
+        archive.read(0, -1, vec);
+        UnicodePathFile file((fs::path(output) / "decoded.bin").string(), true);
+        if (dudenEncoding) {
+            auto text = duden::dudenToUtf8(std::string{begin(vec), end(vec)});
+            file.write(&text[0], text.size());
+        } else {
+            file.write(&vec[0], vec.size());
+        }
+    } else {
+        FileStream fFsi(fsiPath);
+        auto entries = duden::parseFsiFile(&fFsi);
+        for (auto& entry : entries) {
+            UnicodePathFile file((fs::path(output) / entry.name).string(), true);
+            std::vector<char> vec;
+            archive.read(entry.offset, entry.size, vec);
+            file.write(&vec[0], vec.size());
+        }
+    }
+}
+
+void parseDudenText(std::string textPath, std::string output) {
+    duden::ParsingContext context;
+    std::ifstream f(textPath);
+    if (!f.is_open())
+        throw std::runtime_error("can't open file");
+    std::istream_iterator<char> eof;
+    std::istream_iterator<char> it(f);
+    std::string text {it, eof};
+    auto run = duden::parseDudenText(context, text);
+    std::ofstream of(output + "/textdump");
+    auto tree = duden::printTree(run);
+    of << tree << "\n\n";
+    auto dsl = duden::printDsl(run);
+    of << dsl << "\n\n";
+    auto html = duden::printHtml(run);
+    of << html << "\n\n";
+}
+
 int main(int argc, char* argv[]) {
-    std::string lsdPath, lsaPath, outputPath;
+    int c = 0;
+    QApplication a(c, nullptr);
+    std::string lsdPath, lsaPath, dudenPath, outputPath;
+    std::string bofPath, idxPath, fsiPath, textPath;
     int sourceFilter = -1, targetFilter = -1;
-    bool isDumb;
+    bool isDumb, dudenEncoding, verbose;
     po::options_description console_desc("Allowed options");
     try {
         console_desc.add_options()
             ("help", "produce help message")
             ("lsd", po::value<std::string>(&lsdPath), "LSD dictionary to decode")
+            ("duden", po::value<std::string>(&dudenPath), "Duden dictionary to decode (.inf file)")
             ("lsa", po::value<std::string>(&lsaPath), "LSA sound archive to decode")
             ("source-filter", po::value<int>(&sourceFilter),
                 "ignore dictionaries with source language != source-filter")
@@ -94,8 +186,19 @@ int main(int argc, char* argv[]) {
             ("out", po::value<std::string>(&outputPath), "output directory")
             ("dumb", "don't combine variant headings and headings "
                      "referencing the same article")
+            ("verbose", "verbose logging")
             ("version", "print version")
             ;
+
+        if (g_debug) {
+            console_desc.add_options()
+                ("bof", po::value<std::string>(&bofPath), "Duden BOF file path")
+                ("idx", po::value<std::string>(&idxPath), "Duden IDX file path")
+                ("fsi", po::value<std::string>(&fsiPath), "Duden FSI file path")
+                ("text", po::value<std::string>(&textPath), "Duden decoded text file path")
+                ("duden-utf", "Decode Duden to Utf");
+        }
+
         po::variables_map console_vm;
         po::store(po::parse_command_line(argc, argv, console_desc), console_vm);
         if (console_vm.count("help")) {
@@ -111,6 +214,8 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         isDumb = console_vm.count("dumb");
+        verbose = console_vm.count("verbose");
+        dudenEncoding = console_vm.count("duden-utf");
         po::notify(console_vm);
     } catch(std::exception& e) {
         std::cout << "can't parse program options:\n";
@@ -119,7 +224,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (lsdPath.empty() && lsaPath.empty()) {
+    if (lsdPath.empty() && lsaPath.empty() && dudenPath.empty() && bofPath.empty() &&
+        textPath.empty()) {
         std::cout << console_desc;
         return 0;
     }
@@ -139,6 +245,15 @@ int main(int argc, char* argv[]) {
         }
         if (!lsaPath.empty()) {
             decodeLSA(lsaPath, outputPath, [](int i) { std::cout << i << std::endl; });
+        }
+        if (!dudenPath.empty()) {
+            parseDuden(dudenPath, outputPath, verbose, std::cout);
+        }
+        if (!bofPath.empty() && !idxPath.empty()) {
+            decodeBofIdx(bofPath, idxPath, fsiPath, dudenEncoding, outputPath);
+        }
+        if (!textPath.empty()) {
+            parseDudenText(textPath, outputPath);
         }
     } catch (std::exception& exc) {
         std::cout << "an error occured while processing dictionary: " << exc.what() << std::endl;

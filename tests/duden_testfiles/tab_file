@@ -1,0 +1,13 @@
+@1Table: Name@0@C%ID=12345
+@C%MT=Table: MT"
+\tab{\tcn2\tln3\tau
+\tcc@1bold cell
+\tccplain cell
+\tcc@3bold italic cell
+\tccrandom braces {
+\tccsub\sub{scripted}cell
+\tcc@2italic cell
+\tcc}
+Footer 1\\
+Footer 2\\
+\S{;:000;article}\\

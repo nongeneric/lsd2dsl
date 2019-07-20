@@ -145,4 +145,34 @@ unsigned FileStream::tell() {
     return _file.tell();
 }
 
+uint8_t read8(IRandomAccessStream* stream) {
+    uint8_t res;
+    stream->readSome(&res, sizeof res);
+    return res;
+}
+
+uint16_t read16(IRandomAccessStream* stream) {
+    uint16_t res;
+    stream->readSome(&res, sizeof res);
+    return res;
+}
+
+uint32_t read32(IRandomAccessStream* stream) {
+    uint32_t res;
+    stream->readSome(&res, sizeof res);
+    return res;
+}
+
+bool readLine(IRandomAccessStream* stream, std::string& line, char sep) {
+    line.resize(0);
+    char ch;
+    for (;;) {
+        if (!stream->readSome(&ch, 1))
+            return !line.empty();
+        if (ch == sep)
+            return true;
+        line += ch;
+    }
+}
+
 }

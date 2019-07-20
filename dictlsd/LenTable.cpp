@@ -1,8 +1,8 @@
 #include "LenTable.h"
 #include "BitStream.h"
 #include "tools.h"
+#include "tools/bformat.h"
 
-#include <boost/format.hpp>
 #include <assert.h>
 #include <algorithm>
 #include <limits>
@@ -99,11 +99,11 @@ void LenTable::Read(IBitStream &bitstr) {
 std::string dumpNode(int childIdx, int nodeIdx, std::string edgelabel) {
     if (childIdx != 0) {
         if (childIdx > 0) {
-            return str(boost::format("%d -> %d [label=\" %s \"]\n")
-                              % (childIdx - 1) % nodeIdx % edgelabel);
+            return bformat("%d -> %d [label=\" %s \"]\n",
+                           childIdx - 1, nodeIdx, edgelabel);
         } else {
-            return str(boost::format("sym_%d -> %d [label=\" %s \"]\n")
-                              % (-1 - childIdx) % nodeIdx % edgelabel);
+            return bformat("sym_%d -> %d [label=\" %s \"]\n",
+                           -1 - childIdx, nodeIdx, edgelabel);
         }
     }
     return "";

@@ -6,6 +6,7 @@
 #include "dictlsd/CachePage.h"
 #include "ZipWriter.h"
 #include "dictlsd/tools.h"
+#include "test-utils.h"
 
 #include <gtest/gtest.h>
 #include <boost/lexical_cast.hpp>
@@ -21,19 +22,6 @@
 using namespace dictlsd;
 
 static_assert(sizeof(unsigned) == 4, "");
-
-std::vector<uint8_t> read_all_bytes(const char* path) {
-    auto f = fopen(path, "rb");
-    if (!f)
-        throw std::runtime_error("can't open file");
-    fseek(f, 0, SEEK_END);
-    auto filesize = ftell(f);
-    std::vector<uint8_t> res(filesize);
-    fseek(f, 0, SEEK_SET);
-    fread(&res[0], 1, res.size(), f);
-    fclose(f);
-    return res;
-}
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
