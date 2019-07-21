@@ -165,8 +165,7 @@ void parseDudenText(std::string textPath, std::string output) {
 }
 
 int main(int argc, char* argv[]) {
-    int c = 0;
-    QApplication a(c, nullptr);
+    QApplication a(argc, argv);
     std::string lsdPath, lsaPath, dudenPath, outputPath;
     std::string bofPath, idxPath, fsiPath, textPath;
     int sourceFilter = -1, targetFilter = -1;

@@ -49,7 +49,7 @@ void Table::visit(TableCellRun* run) {
     TextRunVisitor::visit(run);
 }
 
-Table::Table(TextRun* table, ParsingContext* context) : _context(context) {
+Table::Table(TableRun* table, ParsingContext* context) : _context(context) {
     table->accept(this);
     fixSpans();
     assert(_cells.size() == _hspans.size());

@@ -22,7 +22,7 @@ class Table : TextRunVisitor {
     void visit(TableCellRun* run) override;
 
 public:
-    Table(TextRun* table, ParsingContext* context);
+    Table(TableRun* table, ParsingContext* context);
     int rows() const;
     int columns() const;
     TextRun* cell(int row, int column);

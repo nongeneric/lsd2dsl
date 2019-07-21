@@ -13,7 +13,7 @@
 #include "duden/HtmlRenderer.h"
 #include "duden/TableRenderer.h"
 #include "tools/bformat.h"
-#include "dictlsd/filesystem.h"
+#include "tools/filesystem.h"
 #include "test-utils.h"
 #include <QtGui/QApplication>
 #include "zlib.h"
@@ -937,7 +937,7 @@ TEST(duden, InlineRenderAndPrintPicture) {
     files["btb_pic"] = std::make_unique<std::ifstream>("duden_testfiles/duden_encoded_pic");
     inlineReferences(context, run, files);
     std::string name;
-    TableRenderer renderer([&](auto, auto n) { name = n; });
+    TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
     renderer.render(run);
     auto expected = "----------\n"
                     "[b]2. keplersches Gesetz:[/b]\n"
@@ -1018,7 +1018,7 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file");
     inlineReferences(context, run, files);
     std::string name;
-    TableRenderer renderer([&](auto, auto n) { name = n; });
+    TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
     renderer.render(run);
     auto expected = bformat(
                 "----------\n"
@@ -1064,4 +1064,51 @@ TEST(duden, IgnoreIllformedTableReferences) {
                     "    PlainRun: .MT:660042728\n"
                     "    PlainRun: Tabelle\n";
     ASSERT_EQ(expected, printTree(run));
+}
+
+TEST(duden, HandleEmbeddedImagesInHtml) {
+    auto text = "\\S{;.Ieuro.eXt;T}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    resolveReferences(context, run, {});
+    std::string requestedName;
+    auto html = printHtml(run, [&](auto name) {
+        requestedName = name;
+        std::vector<char> vec;
+        vec.push_back('1');
+        vec.push_back('2');
+        vec.push_back('3');
+        vec.push_back('4');
+        return vec;
+    });
+    ASSERT_EQ("euro.eXt", requestedName);
+    auto expected = "<img src=\"data:image/ext;base64,MTIzNA==\">";
+    ASSERT_EQ(expected, html);
+}
+
+TEST(duden, HandleEmbeddedImagesInHtml2) {
+    auto text = "\\S{Tabelle: table name;.MT:660000000;Tabelle}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    resolveReferences(context, run, ld);
+    ResourceFiles files;
+    files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file_embedded_image");
+    inlineReferences(context, run, files);
+    resolveReferences(context, run, ld); // resolve inlined references
+
+    std::string requestedName;
+    auto html = printHtml(run, [&](auto name) {
+        requestedName = name;
+        std::vector<char> vec;
+        vec.push_back('1');
+        vec.push_back('2');
+        vec.push_back('3');
+        vec.push_back('4');
+        return vec;
+    });
+    ASSERT_EQ("euro.bmp", requestedName);
+    auto expected = "<img src=\"data:image/bmp;base64,MTIzNA==\">";
+    ASSERT_EQ(true, html.find(expected) != std::string::npos);
 }

@@ -442,7 +442,15 @@ public:
     virtual void visit(TableRun* run) { visitImpl(run); }
     virtual void visit(TableTag* run) { visitImpl(run); }
     virtual void visit(TableCellRun* run) { visitImpl(run); }
-    virtual void visit(TableReferenceRun* run) { visitImpl(run); }
+
+    virtual void visit(TableReferenceRun* run) {
+        visitImpl(run);
+        auto content = run->content();
+        if (content) {
+            TextRunVisitor::visit(content);
+        }
+    }
+
     virtual void visit(PictureReferenceRun* run) { visitImpl(run); }
     virtual void visit(WebReferenceRun* run) { visitImpl(run); }
     virtual void visit(InlineImageRun* run) { visitImpl(run); }

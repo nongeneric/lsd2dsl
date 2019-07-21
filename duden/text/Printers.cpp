@@ -2,7 +2,9 @@
 
 #include "Table.h"
 #include "tools/bformat.h"
+#include "tools/filesystem.h"
 #include <boost/algorithm/string.hpp>
+#include <QByteArray>
 
 namespace duden {
 
@@ -151,10 +153,6 @@ public:
                       run->offset(),
                       run->fileName()));
         TextRunVisitor::visit(run);
-        auto content = run->content();
-        if (content) {
-            TextRunVisitor::visit(content);
-        }
     }
 
     void visit(PictureReferenceRun* run) override {
@@ -191,6 +189,7 @@ public:
 
 class HtmlVisitor : public TextRunVisitor {
     std::string _result;
+    duden::RequestImageCallback _requestImage;
 
     template <class T>
     void visitTag(T run, const char* tag) {
@@ -264,7 +263,21 @@ class HtmlVisitor : public TextRunVisitor {
         _result += "</table>";
     }
 
+    void visit(InlineImageRun* run) override {
+        auto image = _requestImage(run->name());
+        auto ext = fs::path(run->name()).extension().string();
+        if (ext.size() < 1)
+            throw std::runtime_error("inlining resource without extension");
+        boost::algorithm::to_lower(ext);
+        ext = ext.substr(1);
+        auto array = QByteArray::fromRawData(reinterpret_cast<char*>(&image[0]), image.size());
+        auto base64 = array.toBase64();
+        std::string str(base64.data(), base64.size());
+        _result += bformat("<img src=\"data:image/%s;base64,%s\">", ext, str);
+    }
+
 public:
+    HtmlVisitor(duden::RequestImageCallback requestImage) : _requestImage(requestImage) {}
     const std::string& result() const { return _result; }
 };
 
@@ -378,8 +391,8 @@ std::string printTree(TextRun *run) {
     return visitor.result();
 }
 
-std::string printHtml(TextRun *run) {
-    HtmlVisitor htmlVisitor;
+std::string printHtml(TextRun *run, RequestImageCallback requestImage) {
+    HtmlVisitor htmlVisitor(requestImage);
     run->accept(&htmlVisitor);
     return htmlVisitor.result();
 }

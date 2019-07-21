@@ -4,7 +4,7 @@
 #include "InfFile.h"
 #include "Archive.h"
 #include "LdFile.h"
-#include "dictlsd/filesystem.h"
+#include "tools/filesystem.h"
 #include "IFileSystem.h"
 #include <string_view>
 #include <string>

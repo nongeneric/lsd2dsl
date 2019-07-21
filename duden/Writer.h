@@ -2,7 +2,7 @@
 
 #include "Dictionary.h"
 #include "InfFile.h"
-#include "dictlsd/filesystem.h"
+#include "tools/filesystem.h"
 #include <functional>
 
 namespace duden {

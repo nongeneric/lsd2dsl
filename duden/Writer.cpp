@@ -54,30 +54,7 @@ void writeDSL(fs::path inputDir,
     dsl::Writer writer(outputPath.string(), dslFileName);
     writer.setName(dictlsd::toUtf16(inf.name));
 
-    TableRenderer tableRenderer([&](auto span, auto name) {
-        progress(0, LogLevel::Verbose, bformat("created %s", name));
-        zip.addFile(name, span.data(), span.size());
-    });
-
-    progress(0, LogLevel::Regular, "processing articles");
-
-    for (auto i = 0u; i < entries.size(); ++i) {
-        auto size = i == entries.size() - 1 ? -1u
-                  : entries[i + 1].textOffset - entries[i].textOffset;
-        auto article = dict.article(entries[i].textOffset, size);
-        ParsingContext context;
-        auto headingRun = parseDudenText(context, entries[i].heading);
-        auto articleRun = parseDudenText(context, article);
-        resolveReferences(context, articleRun, dict.ld());
-        inlineReferences(context, articleRun, resources);
-        tableRenderer.render(articleRun);
-        dedupHeading(headingRun, articleRun);
-        auto dslArticle = printDsl(articleRun);
-        auto dslHeading = printDsl(headingRun);
-
-        writer.writeHeading(dictlsd::toUtf16(dslHeading));
-        writer.writeArticle(dictlsd::toUtf16(dslArticle));
-    }
+    std::map<std::string, std::tuple<const ResourceArchive*, uint32_t, uint32_t>> resourceIndex;
 
     for (auto& pack : inf.resources) {
         if (pack.fsi.empty())
@@ -104,6 +81,7 @@ void writeDSL(fs::path inputDir,
         std::vector<char> vec;
         int i = 0;
         for (auto& entry : entries) {
+            resourceIndex[entry.name] = {&pack, entry.offset, entry.size};
             progress(
                 0,
                 LogLevel::Verbose,
@@ -112,6 +90,47 @@ void writeDSL(fs::path inputDir,
             zip.addFile(entry.name, vec.data(), vec.size());
             ++i;
         }
+    }
+
+    progress(0, LogLevel::Regular, "processing articles");
+
+    TableRenderer tableRenderer([&](auto span, auto name) {
+        progress(0, LogLevel::Verbose, bformat("created %s", name));
+        zip.addFile(name, span.data(), span.size());
+    }, [&](auto name) {
+        progress(0, LogLevel::Verbose, bformat("table has embedded image %s", name));
+        auto it = resourceIndex.find(name);
+        std::vector<char> vec;
+        if (it == end(resourceIndex)) {
+            progress(0, LogLevel::Regular, bformat("embedded image %s doesn't exist", name));
+            return vec;
+        }
+        auto [pack, offset, size] = it->second;
+        boost::filesystem::path inputPath = inputDir;
+        dictlsd::FileStream fIndex((inputPath / pack->idx).string());
+        dictlsd::FileStream fBof((inputPath / pack->bof).string());
+        Archive archive(&fIndex, &fBof);
+        archive.read(offset, size, vec);
+        return vec;
+    });
+
+    for (auto i = 0u; i < entries.size(); ++i) {
+        auto size = i == entries.size() - 1 ? -1u
+                  : entries[i + 1].textOffset - entries[i].textOffset;
+        auto article = dict.article(entries[i].textOffset, size);
+        ParsingContext context;
+        auto headingRun = parseDudenText(context, entries[i].heading);
+        auto articleRun = parseDudenText(context, article);
+        resolveReferences(context, articleRun, dict.ld());
+        inlineReferences(context, articleRun, resources);
+        resolveReferences(context, articleRun, dict.ld());
+        tableRenderer.render(articleRun);
+        dedupHeading(headingRun, articleRun);
+        auto dslArticle = printDsl(articleRun);
+        auto dslHeading = printDsl(headingRun);
+
+        writer.writeHeading(dictlsd::toUtf16(dslHeading));
+        writer.writeArticle(dictlsd::toUtf16(dslArticle));
     }
 }
 

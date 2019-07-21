@@ -1,22 +1,22 @@
 #include "TableRenderer.h"
 #include "HtmlRenderer.h"
 #include "tools/bformat.h"
-#include "text/Printers.h"
 
 namespace duden {
 
-TableRenderer::TableRenderer(SetImageCallback callback) : _callback(callback) {}
+TableRenderer::TableRenderer(SetImageCallback setImage, RequestImageCallback requestImage)
+    : _setImage(setImage), _requestImage(requestImage) {}
 
 void TableRenderer::render(TextRun* run) {
     run->accept(this);
 }
 
 void TableRenderer::visit(TableRun* run) {
-    auto html = printHtml(run);
+    auto html = printHtml(run, _requestImage);
     auto vec = renderHtml(html);
     auto name = bformat("rendered_table_%04d.bmp", _id++);
     run->setRenderedName(name);
-    _callback(vec, name);
+    _setImage(vec, name);
 }
 
 void TableRenderer::visit(TableReferenceRun* run) {

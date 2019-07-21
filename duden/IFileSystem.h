@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dictlsd/BitStream.h"
-#include "dictlsd/filesystem.h"
+#include "tools/filesystem.h"
 
 namespace duden {
 

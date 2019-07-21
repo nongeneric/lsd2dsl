@@ -133,7 +133,9 @@ class ReferenceInlinerRewriter : public TextRunVisitor {
         std::string mtPrefix = "@C%MT=";
 
         for (;;) {
-            std::getline(stream, line);
+            if (!std::getline(stream, line))
+                throw std::runtime_error("unexpected end of file");
+
             line = dudenToUtf8(line);
 
             if (boost::algorithm::starts_with(line, mtPrefix)) {

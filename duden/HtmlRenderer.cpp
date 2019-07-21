@@ -2,6 +2,7 @@
 
 #include <QtGui/QPainter>
 #include <QtCore/QBuffer>
+#include <QtCore/QEventLoop>
 #include <QtWebKitWidgets/QWebFrame>
 #include <QtWebKitWidgets/QWebPage>
 #include <QtWebKitWidgets/QWebView>
@@ -34,7 +35,7 @@ auto head = R"(
         }
         </style>
         </head>
-        <body><div>)";
+        <body style="background-color:white"><div>)";
 
 auto tail = "</div></body></html>";
 
@@ -44,7 +45,18 @@ std::vector<uint8_t> renderHtml(const std::string& html) {
     QWebPage page;
     auto frame = page.mainFrame();
     auto complete = head + html + tail;
+
+    QEventLoop loop;
+    bool alreadyLoaded = false;
+    QObject::connect(&page, &QWebPage::loadFinished, &loop, [&] {
+        alreadyLoaded = true;
+        loop.quit();
+    });
     frame->setHtml(QString::fromStdString(complete));
+
+    if (!alreadyLoaded)
+        loop.exec();
+
     page.setViewportSize(page.mainFrame()->contentsSize());
     auto size = page.viewportSize();
     QImage img(size, QImage::Format_RGB32);
