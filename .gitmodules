@@ -1,6 +1,0 @@
-[submodule "thirdparty/cmcstl2"]
-	path = thirdparty/cmcstl2
-	url = https://github.com/CaseyCarter/cmcstl2.git
-[submodule "thirdparty/GSL"]
-	path = thirdparty/GSL
-	url = https://github.com/microsoft/GSL.git
