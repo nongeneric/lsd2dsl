@@ -22,6 +22,7 @@
 
 using namespace duden;
 using namespace dictlsd;
+using namespace std::literals;
 
 class duden_qt : public ::testing::Test {
     int _c = 0;
@@ -261,7 +262,7 @@ TEST(duden, Unicode_ignore_escapes_inside_refs) {
     ASSERT_EQ(u8"Mụ̈nden\\S{;.MK;;Hannoversch Münden }Mụ̈nden", utf);
 }
 
-TEST(duden, Unicode_dont_ignore_escapes_inside_tables) {
+TEST(duden, UnicodeDontIgnoreEscapesInsideTables) {
     const uint8_t text[] = {
         0x4D, 0xA0, 0xFC, 0xA3, 0xE9, 0x6E, 0x64, 0x65, 0x6E,
         0x5C, 0x74, 0x61, 0x62, 0x7B,
@@ -795,6 +796,7 @@ TEST(duden, SimpleFormatting) {
                        "@2italic@0"
                        "@1bold \\u{underline}@0"
                        "plain \\F{_ADD}a\\u{d}d\\F{ADD_}"
+                       "plain \\F{_UE}a\\u{d}d\\F{UE_}"
                        "plain a\\sub{sub} and a\\sup{sup}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
@@ -804,6 +806,7 @@ TEST(duden, SimpleFormatting) {
                     "[i]italic[/i]"
                     "[b]bold [u]underline[/u][/b]"
                     "plain (a[u]d[/u]d)"
+                    "plain (a[u]d[/u]d)"
                     "plain a[sub]sub[/sub] and a[sup]sup[/sup]";
     ASSERT_EQ(expected, printDsl(run));
     expected = "<font color=\"red\">color</font>"
@@ -811,6 +814,7 @@ TEST(duden, SimpleFormatting) {
                "<b><i>bold italic</i></b>"
                "<i>italic</i>"
                "<b>bold <u>underline</u></b>"
+               "plain (a<u>d</u>d)"
                "plain (a<u>d</u>d)"
                "plain a<sub>sub</sub> and a<sup>sup</sup>";
     ASSERT_EQ(expected, printHtml(run));
@@ -845,6 +849,13 @@ TEST(duden, ParseEscapedBackslash) {
     auto expected = "TextRun\n"
                     "  PlainRun: \\\\a\\b\\c\n";
     ASSERT_EQ(expected, printTree(run));
+}
+
+TEST(duden, ParseUpwardsArrow) {
+    std::string text = "@Sabc";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    ASSERT_EQ(u8"↑abc", printDsl(run));
 }
 
 TEST(duden, ParseNestedStickyTag) {
@@ -1007,6 +1018,30 @@ TEST(duden, ParseEscapedApostrophe) {
     ASSERT_EQ("a'b", printDsl(run));
 }
 
+TEST(duden, ParseEscapedAtSign) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "a@@b");
+    ASSERT_EQ("a@b", printDsl(run));
+}
+
+TEST(duden, ParsePersonTag) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "@C%NA=\"abc\"\n");
+    ASSERT_EQ("", printDsl(run));
+}
+
+TEST(duden, ParseCbmm) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "a@CBMM2004 - abc\nb");
+    ASSERT_EQ("ab", printDsl(run));
+}
+
+TEST(duden, IgnoreUnknownEscapes) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "a@bc");
+    ASSERT_EQ("abc", printDsl(run));
+}
+
 TEST_F(duden_qt, InlineRenderAndPrintTable) {
     auto text = "\\S{Tabelle: table name;.MT:660000000;Tabelle}";
     ParsingContext context;
@@ -1111,4 +1146,83 @@ TEST(duden, HandleEmbeddedImagesInHtml2) {
     ASSERT_EQ("euro.bmp", requestedName);
     auto expected = "<img src=\"data:image/bmp;base64,MTIzNA==\">";
     ASSERT_EQ(true, html.find(expected) != std::string::npos);
+}
+
+TEST(duden, InlineArticleReference) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "\\S{ArticleName;:000620083}\\S{SameName;:000620084}");
+    resolveReferences(context, run, {});
+    resolveArticleReferences(run, [](auto offset) {
+        if (offset == 620083)
+            return "ResolvedName";
+        if (offset == 620084)
+            return "SameName";
+        return "error";
+    });
+    ASSERT_EQ("[ref]ResolvedName[/ref] (ArticleName)[ref]SameName[/ref]", printDsl(run));
+}
+
+TEST(duden, GroupHicEntries1) {
+    HicEntry a { "a \\F{_UE}123\\F{UE_} $$$$  -1 101 -16", HicEntryType::VariantWith, -1, true };
+    HicEntry b { "b $$$$  -1 101 -16", HicEntryType::Reference, -1, true };
+    HicEntry c { "c $$$$  -1 101 -16", HicEntryType::VariantWith, -1, true };
+    auto groups = groupHicEntries({a,c,b});
+    ASSERT_EQ(1, groups.size());
+    ASSERT_EQ((std::vector{"a \\F{_UE}123\\F{UE_}"s, "b"s, "c"s}), groups[100].headings);
+}
+
+TEST(duden, GroupHicEntries2) {
+    HicEntry a { "a", HicEntryType::Plain, 100, true };
+    auto groups = groupHicEntries({a});
+    ASSERT_EQ(1, groups.size());
+    ASSERT_EQ((std::vector{"a"s}), groups[100].headings);
+}
+
+TEST(duden, GroupHicEntries3) {
+    HicEntry a { "[1]a[v]", HicEntryType::Variant, 100, true };
+    HicEntry b { "1av $$$$  -1 101 -16", HicEntryType::VariantWith, -100, true };
+    HicEntry c { "a $$$$  -1 101 -16", HicEntryType::VariantWithout, -100, true };
+    auto groups = groupHicEntries({a,c,b});
+    ASSERT_EQ(1, groups.size());
+    ASSERT_EQ((std::vector{"1av"s, "a"s}), groups[100].headings);
+}
+
+TEST(duden, GroupHicEntries4) {
+    HicEntry a { "a[v]", HicEntryType::Variant, 100, true };
+    HicEntry b { "av $$$$  -1 101 -16", HicEntryType::VariantWith, -1, true };
+    HicEntry c { "z $$$$  -1 101 -16", HicEntryType::VariantWithout, -1, true };
+    auto groups = groupHicEntries({b,c,a});
+    ASSERT_EQ(1, groups.size());
+    ASSERT_EQ((std::vector{"av"s, "z"s}), groups[100].headings);
+}
+
+TEST(duden, GroupHicEntries5) {
+    HicEntry a { "a $$$$  -1 101 -16", HicEntryType::Reference, -1, true };
+    HicEntry b { "b $$$$  -1 101 -16", HicEntryType::Reference, -1, true };
+    HicEntry c { "c \\F{_ADD}add\\F{ADD_}", HicEntryType::Plain, 200, true };
+    HicEntry d { "d", HicEntryType::Plain, 300, true };
+    auto groups = groupHicEntries({d,c,b,a});
+    ASSERT_EQ(3, groups.size());
+    ASSERT_EQ((std::vector{"a"s, "b"s}), groups[100].headings);
+    ASSERT_EQ((std::vector{"c \\F{_ADD}add\\F{ADD_}"s}), groups[200].headings);
+    ASSERT_EQ((std::vector{"d"s}), groups[300].headings);
+}
+
+TEST(duden, GroupHicEntries6) {
+    HicEntry a { "a", HicEntryType::Plain, 10, true };
+    HicEntry b { "b", HicEntryType::Plain, 20, true };
+    HicEntry c { "c $$$$  -1 21 -16", HicEntryType::Reference, 1234, true };
+    HicEntry d { "d $$$$  -1 11 -16", HicEntryType::Reference, 1234, true };
+    HicEntry e { "e $$$$  -1 11 -16", HicEntryType::Reference, 1234, true };
+    HicEntry f { "f $$$$  -1 26 -16", HicEntryType::VariantWith, 1234, true };
+    HicEntry g { "g", HicEntryType::Variant, 25, true };
+    HicEntry h { "h $$$$  -1 26 -16", HicEntryType::VariantWithout, 1234, true };
+    auto groups = groupHicEntries({a,b,c,d,e,f,g,h});
+    ASSERT_EQ(3, groups.size());
+    ASSERT_EQ((std::vector{"a"s, "d"s, "e"s}), groups[10].headings);
+    ASSERT_EQ((std::vector{"b"s, "c"s}), groups[20].headings);
+    ASSERT_EQ((std::vector{"f"s, "h"s}), groups[25].headings);
+    ASSERT_EQ(10, groups[10].articleSize);
+    ASSERT_EQ(5, groups[20].articleSize);
+    ASSERT_EQ(-1, groups[25].articleSize);
 }

@@ -121,6 +121,7 @@ public:
 class ArticleReferenceRun : public ReferenceRun {
     TextRun* _caption;
     int64_t _offset;
+    std::string _heading;
 
 public:
     void accept(TextRunVisitor *visitor) override;
@@ -132,6 +133,14 @@ public:
 
     int64_t offset() const { return _offset; }
     TextRun* caption() const { return _caption; }
+
+    void setHeading(std::string heading) {
+        _heading = std::move(heading);
+    }
+
+    const std::string& heading() {
+        return _heading;
+    }
 };
 
 class Table;
@@ -353,7 +362,7 @@ public:
 };
 
 class IdRun : public TextRun {
-    int64_t _id;
+    int64_t _id{};
 
 public:
     IdRun(int64_t id) : _id(id) {}

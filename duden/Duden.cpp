@@ -1,11 +1,11 @@
 #include "Duden.h"
 
+#include "unzip/inflate.h"
+#include "zlib.h"
 #include <QTextCodec>
 #include <boost/algorithm/string.hpp>
 #include <regex>
 #include <tuple>
-#include "unzip/inflate.h"
-#include "zlib.h"
 #include "assert.h"
 
 namespace duden {
@@ -31,12 +31,12 @@ struct Hic5Header {
 void decodeBofBlock(const void* blockData,
                     uint32_t blockSize,
                     std::vector<char>& output) {
-    output.resize(32 << 20);
-    unsigned outputSize = output.size();
-    auto res = duden_inflate(blockData, blockSize, &output[0], &outputSize);
+    static std::vector<char> buffer(32 << 10);
+    unsigned outputSize = buffer.size();
+    auto res = duden_inflate(blockData, blockSize, &buffer[0], &outputSize);
     if (res)
         throw std::runtime_error("inflate failed");
-    output.resize(outputSize);
+    output.assign(begin(buffer), begin(buffer) + outputSize);
 }
 
 const uint16_t dudenTable[] = {
@@ -50,7 +50,7 @@ const uint16_t dudenTable[] = {
     0x0242, 0x0152, 0x0153
 };
 
-uint32_t dudenCharToUtf(uint32_t ch) {
+static uint32_t dudenCharToUtf(uint32_t ch) {
     switch (ch) {
         case 0x25FFu: return 0xA0;
         case 0x25FEu: return 0x2012;
@@ -68,7 +68,7 @@ uint32_t dudenCharToUtf(uint32_t ch) {
     }
 }
 
-uint16_t win1252toUtf(char ch) {
+static uint16_t win1252toUtf(char ch) {
     static auto codec = QTextCodec::codecForName("Windows-1252");
     auto qstr = codec->toUnicode(&ch, 1);
     return qstr[0].unicode();
@@ -140,7 +140,7 @@ std::string dudenToUtf8(std::string str) {
     return {utf8.begin(), utf8.end()};
 }
 
-void decodeHeadingPrefixes(std::vector<HicEntry>& block) {
+static void decodeHeadingPrefixes(std::vector<HicEntry>& block) {
     if (block.empty())
         return;
     auto current = block[0].heading;
@@ -153,7 +153,7 @@ void decodeHeadingPrefixes(std::vector<HicEntry>& block) {
     }
 }
 
-void parseHicNodeHeadings(dictlsd::IRandomAccessStream* stream, std::vector<HicEntry>& block) {
+static void parseHicNodeHeadings(dictlsd::IRandomAccessStream* stream, std::vector<HicEntry>& block) {
     for (auto& entry : block) {
         readLine(stream, entry.heading, '\0');
     }
@@ -215,14 +215,14 @@ std::vector<uint32_t> parseIndex(dictlsd::IRandomAccessStream* stream) {
     return res;
 }
 
-std::tuple<std::string, uint32_t> parseFsiEntry(std::string raw) {
+static std::tuple<std::string, uint32_t> parseFsiEntry(std::string raw) {
     std::smatch m;
     if (!std::regex_match(raw, m, std::regex("^(.+?);(\\d+)$")))
         throw std::runtime_error("parsing error");
     return {m[1], static_cast<uint32_t>(std::stol(m[2]))};
 }
 
-std::tuple<bool, std::string> parseFsiString(dictlsd::IRandomAccessStream *stream) {
+static std::tuple<bool, std::string> parseFsiString(dictlsd::IRandomAccessStream *stream) {
     std::string res;
     for (;;) {
         auto ch = read8(stream);
@@ -301,6 +301,52 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         throw std::runtime_error("heading count inconsistency");
 
     return hicFile;
+}
+
+static std::tuple<std::string, int32_t> parseHeading(const std::string& heading) {
+    static std::regex rx(R"(^(.*?)( \$\$\$\$\s+\-?\d+\s(\d+)\s\-?\d+)?$)");
+    std::smatch m;
+    if (!std::regex_match(heading, m, rx))
+        throw std::runtime_error("can't parse heading");
+    int64_t offset = -1;
+    if (m[3].length()) {
+        offset = std::stoi(m[3]) - 1;
+    }
+    return {m[1], offset};
+}
+
+std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicEntry> entries) {
+    std::map<int32_t, HeadingGroup> groups;
+    for (const auto& entry : entries) {
+        auto [name, offset] = parseHeading(entry.heading);
+        offset = offset == -1 ? entry.textOffset : offset;
+        if (entry.type == HicEntryType::Variant)
+            continue;
+        groups[offset].headings.emplace_back(std::move(name));
+    }
+
+    entries.erase(std::remove_if(begin(entries), end(entries), [](auto& entry) {
+        return entry.type != HicEntryType::Plain
+            && entry.type != HicEntryType::Variant;
+    }), end(entries));
+
+    std::map<int32_t, int32_t> sizes;
+    if (!entries.empty()) {
+        for (auto i = 0u; i < entries.size() - 1; ++i) {
+            auto size = entries[i + 1].textOffset - entries[i].textOffset;
+            sizes[entries[i].textOffset] = size;
+        }
+    }
+
+    for (auto& group : groups) {
+        auto size = sizes.find(group.first);
+        if (size != end(sizes)) {
+            group.second.articleSize = size->second;
+        }
+        std::sort(begin(group.second.headings), end(group.second.headings));
+    }
+
+    return groups;
 }
 
 } // namespace duden

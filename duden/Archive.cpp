@@ -28,11 +28,15 @@ Archive::Archive(dictlsd::IRandomAccessStream* index,
                  dictlsd::IRandomAccessStream* bof)
     : _bof(bof) {
     _index = parseIndex(index);
+    _decodedSize = _index.back();
+    _index.pop_back();
 }
 
 void Archive::read(uint32_t plainOffset,
                    uint32_t size,
                    std::vector<char>& output) {
+    if (plainOffset >= _decodedSize)
+        throw std::runtime_error("reading past the end of archive");
     output.resize(0);
     auto block = plainOffset / g_DecodedBofBlockSize;
     auto offset = plainOffset % g_DecodedBofBlockSize;
@@ -44,6 +48,10 @@ void Archive::read(uint32_t plainOffset,
         block++;
         offset = 0;
     }
+}
+
+unsigned Archive::decodedSize() const {
+    return _decodedSize;
 }
 
 } // namespace duden

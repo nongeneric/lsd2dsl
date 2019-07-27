@@ -35,6 +35,7 @@ public:
     std::string annotation() const;
     std::vector<char> icon() const;
     unsigned articleCount() const;
+    unsigned articleArchiveDecodedSize() const;
     const std::vector<HicEntry>& entries() const;
     std::string article(uint32_t plainOffset, uint32_t size);
     const LdFile& ld() const;

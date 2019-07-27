@@ -13,6 +13,7 @@ class Archive {
     std::vector<char> _bofBuf;
     std::vector<char> _decodedBofBlock;
     unsigned _lastBlock = -1;
+    unsigned _decodedSize = 0;
 
     bool readBlock(uint32_t index);
 
@@ -20,6 +21,7 @@ public:
     Archive(dictlsd::IRandomAccessStream* index,
             dictlsd::IRandomAccessStream* bof);
     void read(uint32_t plainOffset, uint32_t size, std::vector<char>& output);
+    unsigned decodedSize() const;
 };
 
 } // namespace duden

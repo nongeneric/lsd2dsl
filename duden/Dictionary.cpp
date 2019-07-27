@@ -12,10 +12,17 @@ Dictionary::Dictionary(IFileSystem* filesystem, const InfFile& inf)
     auto ldPath = findExtension(*filesystem, ".ld");
     auto ldStream = _filesystem->open(ldPath.filename());
     _ld = parseLdFile(ldStream.get());
+    auto idxStream = _filesystem->open(_inf.primary.idx);
+    _articlesBof = _filesystem->open(_inf.primary.bof);
+    _articles = std::make_unique<Archive>(idxStream.get(), _articlesBof.get());
 }
 
 unsigned Dictionary::articleCount() const {
     return _hic.entries.size();
+}
+
+unsigned Dictionary::articleArchiveDecodedSize() const {
+    return _articles->decodedSize();
 }
 
 const std::vector<HicEntry>& Dictionary::entries() const {
@@ -23,11 +30,6 @@ const std::vector<HicEntry>& Dictionary::entries() const {
 }
 
 std::string Dictionary::article(uint32_t plainOffset, uint32_t size) {
-    if (!_articles) {
-        auto idxStream = _filesystem->open(_inf.primary.idx);
-        _articlesBof = _filesystem->open(_inf.primary.bof);
-        _articles = std::make_unique<Archive>(idxStream.get(), _articlesBof.get());
-    }
     std::vector<char> buf;
     _articles->read(plainOffset, size, buf);
     return dudenToUtf8(std::string(begin(buf), end(buf)));

@@ -379,6 +379,16 @@ class DslVisitor : public TextRunVisitor {
         _result += "\n";
     }
 
+    void visit(ArticleReferenceRun* run) override {
+        const auto& headingName = run->heading();
+        auto headingCaption = printDsl(run->caption());
+        if (headingName == headingCaption) {
+            _result += bformat("[ref]%s[/ref]", headingName);
+        } else {
+            _result += bformat("[ref]%s[/ref] (%s)", headingName, headingCaption);
+        }
+    }
+
 public:
     const std::string& result() const { return _result; }
 };

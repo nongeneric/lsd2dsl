@@ -13,6 +13,8 @@
 
 namespace duden {
 
+using namespace std::literals;
+
 void writeDSL(fs::path inputDir,
               Dictionary& dict,
               InfFile const& inf,
@@ -21,9 +23,9 @@ void writeDSL(fs::path inputDir,
     std::string dslFileName = "dictionary";
 
     auto entries = dict.entries();
-    entries.erase(std::remove_if(begin(entries), end(entries), [](auto& entry) {
-        return entry.type != duden::HicEntryType::Plain;
-    }), end(entries));
+    auto groups = groupHicEntries(entries);
+
+    progress(0, LogLevel::Regular, bformat("found %d articles", groups.size()));
 
     auto overlayPath = outputPath / (dslFileName + ".dsl.files.zip");
     ZipWriter zip(overlayPath.string());
@@ -114,22 +116,38 @@ void writeDSL(fs::path inputDir,
         return vec;
     });
 
-    for (auto i = 0u; i < entries.size(); ++i) {
-        auto size = i == entries.size() - 1 ? -1u
-                  : entries[i + 1].textOffset - entries[i].textOffset;
-        auto article = dict.article(entries[i].textOffset, size);
+    for (const auto& [textOffset, group] : groups) {
+        // headings of pictures, tables, etc
+        if (static_cast<unsigned>(textOffset) >= dict.articleArchiveDecodedSize())
+            continue;
+        auto article = dict.article(textOffset, group.articleSize);
         ParsingContext context;
-        auto headingRun = parseDudenText(context, entries[i].heading);
+        TextRun* headingRun = nullptr;
+        for (const auto& heading : group.headings) {
+            headingRun = parseDudenText(context, heading);
+            auto dslHeading = printDsl(headingRun);
+            writer.writeHeading(dictlsd::toUtf16(dslHeading));
+        }
         auto articleRun = parseDudenText(context, article);
         resolveReferences(context, articleRun, dict.ld());
         inlineReferences(context, articleRun, resources);
         resolveReferences(context, articleRun, dict.ld());
+        const auto& firstHeading = group.headings.front();
+        resolveArticleReferences(articleRun, [&](auto offset) {
+            auto it = groups.find(offset - 1);
+            if (it == end(groups)) {
+                progress(0,
+                         LogLevel::Regular,
+                         bformat("Article [%s] references unknown article %d", firstHeading, offset - 1));
+                return "unknown"s;
+            }
+            return it->second.headings.front();
+        });
         tableRenderer.render(articleRun);
-        dedupHeading(headingRun, articleRun);
+        if (group.headings.size() == 1) {
+            dedupHeading(headingRun, articleRun);
+        }
         auto dslArticle = printDsl(articleRun);
-        auto dslHeading = printDsl(headingRun);
-
-        writer.writeHeading(dictlsd::toUtf16(dslHeading));
         writer.writeArticle(dictlsd::toUtf16(dslArticle));
     }
 }

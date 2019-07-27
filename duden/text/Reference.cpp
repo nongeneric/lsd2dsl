@@ -74,7 +74,7 @@ public:
 
 class ReferenceInlinerRewriter : public TextRunVisitor {
     ParsingContext& _context;
-    ResourceFiles& _files;
+    const ResourceFiles& _files;
 
     struct PictureInfo {
         std::string copyright;
@@ -180,8 +180,19 @@ class ReferenceInlinerRewriter : public TextRunVisitor {
     }
 
 public:
-    ReferenceInlinerRewriter(ParsingContext& context, ResourceFiles& files)
+    ReferenceInlinerRewriter(ParsingContext& context, const ResourceFiles& files)
         : _context(context), _files(files) {}
+};
+
+class ArticleReferenceVisitor : public TextRunVisitor {
+    ResolveArticle _resolveArticle;
+
+public:
+    ArticleReferenceVisitor(ResolveArticle resolveArticle) : _resolveArticle(resolveArticle) {}
+
+    void visit(ArticleReferenceRun* run) override {
+        run->setHeading(_resolveArticle(run->offset()));
+    }
 };
 
 } // namespace
@@ -191,9 +202,14 @@ void resolveReferences(ParsingContext& context, TextRun* run, LdFile const& ld) 
     run->accept(&rewriter);
 }
 
-void inlineReferences(ParsingContext &context, TextRun *run, ResourceFiles& files) {
+void inlineReferences(ParsingContext &context, TextRun *run, const ResourceFiles& files) {
     ReferenceInlinerRewriter rewriter(context, files);
     run->accept(&rewriter);
+}
+
+void resolveArticleReferences(TextRun *run, ResolveArticle resolveArticle) {
+    ArticleReferenceVisitor visitor(resolveArticle);
+    run->accept(&visitor);
 }
 
 } // namespace duden

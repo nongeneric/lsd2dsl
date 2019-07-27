@@ -12,10 +12,10 @@ enum class HicEntryType {
     Plain = 1,
     Reference = 2,
     Range = 4,
-    Unknown6 = 6,
-    Unknown7 = 7,
-    Unknown8 = 8,
-    Multi = 10,
+    Person = 6,
+    VariantWith = 7,
+    VariantWithout = 8,
+    Variant = 10,
     Unknown11 = 11
 };
 
@@ -49,5 +49,12 @@ std::vector<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream);
 HicFile parseHicFile(dictlsd::IRandomAccessStream* stream);
 std::string dudenToUtf8(std::string str);
 std::string win1252toUtf8(std::string str);
+
+struct HeadingGroup {
+    std::vector<std::string> headings;
+    int32_t articleSize = -1;
+};
+
+std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicEntry> entries);
 
 } // namespace duden

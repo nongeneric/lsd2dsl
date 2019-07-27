@@ -53,7 +53,9 @@ class Parser {
 
     bool lit(const char* str) {
         auto p = _ptr;
-        while (*str && *p) {
+        while (*str) {
+            if (!*p)
+                return false;
             if (*p++ != *str++)
                 return false;
         }
@@ -61,12 +63,12 @@ class Parser {
         return true;
     }
 
-    void reqlit(const char* str) {
-        if (!lit(str))
+    void expect(bool result) {
+        if (!result)
             throw std::runtime_error("parsing error");
     }
 
-    int digit(int& i) {
+    bool digit(int& i) {
         if ('0' <= *_ptr && *_ptr <= '9') {
             i = *_ptr++ - '0';
             return true;
@@ -89,14 +91,22 @@ class Parser {
     void sticky() {
         if (lit("C%ID=")) {
             int64_t i;
-            dec(i);
+            expect(dec(i));
             current()->addRun(_context->make<IdRun>(i));
+            return;
+        }
+        if (lit("C")) {
+            while (*_ptr && *_ptr != '\n')
+                ++_ptr;
+            expect(lit("\n"));
             return;
         }
 
         int i;
-        digit(i);
-        current()->addRun(_context->make<StickyRun>(i));
+        if (digit(i)) {
+            current()->addRun(_context->make<StickyRun>(i));
+        }
+        // ignore unknown escape
     }
 
     void tname(std::string& name) {
@@ -117,7 +127,7 @@ class Parser {
         if (!lit("F{_"))
             return false;
         tname(name);
-        reqlit("}");
+        expect(lit("}"));
         return true;
     }
 
@@ -125,7 +135,7 @@ class Parser {
         if (!lit("F{"))
             return false;
         tname(name);
-        reqlit("_}");
+        expect(lit("_}"));
         return true;
     }
 
@@ -153,7 +163,7 @@ class Parser {
         text(false);
         finishPlain();
         pop();
-        reqlit(";");
+        expect(lit(";"));
         auto id = sid();
         placeholder->setId(id);
         while (lit(";")) {
@@ -201,9 +211,9 @@ class Parser {
 
     std::tuple<int, int> parseRange() {
         int64_t from, to;
-        dec(from);
+        expect(dec(from));
         if (lit("-")) {
-            dec(to);
+            expect(dec(to));
         } else {
             to = from;
         }
@@ -283,7 +293,7 @@ class Parser {
         if (lit("eb{")) {
             finishPlain();
             int64_t i;
-            dec(i);
+            expect(dec(i));
             lit("}");
             current()->addRun(_context->make<TabRun>(i));
             return;
@@ -303,7 +313,7 @@ class Parser {
         if (lit("tcn")) {
             assertTable();
             int64_t i;
-            dec(i);
+            expect(dec(i));
             _tableColumns = i;
             current()->addRun(_context->make<TableTag>(TableTagType::ColumnCount, i, -1));
             return;
@@ -311,7 +321,7 @@ class Parser {
         if (lit("tln")) {
             assertTable();
             int64_t i;
-            dec(i);
+            expect(dec(i));
             _tableRows = i;
             current()->addRun(_context->make<TableTag>(TableTagType::RowCount, i, -1));
             return;
@@ -406,7 +416,7 @@ class Parser {
         if (sftag(name)) {
             finishPlain();
             uint32_t rgb;
-            if (name == "ADD") {
+            if (name == "ADD" || name == "UE") {
                 push(_context->make<AddendumFormattingRun>());
             } else if (parseRbg(name, rgb)) {
                 push(_context->make<ColorFormattingRun>(rgb, findColorName(rgb)));
@@ -420,7 +430,7 @@ class Parser {
         }
         if (eftag(name)) {
             finishPlain();
-            if (name == "ADD") {
+            if (name == "ADD" || name == "UE") {
                 popIf<AddendumFormattingRun>();
             } else if (name == "WebLink") {
                 popIf<WebLinkFormattingRun>();
@@ -439,12 +449,20 @@ class Parser {
 
     bool control() {
         if (lit("@")) {
+            if (lit("@")) {
+                appendPlain('@');
+                return true;
+            }
             if (lit("\\")) {
                 appendPlain('\\');
                 return true;
             }
             if (lit(";")) {
                 appendPlain(';');
+                return true;
+            }
+            if (lit("S")) {
+                appendPlain(u8"\u2191");
                 return true;
             }
             finishPlain();
