@@ -921,6 +921,12 @@ TEST(duden, HandleAddendumInDsl) {
     ASSERT_EQ("Abc (123)", printDsl(run));
 }
 
+TEST(duden, HandleRightAlignmentInDsl) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "\\F{_Right}abc\\F{Right_}");
+    ASSERT_EQ("abc", printDsl(run));
+}
+
 TEST(duden, EscapeSquareBracketsInDsl) {
     ParsingContext context;
     auto run = parseDudenText(context, "[abc]");

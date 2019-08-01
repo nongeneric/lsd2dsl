@@ -89,6 +89,11 @@ public:
     void accept(TextRunVisitor *visitor) override;
 };
 
+class AlignmentFormattingRun : public FormattingRun {
+public:
+    void accept(TextRunVisitor *visitor) override;
+};
+
 class SuperscriptFormattingRun : public FormattingRun {
 public:
     void accept(TextRunVisitor *visitor) override;
@@ -439,6 +444,7 @@ public:
     virtual void visit(WebLinkFormattingRun* run) { visitImpl(run); }
     virtual void visit(ColorFormattingRun* run) { visitImpl(run); }
     virtual void visit(AddendumFormattingRun* run) { visitImpl(run); }
+    virtual void visit(AlignmentFormattingRun* run) { visitImpl(run); }
     virtual void visit(SuperscriptFormattingRun* run) { visitImpl(run); }
     virtual void visit(SubscriptFormattingRun* run) { visitImpl(run); }
     virtual void visit(TagReferenceRun* run) { visitImpl(run); }

@@ -110,7 +110,7 @@ void decodeBofIdx(std::string bofPath,
 
     if (fsiPath.empty()) {
         archive.read(0, -1, vec);
-        UnicodePathFile file((fs::path(output) / "decoded.bin").string(), true);
+        std::ofstream file(fs::path(output) / "decoded.dump");
         if (dudenEncoding) {
             auto text = duden::dudenToUtf8(std::string{begin(vec), end(vec)});
             file.write(&text[0], text.size());
@@ -128,6 +128,21 @@ void decodeBofIdx(std::string bofPath,
         }
     }
 }
+
+void decodeHic(std::string hicPath,
+               std::string output) {
+    FileStream fHic(hicPath);
+    auto hic = duden::parseHicFile(&fHic);
+    std::ofstream f(fs::path(output) / "decoded-hic");
+    for (auto& entry : hic.entries) {
+        f << bformat("%S  %02d  %08x  %s\n",
+                     entry.isLeaf ? "L" : " ",
+                     static_cast<int>(entry.type),
+                     entry.textOffset,
+                     entry.heading);
+    }
+}
+
 
 void parseDudenText(std::string textPath, std::string output) {
     duden::ParsingContext context;
@@ -197,7 +212,7 @@ public:
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
     std::string lsdPath, lsaPath, dudenPath, outputPath;
-    std::string bofPath, idxPath, fsiPath, textPath;
+    std::string bofPath, idxPath, fsiPath, hicPath, textPath;
     int sourceFilter = -1, targetFilter = -1;
     bool isDumb, dudenEncoding, verbose;
     po::options_description console_desc("Allowed options");
@@ -224,6 +239,7 @@ int main(int argc, char* argv[]) {
                 ("bof", po::value<std::string>(&bofPath), "Duden BOF file path")
                 ("idx", po::value<std::string>(&idxPath), "Duden IDX file path")
                 ("fsi", po::value<std::string>(&fsiPath), "Duden FSI file path")
+                ("hic", po::value<std::string>(&hicPath), "Duden HIC file path")
                 ("text", po::value<std::string>(&textPath), "Duden decoded text file path")
                 ("duden-utf", "Decode Duden to Utf");
         }
@@ -254,7 +270,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (lsdPath.empty() && lsaPath.empty() && dudenPath.empty() && bofPath.empty() &&
-        textPath.empty()) {
+        textPath.empty() && hicPath.empty()) {
         std::cout << console_desc;
         return 0;
     }
@@ -282,6 +298,9 @@ int main(int argc, char* argv[]) {
         }
         if (!bofPath.empty() && !idxPath.empty()) {
             decodeBofIdx(bofPath, idxPath, fsiPath, dudenEncoding, outputPath);
+        }
+        if (!hicPath.empty()) {
+            decodeHic(hicPath, outputPath);
         }
         if (!textPath.empty()) {
             parseDudenText(textPath, outputPath);

@@ -46,6 +46,10 @@ void AddendumFormattingRun::accept(TextRunVisitor* visitor) {
     visitor->visit(this);
 }
 
+void AlignmentFormattingRun::accept(TextRunVisitor* visitor) {
+    visitor->visit(this);
+}
+
 void SuperscriptFormattingRun::accept(TextRunVisitor* visitor) {
     visitor->visit(this);
 }

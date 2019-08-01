@@ -77,6 +77,11 @@ public:
         TextRunVisitor::visit(run);
     }
 
+    void visit(AlignmentFormattingRun* run) override {
+        print(run, "AlignmentFormattingRun");
+        TextRunVisitor::visit(run);
+    }
+
     void visit(SuperscriptFormattingRun* run) override {
         print(run, "SuperscriptFormattingRun");
         TextRunVisitor::visit(run);
@@ -335,6 +340,10 @@ class DslVisitor : public TextRunVisitor {
         _result += "(";
         TextRunVisitor::visit(run);
         _result += ")";
+    }
+
+    void visit(AlignmentFormattingRun* run) override {
+        TextRunVisitor::visit(run);
     }
 
     void visit(LineBreakRun*) override {

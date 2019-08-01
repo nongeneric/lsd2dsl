@@ -11,6 +11,16 @@
 namespace duden {
 
 #pragma pack(1)
+struct Hic3Header {
+    uint32_t headingCount;
+    uint32_t blockCount;
+    uint16_t unk7;
+    uint16_t unk8;
+    uint32_t unk9;
+    uint16_t unk10;
+    uint8_t unk11;
+    uint8_t namelen;
+};
 struct Hic5Header {
     uint32_t unk0;
     uint32_t unk1;
@@ -189,7 +199,6 @@ std::vector<HicEntry> parseHicNode6(dictlsd::IRandomAccessStream* stream) {
 
 std::vector<HicEntry> parseHicNode45(dictlsd::IRandomAccessStream* stream) {
     auto count = read8(stream);
-    assert(count);
     std::vector<HicEntry> block(count);
     for (auto& entry : block) {
         auto raw = read32(stream);
@@ -272,6 +281,13 @@ std::vector<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream) {
     return res;
 }
 
+template <class T>
+std::tuple<uint32_t, uint32_t, uint8_t> readHeader(dictlsd::IRandomAccessStream *stream) {
+    T header;
+    stream->readSome(reinterpret_cast<char*>(&header), sizeof header);
+    return {header.headingCount, header.blockCount, header.namelen};
+}
+
 HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
     std::string magic(0x22, 0);
     stream->readSome(&magic[0], magic.size());
@@ -279,16 +295,17 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         throw std::runtime_error("not a HIC file");
     read8(stream);
     auto version = read8(stream);
-    if (version <= 3)
+    if (version < 3)
         throw std::runtime_error("unsupported version");
-    Hic5Header header;
-    stream->readSome(reinterpret_cast<char*>(&header), sizeof header);
-    std::string name(header.namelen - 1, 0);
+
+    auto [headingCount, blockCount, namelen] =
+        version > 3 ? readHeader<Hic5Header>(stream) : readHeader<Hic3Header>(stream);
+    std::string name(namelen - 1, 0);
     stream->readSome(&name[0], name.size());
     read8(stream);
     HicFile hicFile{name, version, {}};
 
-    for (auto i = 0u; i < header.blockCount; ++i) {
+    for (auto i = 0u; i < blockCount; ++i) {
         auto nodeSize = read16(stream);
         auto curPos = stream->tell();
         auto entries = version >= 6 ? parseHicNode6(stream) : parseHicNode45(stream);
@@ -297,7 +314,7 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         std::copy(begin(entries), end(entries), std::back_inserter(hicFile.entries));
     }
 
-    if (header.headingCount != hicFile.entries.size())
+    if (headingCount != hicFile.entries.size())
         throw std::runtime_error("heading count inconsistency");
 
     return hicFile;

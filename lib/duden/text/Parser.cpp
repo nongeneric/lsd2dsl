@@ -422,6 +422,8 @@ class Parser {
                 push(_context->make<ColorFormattingRun>(rgb, findColorName(rgb)));
             } else if (name == "WebLink") {
                 push(_context->make<WebLinkFormattingRun>());
+            } else if (name == "Right") {
+                push(_context->make<AlignmentFormattingRun>());
             } else {
                 assert(false);
             }
@@ -434,6 +436,8 @@ class Parser {
                 popIf<AddendumFormattingRun>();
             } else if (name == "WebLink") {
                 popIf<WebLinkFormattingRun>();
+            } else if (name == "Right") {
+                popIf<AlignmentFormattingRun>();
             } else {
                 popIf<ColorFormattingRun>();
             }
