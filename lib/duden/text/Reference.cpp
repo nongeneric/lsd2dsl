@@ -12,6 +12,7 @@ namespace {
 class ReferenceResolverRewriter : public TextRunVisitor {
     ParsingContext& _context;
     const LdFile& _ld;
+    IFileSystem* _filesystem;
 
     std::tuple<std::string, uint32_t> findFileName(int64_t offset) {
         for (auto& range : _ld.ranges) {
@@ -20,6 +21,16 @@ class ReferenceResolverRewriter : public TextRunVisitor {
             }
         }
         throw std::runtime_error("unknown reference range");
+    }
+
+    void fixCase(std::string& file) {
+        if (!_filesystem)
+            return;
+        auto& files = _filesystem->files();
+        auto it = files.find(fs::path(file));
+        if (it != end(files)) {
+            file = it->string();
+        }
     }
 
     void visit(ReferencePlaceholderRun* run) override {
@@ -36,7 +47,18 @@ class ReferenceResolverRewriter : public TextRunVisitor {
             code = code.substr(1);
 
             if (prefix == 'I') {
-                newRun = _context.make<InlineImageRun>(code);
+                std::string secondary;
+                auto runs = run->runs();
+                if (runs.size() > 2) {
+                    auto first = dynamic_cast<PlainRun*>(runs[1]);
+                    auto second = dynamic_cast<PlainRun*>(runs[2]);
+                    if (first && first->text() == "T" && second) {
+                        secondary = second->text();
+                    }
+                }
+                fixCase(code);
+                fixCase(secondary);
+                newRun = _context.make<InlineImageRun>(code, secondary);
             } else {
                 auto ref = std::find_if(begin(_ld.references), end(_ld.references), [&](auto& info) {
                     return info.code == code;
@@ -68,8 +90,8 @@ class ReferenceResolverRewriter : public TextRunVisitor {
     }
 
 public:
-    ReferenceResolverRewriter(ParsingContext& context, LdFile const& ld)
-        : _context(context), _ld(ld) {}
+    ReferenceResolverRewriter(ParsingContext& context, LdFile const& ld, IFileSystem* filesystem)
+        : _context(context), _ld(ld), _filesystem(filesystem) {}
 };
 
 class ReferenceInlinerRewriter : public TextRunVisitor {
@@ -197,8 +219,8 @@ public:
 
 } // namespace
 
-void resolveReferences(ParsingContext& context, TextRun* run, LdFile const& ld) {
-    ReferenceResolverRewriter rewriter(context, ld);
+void resolveReferences(ParsingContext& context, TextRun* run, LdFile const& ld, IFileSystem* filesystem) {
+    ReferenceResolverRewriter rewriter(context, ld, filesystem);
     run->accept(&rewriter);
 }
 

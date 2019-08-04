@@ -1,19 +1,20 @@
-#include "lib/common/version.h"
-#include "lib/common/ZipWriter.h"
 #include "lib/common/DslWriter.h"
 #include "lib/common/Log.h"
-#include "lib/lsd/lsd.h"
-#include "lib/lsd/tools.h"
+#include "lib/common/ZipWriter.h"
 #include "lib/common/bformat.h"
-#include "lib/lsd/LSAReader.h"
-#include "lib/duden/Duden.h"
-#include "lib/duden/InfFile.h"
+#include "lib/common/overloaded.h"
+#include "lib/common/version.h"
 #include "lib/duden/Dictionary.h"
+#include "lib/duden/Duden.h"
+#include "lib/duden/HtmlRenderer.h"
+#include "lib/duden/InfFile.h"
 #include "lib/duden/Writer.h"
-#include "lib/duden/text/TextRun.h"
 #include "lib/duden/text/Parser.h"
 #include "lib/duden/text/Printers.h"
-#include "lib/duden/HtmlRenderer.h"
+#include "lib/duden/text/TextRun.h"
+#include "lib/lsd/LSAReader.h"
+#include "lib/lsd/lsd.h"
+#include "lib/lsd/tools.h"
 
 #include <QApplication>
 #include <boost/program_options.hpp>
@@ -133,16 +134,34 @@ void decodeHic(std::string hicPath,
                std::string output) {
     FileStream fHic(hicPath);
     auto hic = duden::parseHicFile(&fHic);
-    std::ofstream f(fs::path(output) / "decoded-hic");
-    for (auto& entry : hic.entries) {
-        f << bformat("%S  %02d  %08x  %s\n",
-                     entry.isLeaf ? "L" : " ",
-                     static_cast<int>(entry.type),
-                     entry.textOffset,
-                     entry.heading);
-    }
-}
+    std::ofstream f(fs::path(output) / "hic.dump");
+    int leafNum = 0;
+    auto print = [&](auto& print, auto page, int level) -> void {
+        std::string space(level * 4, ' ');
+        f << bformat("%spage %x\n", space, page->offset);
+        for (auto& entry : page->entries) {
+            std::visit(overloaded{
+                [&](duden::HicLeaf& leaf) {
+                    f << bformat("%s%04d LEAF %02d  %08x  %s\n",
+                               space, leafNum++,
+                               static_cast<int>(leaf.type),
+                               leaf.textOffset,
+                               leaf.heading);
+                },
+                [&](duden::HicNode& node) {
+                    f << bformat("%sNODE %d (%x)  %d  %s\n",
+                               space,
+                               node.delta,
+                               -node.delta,
+                               node.count,
+                               node.heading);
+                    print(print, node.page, level + 1);
+                }}, entry);
+        }
+    };
 
+    print(print, hic.root, 0);
+}
 
 void parseDudenText(std::string textPath, std::string output) {
     duden::ParsingContext context;
@@ -160,6 +179,15 @@ void parseDudenText(std::string textPath, std::string output) {
     of << dsl << "\n\n";
     auto html = duden::printHtml(run);
     of << html << "\n\n";
+}
+
+void parseFsi(std::string fsiPath, std::string output) {
+    FileStream fFsi(fsiPath);
+    auto entries = duden::parseFsiFile(&fFsi);
+    std::ofstream file((fs::path(output) / "fsi.dump").string());
+    for (auto& entry : entries) {
+        file << bformat("%08x  %08x  %s\n", entry.offset, entry.size, entry.name);
+    }
 }
 
 class ConsoleLog : public Log {
@@ -270,7 +298,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (lsdPath.empty() && lsaPath.empty() && dudenPath.empty() && bofPath.empty() &&
-        textPath.empty() && hicPath.empty()) {
+        textPath.empty() && hicPath.empty() && fsiPath.empty()) {
         std::cout << console_desc;
         return 0;
     }
@@ -304,6 +332,9 @@ int main(int argc, char* argv[]) {
         }
         if (!textPath.empty()) {
             parseDudenText(textPath, outputPath);
+        }
+        if (!fsiPath.empty()) {
+            parseFsi(fsiPath, outputPath);
         }
     } catch (std::exception& exc) {
         std::cout << "an error occured while processing dictionary: " << exc.what() << std::endl;

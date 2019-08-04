@@ -98,7 +98,10 @@ InfFile parseInfFile(dictlsd::IRandomAccessStream* stream) {
 void fixFileNameCase(std::string& name, IFileSystem* filesystem) {
     if (name.empty())
         return;
-    name = findCaseInsensitive(*filesystem, name).filename().string();
+    auto& files = filesystem->files();
+    auto it = files.find(fs::path(name));
+    assert(it != end(files));
+    name = it->filename().string();
 }
 
 void fixFileNameCase(InfFile& inf, IFileSystem* filesystem) {

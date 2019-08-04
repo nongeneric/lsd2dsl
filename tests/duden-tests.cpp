@@ -37,70 +37,84 @@ TEST(duden, HicNodeTest1) {
     FileStream stream("duden_testfiles/HicNode99");
 
     auto block = parseHicNode45(&stream);
+    auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
 
     ASSERT_EQ(13, block.size());
-    ASSERT_EQ(u8"Inhalt", block[0].heading);
-    ASSERT_EQ(u8"Vorwort", block[1].heading);
-    ASSERT_EQ(u8"Impressum", block[2].heading);
-    ASSERT_EQ(u8"Zur Einrichtung des Wörterverzeichnisses", block[3].heading);
-    ASSERT_EQ(u8"Fremdwörter: Bedrohung oder Bereicherung", block[4].heading);
-    ASSERT_EQ(u8"Ein Fremdwort – was ist das?", block[5].heading);
+    ASSERT_EQ(u8"Inhalt", at(0).heading);
+    ASSERT_EQ(u8"Vorwort", at(1).heading);
+    ASSERT_EQ(u8"Impressum", at(2).heading);
+    ASSERT_EQ(u8"Zur Einrichtung des Wörterverzeichnisses", at(3).heading);
+    ASSERT_EQ(u8"Fremdwörter: Bedrohung oder Bereicherung", at(4).heading);
+    ASSERT_EQ(u8"Ein Fremdwort – was ist das?", at(5).heading);
     ASSERT_EQ(
         u8"Fremdes Wort im deutschen Satz: Schreibung, Aussprache und Grammatik",
-        block[6].heading);
-    ASSERT_EQ(u8"Fremdwörter in Zahlen", block[7].heading);
-    ASSERT_EQ(u8"Fremdwörter – eine Stilfrage", block[10].heading);
+        at(6).heading);
+    ASSERT_EQ(u8"Fremdwörter in Zahlen", at(7).heading);
+    ASSERT_EQ(u8"Fremdwörter – eine Stilfrage", at(10).heading);
 
-    ASSERT_EQ(0, block[0].textOffset);
-    ASSERT_EQ(HicEntryType::Plain, block[0].type);
-    ASSERT_EQ(0x2c2, block[1].textOffset);
-    ASSERT_EQ(HicEntryType::Plain, block[1].type);
+    ASSERT_EQ(0, at(0).textOffset);
+    ASSERT_EQ(HicEntryType::Plain, at(0).type);
+    ASSERT_EQ(0x2c2, at(1).textOffset);
+    ASSERT_EQ(HicEntryType::Plain, at(1).type);
 }
 
 TEST(duden, HicNodeTest2) {
     FileStream stream("duden_testfiles/HicNode10c5");
 
     auto block = parseHicNode45(&stream);
+    auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
 
     ASSERT_EQ(20, block.size());
-    ASSERT_EQ(u8"absent", block[1].heading);
-    ASSERT_EQ(u8"absentia", block[2].heading);
-    ASSERT_EQ(u8"absentieren", block[3].heading);
-    ASSERT_EQ(u8"Absolventin", block[15].heading);
+    ASSERT_EQ(u8"absent", at(1).heading);
+    ASSERT_EQ(u8"absentia", at(2).heading);
+    ASSERT_EQ(u8"absentieren", at(3).heading);
+    ASSERT_EQ(u8"Absolventin", at(15).heading);
 }
 
 TEST(duden, HicNodeTest3) {
     FileStream stream("duden_testfiles/block_hic_v6");
 
     auto block = parseHicNode6(&stream);
+    auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
 
     ASSERT_EQ(18, block.size());
-    ASSERT_EQ(u8"Abd ar-Rahman Putra", block[0].heading);
-    ASSERT_EQ(HicEntryType::Plain, block[0].type);
-    ASSERT_EQ(0x51286, block[0].textOffset);
+    ASSERT_EQ(u8"Abd ar-Rahman Putra", at(0).heading);
+    ASSERT_EQ(HicEntryType::Plain, at(0).type);
+    ASSERT_EQ(0x51286, at(0).textOffset);
 
-    ASSERT_EQ(u8"Abderemane", block[17].heading);
-    ASSERT_EQ(HicEntryType::Plain, block[17].type);
-    ASSERT_EQ(0x52a02, block[17].textOffset);
+    ASSERT_EQ(u8"Abderemane", at(17).heading);
+    ASSERT_EQ(HicEntryType::Plain, at(17).type);
+    ASSERT_EQ(0x52a02, at(17).textOffset);
 }
 
 TEST(duden, HicNodeTest4) {
     FileStream stream("duden_testfiles/block_2847_heading_encoding");
 
     auto block = parseHicNode6(&stream);
+    auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
 
     ASSERT_EQ(18, block.size());
-    ASSERT_EQ(u8"8-bit-Zeichensatz", block[0].heading);
-    ASSERT_EQ(u8"a.", block[10].heading);
-    ASSERT_EQ(u8"à", block[11].heading);
+    ASSERT_EQ(u8"8-bit-Zeichensatz", at(0).heading);
+    ASSERT_EQ(u8"a.", at(10).heading);
+    ASSERT_EQ(u8"à", at(11).heading);
 }
 
-TEST(duden, HicNodeTest_filter_out_non_leafs) {
+TEST(duden, HicNodeTest_ParseNonLeafs) {
     FileStream stream("duden_testfiles/HicNode6a");
 
     auto block = parseHicNode45(&stream);
+    auto at = [&](int i) { return std::get<HicNode>(block[i]); };
 
-    ASSERT_EQ(0, block.size());
+    ASSERT_EQ(2, block.size());
+    EXPECT_EQ("Zusätze", at(0).heading);
+    EXPECT_EQ(13, at(0).count);
+    EXPECT_EQ(-67283, at(0).delta);
+    EXPECT_EQ(151, at(0).hicOffset);
+
+    EXPECT_EQ("Wörterverzeichnis", at(1).heading);
+    EXPECT_EQ(10, at(1).count);
+    EXPECT_EQ(-7912591, at(1).delta);
+    EXPECT_EQ(667, at(1).hicOffset);
 }
 
 TEST(duden, ParseIndex) {
@@ -122,7 +136,18 @@ TEST(duden, ParseSingleItemFsiBlock) {
     auto entries = parseFsiBlock(&stream);
 
     ASSERT_EQ(1, entries.size());
-    ASSERT_EQ("EURO.BMP", entries[0].name);
+    ASSERT_EQ(u8"EURO.BMP", entries[0].name);
+    ASSERT_EQ(0, entries[0].offset);
+    ASSERT_EQ(1318, entries[0].size);
+}
+
+TEST(duden, ParseSingleItemFsiBlockUnicode) {
+    FileStream stream("duden_testfiles/fsiSingleItemBlockUnicode");
+
+    auto entries = parseFsiBlock(&stream);
+
+    ASSERT_EQ(1, entries.size());
+    ASSERT_EQ("EURä.BMP", entries[0].name);
     ASSERT_EQ(0, entries[0].offset);
     ASSERT_EQ(1318, entries[0].size);
 }
@@ -172,19 +197,24 @@ TEST(duden, DecodeFixedTreeBofBlock) {
 }
 
 class TestFileSystem : public IFileSystem {
+    CaseInsensitiveSet _files;
+
 public:
+    TestFileSystem() {
+        _files = {"d5snd.idx",
+                  "d5snd.fsi",
+                  "d5snd.Bof",
+                  "DU5NEU.HIC",
+                  "du5neu.IDX",
+                  "du5neu.bof"};
+    }
+
     std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
         return {};
     }
 
-    std::vector<fs::path> files() override {
-        fs::path root = "/tmp";
-        return {root / "d5snd.idx",
-                root / "d5snd.fsi",
-                root / "d5snd.Bof",
-                root / "DU5NEU.HIC",
-                root / "du5neu.IDX",
-                root / "du5neu.bof"};
+    const CaseInsensitiveSet& files() override {
+        return _files;
     }
 };
 
@@ -218,25 +248,30 @@ TEST(duden, ParseInfFile) {
 }
 
 class TestFileSystem2 : public IFileSystem {
+    CaseInsensitiveSet _files;
+
 public:
+    TestFileSystem2() {
+        fs::path root = "/tmp";
+        _files = {root / "123_abc.bin", root / "abc.bin", root / "file.ext"};
+    }
+
     std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
         return {};
     }
 
-    std::vector<fs::path> files() override {
-        fs::path root = "/tmp";
-        return {root / "123_abc.bin",
-                root / "abc.bin",
-                root / "file.ext"};
+    const CaseInsensitiveSet& files() override {
+        return _files;
     }
 };
 
 TEST(duden, CaseInsensitiveFileSystemSearch) {
     TestFileSystem2 fileSystem;
-    auto found = findCaseInsensitive(fileSystem, "ABC.bin");
-    ASSERT_EQ("/tmp/abc.bin", found.string());
-    found = findExtension(fileSystem, ".ext");
-    ASSERT_EQ("/tmp/file.ext", found.string());
+    auto found = fileSystem.files().find("/tmp/ABC.bin");
+    ASSERT_NE(end(fileSystem.files()), found);
+    ASSERT_EQ("/tmp/abc.bin", found->string());
+    auto foundExt = findExtension(fileSystem, ".ext");
+    ASSERT_EQ("/tmp/file.ext", foundExt.string());
     EXPECT_THROW(findExtension(fileSystem, ".bin"), std::runtime_error);
 }
 
@@ -251,7 +286,7 @@ TEST(duden, Unicode) {
     ASSERT_EQ(u8"['ælaɪd 'fɔːsɪz 'sentrl 'jʊərəp,", utf);
 }
 
-TEST(duden, Unicode_ignore_escapes_inside_refs) {
+TEST(duden, UnicodeIgnoreEscapesInsideRefs) {
     const uint8_t text[] = {
         0x4D, 0xA0, 0xFC, 0xA3, 0xE9, 0x6E, 0x64, 0x65, 0x6E, 0x5C, 0x53, 0x7B,
         0x3B, 0x2E, 0x4D, 0x4B, 0x3B, 0x3B, 0x48, 0x61, 0x6E, 0x6E, 0x6F, 0x76,
@@ -439,7 +474,7 @@ TEST(duden, ResolveArticleReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
                     "  ArticleReferenceRun; offset=25004230\n"
@@ -454,7 +489,7 @@ TEST(duden, ResolveTableReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
                     "  TableReferenceRun; offset=151833; file=btb_tab\n"
@@ -469,7 +504,7 @@ TEST(duden, ResolvePictureReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
                     "  PictureReferenceRun; offset=127616; file=btb_pic; cr=; image=\n"
@@ -483,7 +518,7 @@ TEST(duden, ResolveWebReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
                     "  WebReferenceRun; link=http://www.example.de/\n"
@@ -499,11 +534,68 @@ TEST(duden, ResolveInlineImageReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
-                    "  InlineImageRun; name=euro.bmp\n";
+                    "  InlineImageRun; name=euro.bmp; secondary=\n";
     ASSERT_EQ(expected, tree);
+    ASSERT_EQ(u8"[s]euro.bmp[/s]", printDsl(run));
+}
+
+TEST(duden, ResolveAudioReference) {
+    auto text = u8"\\S{;.Ispeaker.bmp;T;à la longue.adp}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    resolveReferences(context, run, ld, nullptr);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  InlineImageRun; name=speaker.bmp; secondary=à la longue.adp\n";
+    ASSERT_EQ(expected, tree);
+    ASSERT_EQ(u8"[s]à la longue.adp[/s]", printDsl(run));
+}
+
+class TestFileSystem3 : public IFileSystem {
+    CaseInsensitiveSet _files;
+
+public:
+    TestFileSystem3() {
+        fs::path root = "";
+        _files = {u8"123.bmp",
+                  u8"euro.bmp",
+                  u8"АбfD.BMP",
+                  u8"UNABKöMMLICH1V.ADP"};
+    }
+     std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
+        return {};
+    }
+
+    const CaseInsensitiveSet& files() override {
+        return _files;
+    }
+};
+
+TEST(duden, ResolveInlineImageReferenceInconstistentCase) {
+    auto text = u8"\\S{;.IаБFd.bmp;T}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    TestFileSystem3 fs;
+    resolveReferences(context, run, ld, &fs);
+    ASSERT_EQ(u8"[s]АбfD.BMP[/s]", printDsl(run));
+}
+
+TEST(duden, ResolveInlineImageReferenceInconstistentCase2) {
+    auto text = u8"\\S{;.Ispeaker.bmp;T;unabkömmlich1v.adp}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    TestFileSystem3 fs;
+    resolveReferences(context, run, ld, &fs);
+    ASSERT_EQ(u8"[s]UNABKöMMLICH1V.ADP[/s]", printDsl(run));
 }
 
 TEST(duden, InlinePictureReference) {
@@ -512,7 +604,7 @@ TEST(duden, InlinePictureReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
 
     ResourceFiles files;
     files["btb_pic"] = std::make_unique<std::ifstream>("duden_testfiles/duden_encoded_pic");
@@ -701,7 +793,7 @@ TEST(duden, InlineTableReference) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
 
     ResourceFiles files;
     files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file");
@@ -785,6 +877,16 @@ TEST(duden, ParseColors) {
     auto run = parseDudenText(context, text);
     auto expected = "TextRun\n"
                     "  ColorFormattingRun; rgb=0000ff; name=blue\n"
+                    "    PlainRun: abc\n";
+    ASSERT_EQ(expected, printTree(run));
+}
+
+TEST(duden, ParseColorsWithoutSpaces) {
+    std::string text = "\\F{_FF0000}abc\\F{FF0000_}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto expected = "TextRun\n"
+                    "  ColorFormattingRun; rgb=ff0000; name=red\n"
                     "    PlainRun: abc\n";
     ASSERT_EQ(expected, printTree(run));
 }
@@ -887,6 +989,18 @@ TEST(duden, ParseId) {
     ASSERT_EQ(expected, printTree(run));
 }
 
+TEST(duden, ParseEmptyId) {
+    std::string text = "a@C%ID=\nb";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto expected = "TextRun\n"
+                    "  PlainRun: a\n"
+                    "  IdRun: -1\n"
+                    "  SoftLineBreakRun\n"
+                    "  PlainRun: b\n";
+    ASSERT_EQ(expected, printTree(run));
+}
+
 TEST(duden, ParseSoftLineBreak) {
     std::string text = "a\nb\r\nc";
     ParsingContext context;
@@ -949,7 +1063,7 @@ TEST(duden, InlineRenderAndPrintPicture) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
     files["btb_pic"] = std::make_unique<std::ifstream>("duden_testfiles/duden_encoded_pic");
     inlineReferences(context, run, files);
@@ -1054,7 +1168,7 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
     files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file");
     inlineReferences(context, run, files);
@@ -1111,7 +1225,7 @@ TEST(duden, HandleEmbeddedImagesInHtml) {
     auto text = "\\S{;.Ieuro.eXt;T}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    resolveReferences(context, run, {});
+    resolveReferences(context, run, {}, nullptr);
     std::string requestedName;
     auto html = printHtml(run, [&](auto name) {
         requestedName = name;
@@ -1133,11 +1247,11 @@ TEST(duden, HandleEmbeddedImagesInHtml2) {
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
-    resolveReferences(context, run, ld);
+    resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
     files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file_embedded_image");
     inlineReferences(context, run, files);
-    resolveReferences(context, run, ld); // resolve inlined references
+    resolveReferences(context, run, ld, nullptr); // resolve inlined references
 
     std::string requestedName;
     auto html = printHtml(run, [&](auto name) {
@@ -1157,7 +1271,7 @@ TEST(duden, HandleEmbeddedImagesInHtml2) {
 TEST(duden, InlineArticleReference) {
     ParsingContext context;
     auto run = parseDudenText(context, "\\S{ArticleName;:000620083}\\S{SameName;:000620084}");
-    resolveReferences(context, run, {});
+    resolveReferences(context, run, {}, nullptr);
     resolveArticleReferences(run, [](auto offset) {
         if (offset == 620083)
             return "ResolvedName";
@@ -1169,44 +1283,44 @@ TEST(duden, InlineArticleReference) {
 }
 
 TEST(duden, GroupHicEntries1) {
-    HicEntry a { "a \\F{_UE}123\\F{UE_} $$$$  -1 101 -16", HicEntryType::VariantWith, -1, true };
-    HicEntry b { "b $$$$  -1 101 -16", HicEntryType::Reference, -1, true };
-    HicEntry c { "c $$$$  -1 101 -16", HicEntryType::VariantWith, -1, true };
+    HicLeaf a { "a \\F{_UE}123\\F{UE_} $$$$  -1 101 -16", HicEntryType::VariantWith, -1u };
+    HicLeaf b { "b $$$$  -1 101 -16", HicEntryType::Reference, -1u };
+    HicLeaf c { "c $$$$  -1 101 -16", HicEntryType::VariantWith, -1u };
     auto groups = groupHicEntries({a,c,b});
     ASSERT_EQ(1, groups.size());
     ASSERT_EQ((std::vector{"a \\F{_UE}123\\F{UE_}"s, "b"s, "c"s}), groups[100].headings);
 }
 
 TEST(duden, GroupHicEntries2) {
-    HicEntry a { "a", HicEntryType::Plain, 100, true };
+    HicLeaf a { "a", HicEntryType::Plain, 100 };
     auto groups = groupHicEntries({a});
     ASSERT_EQ(1, groups.size());
     ASSERT_EQ((std::vector{"a"s}), groups[100].headings);
 }
 
 TEST(duden, GroupHicEntries3) {
-    HicEntry a { "[1]a[v]", HicEntryType::Variant, 100, true };
-    HicEntry b { "1av $$$$  -1 101 -16", HicEntryType::VariantWith, -100, true };
-    HicEntry c { "a $$$$  -1 101 -16", HicEntryType::VariantWithout, -100, true };
+    HicLeaf a { "[1]a[v]", HicEntryType::Variant, 100 };
+    HicLeaf b { "1av $$$$  -1 101 -16", HicEntryType::VariantWith, -100u };
+    HicLeaf c { "a $$$$  -1 101 -16", HicEntryType::VariantWithout, -100u };
     auto groups = groupHicEntries({a,c,b});
     ASSERT_EQ(1, groups.size());
     ASSERT_EQ((std::vector{"1av"s, "a"s}), groups[100].headings);
 }
 
 TEST(duden, GroupHicEntries4) {
-    HicEntry a { "a[v]", HicEntryType::Variant, 100, true };
-    HicEntry b { "av $$$$  -1 101 -16", HicEntryType::VariantWith, -1, true };
-    HicEntry c { "z $$$$  -1 101 -16", HicEntryType::VariantWithout, -1, true };
+    HicLeaf a { "a[v]", HicEntryType::Variant, 100 };
+    HicLeaf b { "av $$$$  -1 101 -16", HicEntryType::VariantWith, -1u };
+    HicLeaf c { "z $$$$  -1 101 -16", HicEntryType::VariantWithout, -1u };
     auto groups = groupHicEntries({b,c,a});
     ASSERT_EQ(1, groups.size());
     ASSERT_EQ((std::vector{"av"s, "z"s}), groups[100].headings);
 }
 
 TEST(duden, GroupHicEntries5) {
-    HicEntry a { "a $$$$  -1 101 -16", HicEntryType::Reference, -1, true };
-    HicEntry b { "b $$$$  -1 101 -16", HicEntryType::Reference, -1, true };
-    HicEntry c { "c \\F{_ADD}add\\F{ADD_}", HicEntryType::Plain, 200, true };
-    HicEntry d { "d", HicEntryType::Plain, 300, true };
+    HicLeaf a { "a $$$$  -1 101 -16", HicEntryType::Reference, -1u };
+    HicLeaf b { "b $$$$  -1 101 -16", HicEntryType::Reference, -1u };
+    HicLeaf c { "c \\F{_ADD}add\\F{ADD_}", HicEntryType::Plain, 200u };
+    HicLeaf d { "d", HicEntryType::Plain, 300 };
     auto groups = groupHicEntries({d,c,b,a});
     ASSERT_EQ(3, groups.size());
     ASSERT_EQ((std::vector{"a"s, "b"s}), groups[100].headings);
@@ -1215,14 +1329,14 @@ TEST(duden, GroupHicEntries5) {
 }
 
 TEST(duden, GroupHicEntries6) {
-    HicEntry a { "a", HicEntryType::Plain, 10, true };
-    HicEntry b { "b", HicEntryType::Plain, 20, true };
-    HicEntry c { "c $$$$  -1 21 -16", HicEntryType::Reference, 1234, true };
-    HicEntry d { "d $$$$  -1 11 -16", HicEntryType::Reference, 1234, true };
-    HicEntry e { "e $$$$  -1 11 -16", HicEntryType::Reference, 1234, true };
-    HicEntry f { "f $$$$  -1 26 -16", HicEntryType::VariantWith, 1234, true };
-    HicEntry g { "g", HicEntryType::Variant, 25, true };
-    HicEntry h { "h $$$$  -1 26 -16", HicEntryType::VariantWithout, 1234, true };
+    HicLeaf a { "a", HicEntryType::Plain, 10 };
+    HicLeaf b { "b", HicEntryType::Plain, 20 };
+    HicLeaf c { "c $$$$  -1 21 -16", HicEntryType::Reference, 1234 };
+    HicLeaf d { "d $$$$  -1 11 -16", HicEntryType::Reference, 1234 };
+    HicLeaf e { "e $$$$  -1 11 -16", HicEntryType::Reference, 1234 };
+    HicLeaf f { "f $$$$  -1 26 -16", HicEntryType::VariantWith, 1234 };
+    HicLeaf g { "g", HicEntryType::Variant, 25 };
+    HicLeaf h { "h $$$$  -1 26 -16", HicEntryType::VariantWithout, 1234 };
     auto groups = groupHicEntries({a,b,c,d,e,f,g,h});
     ASSERT_EQ(3, groups.size());
     ASSERT_EQ((std::vector{"a"s, "d"s, "e"s}), groups[10].headings);

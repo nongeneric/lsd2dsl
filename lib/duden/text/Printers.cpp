@@ -179,8 +179,9 @@ public:
 
     void visit(InlineImageRun* run) override {
         print(run,
-              bformat("InlineImageRun; name=%s",
-                      run->name()));
+              bformat("InlineImageRun; name=%s; secondary=%s",
+                      run->name(),
+                      run->secondary()));
     }
 
     void visit(StickyRun* run) override {
@@ -396,6 +397,11 @@ class DslVisitor : public TextRunVisitor {
         } else {
             _result += bformat("[ref]%s[/ref] (%s)", headingName, headingCaption);
         }
+    }
+
+    void visit(InlineImageRun* run) override {
+        const auto& file = run->secondary().empty() ? run->name() : run->secondary();
+        _result += bformat("[s]%s[/s]", file);
     }
 
 public:

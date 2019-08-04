@@ -6,12 +6,28 @@
 #include <boost/algorithm/string.hpp>
 #include <regex>
 #include <tuple>
+#include <unordered_map>
 #include "assert.h"
+#include "lib/common/overloaded.h"
 
 namespace duden {
 
 #pragma pack(1)
 struct Hic3Header {
+    uint32_t headingCount;
+    uint32_t blockCount;
+    uint16_t unk7;
+    uint16_t unk8;
+    uint32_t unk9;
+    uint16_t unk10;
+    uint8_t unk11;
+    uint8_t namelen;
+};
+struct Hic4Header {
+    uint32_t unk0;
+    uint32_t unk1;
+    uint16_t unk3;
+    uint32_t unk4;
     uint32_t headingCount;
     uint32_t blockCount;
     uint16_t unk7;
@@ -153,44 +169,48 @@ std::string dudenToUtf8(std::string str) {
 static void decodeHeadingPrefixes(std::vector<HicEntry>& block) {
     if (block.empty())
         return;
-    auto current = block[0].heading;
-    for (auto it = begin(block) + 1; it != end(block); ++it) {
-        uint8_t ch = it->heading[0];
+    std::string current;
+    for (auto it = begin(block); it != end(block); ++it) {
+        auto& heading = std::visit(overloaded{[=](auto& typed) -> std::string& { return typed.heading; }}, *it);
+        uint8_t ch = heading[0];
         if (ch < 0x20) {
-            it->heading.replace(0, 1, current.substr(0, ch));
+            heading.replace(0, 1, current.substr(0, ch));
         }
-        current = it->heading;
+        current = heading;
     }
 }
 
 static void parseHicNodeHeadings(dictlsd::IRandomAccessStream* stream, std::vector<HicEntry>& block) {
     for (auto& entry : block) {
-        readLine(stream, entry.heading, '\0');
+        std::visit(overloaded{[=](auto& typed) { readLine(stream, typed.heading, '\0'); }}, entry);
     }
-
-    block.erase(std::remove_if(begin(block), end(block), [&](auto& entry) {
-        return !entry.isLeaf;
-    }), end(block));
 
     decodeHeadingPrefixes(block);
 
     for (auto& entry : block) {
-        entry.heading = dudenToUtf8(entry.heading);
+        std::visit(overloaded{[=](auto& typed) { typed.heading = dudenToUtf8(typed.heading); }}, entry);
     }
 }
 
 std::vector<HicEntry> parseHicNode6(dictlsd::IRandomAccessStream* stream) {
     auto count = read8(stream);
     assert(count);
-    std::vector<HicEntry> block(count);
-    for (auto& entry : block) {
+    std::vector<HicEntry> block;
+    for (auto i = 0u; i < count; ++i) {
         auto raw = read32(stream);
         auto type = read8(stream);
-        entry.isLeaf = (raw & 1) == 0;
-        entry.type = static_cast<HicEntryType>(type >> 4);
-        entry.textOffset = (raw >> 1) - 1;
-        if (!entry.isLeaf) {
-            read32(stream);
+        auto isLeaf = (raw & 1) == 0;
+        if (isLeaf) {
+            HicLeaf leaf;
+            leaf.textOffset = (raw >> 1) - 1;
+            leaf.type = static_cast<HicEntryType>(type >> 4);
+            block.push_back(leaf);
+        } else {
+            HicNode node;
+            node.delta = read32(stream);
+            node.count = type;
+            node.hicOffset = raw >> 1;
+            block.push_back(std::move(node));
         }
     }
     parseHicNodeHeadings(stream, block);
@@ -199,14 +219,21 @@ std::vector<HicEntry> parseHicNode6(dictlsd::IRandomAccessStream* stream) {
 
 std::vector<HicEntry> parseHicNode45(dictlsd::IRandomAccessStream* stream) {
     auto count = read8(stream);
-    std::vector<HicEntry> block(count);
-    for (auto& entry : block) {
+    std::vector<HicEntry> block;
+    for (auto i = 0u; i < count; ++i) {
         auto raw = read32(stream);
-        entry.isLeaf = (raw & 1) == 0;
-        entry.type = static_cast<HicEntryType>((raw >> 1) & 0xf);
-        entry.textOffset = (raw >> 5) - 1;
-        if (!entry.isLeaf) {
-            read32(stream);
+        auto isLeaf = (raw & 1) == 0;
+        if (isLeaf) {
+            HicLeaf leaf;
+            leaf.textOffset = (raw >> 5) - 1;
+            leaf.type = static_cast<HicEntryType>((raw >> 1) & 0xf);
+            block.push_back(leaf);
+        } else {
+            HicNode node;
+            node.delta = read32(stream);
+            node.count = (raw >> 1) & 0xf;
+            node.hicOffset = raw >> 9;
+            block.push_back(std::move(node));
         }
     }
     parseHicNodeHeadings(stream, block);
@@ -259,6 +286,7 @@ std::vector<FsiEntry> parseFsiBlock(dictlsd::IRandomAccessStream* stream) {
             if ((offset == 0 && str.empty()))
                 break;
             auto [name, size] = parseFsiEntry(str);
+            name = win1252toUtf8(name);
             res.push_back({name, offset, size});
             if (last)
                 break;
@@ -268,15 +296,15 @@ std::vector<FsiEntry> parseFsiBlock(dictlsd::IRandomAccessStream* stream) {
     return res;
 }
 
-std::vector<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream) {
+std::set<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream) {
     const auto blockSize = 0x400;
-    std::vector<FsiEntry> res;
+    std::set<FsiEntry> res;
     stream->seek(0x12);
     auto blockCount = read16(stream);
     for (auto i = 1; i <= blockCount; ++i) {
         stream->seek(i * blockSize);
         auto block = parseFsiBlock(stream);
-        std::copy(begin(block), end(block), std::back_inserter(res));
+        std::copy(begin(block), end(block), std::inserter(res, begin(res)));
     }
     return res;
 }
@@ -299,22 +327,45 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         throw std::runtime_error("unsupported version");
 
     auto [headingCount, blockCount, namelen] =
-        version > 3 ? readHeader<Hic5Header>(stream) : readHeader<Hic3Header>(stream);
+        version == 3 ? readHeader<Hic3Header>(stream) :
+        version == 4 ? readHeader<Hic4Header>(stream) :
+        readHeader<Hic5Header>(stream);
     std::string name(namelen - 1, 0);
     stream->readSome(&name[0], name.size());
     read8(stream);
     HicFile hicFile{name, version, {}};
 
+    std::unordered_map<uint32_t, std::shared_ptr<HicPage>> pages;
     for (auto i = 0u; i < blockCount; ++i) {
-        auto nodeSize = read16(stream);
         auto curPos = stream->tell();
+        auto nodeSize = read16(stream);
         auto entries = version >= 6 ? parseHicNode6(stream) : parseHicNode45(stream);
-        if (curPos + nodeSize != stream->tell())
+        if (curPos + nodeSize + sizeof(nodeSize) != stream->tell())
             throw std::runtime_error("failed to parse a HIC node");
-        std::copy(begin(entries), end(entries), std::back_inserter(hicFile.entries));
+        auto page = std::make_shared<HicPage>();
+        page->offset = curPos;
+        page->entries = std::move(entries);
+        pages[curPos] = page;
+        if (i == 0) {
+            hicFile.root = page;
+        }
     }
 
-    if (headingCount != hicFile.entries.size())
+    unsigned leafCount = 0;
+    for (auto& [_, page] : pages) {
+        for (auto& entry : page->entries) {
+            std::visit(overloaded{[&](HicLeaf&) { leafCount++; },
+                                  [&](HicNode& node) {
+                                      auto pageIt = pages.find(node.hicOffset);
+                                      if (pageIt == end(pages))
+                                          throw std::runtime_error("hic is misformed");
+                                      node.page = pageIt->second;
+                                  }},
+                       entry);
+        }
+    }
+
+    if (headingCount != leafCount)
         throw std::runtime_error("heading count inconsistency");
 
     return hicFile;
@@ -332,7 +383,7 @@ static std::tuple<std::string, int32_t> parseHeading(const std::string& heading)
     return {m[1], offset};
 }
 
-std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicEntry> entries) {
+std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicLeaf> entries) {
     std::map<int32_t, HeadingGroup> groups;
     for (const auto& entry : entries) {
         auto [name, offset] = parseHeading(entry.heading);
@@ -344,6 +395,7 @@ std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicEntry> entries) {
 
     entries.erase(std::remove_if(begin(entries), end(entries), [](auto& entry) {
         return entry.type != HicEntryType::Plain
+            && entry.type != HicEntryType::Plain3
             && entry.type != HicEntryType::Variant;
     }), end(entries));
 

@@ -15,6 +15,29 @@ namespace duden {
 
 using namespace std::literals;
 
+namespace {
+
+class ResourceFileSystem : public IFileSystem {
+    CaseInsensitiveSet _paths;
+
+public:
+    ResourceFileSystem(const std::vector<std::string>& names) {
+        for (auto& name : names) {
+            _paths.insert(fs::path(name));
+        }
+    }
+
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
+        return {};
+    }
+
+    const CaseInsensitiveSet& files() override {
+        return _paths;
+    }
+};
+
+}
+
 void writeDSL(fs::path infPath,
               fs::path outputPath,
               Log& log) {
@@ -27,7 +50,9 @@ void writeDSL(fs::path infPath,
 
     std::string dslFileName = "dictionary";
 
-    auto entries = dict.entries();
+    log.regular("Articles: %d", dict.articleCount());
+
+    const auto& entries = dict.entries();
     auto groups = groupHicEntries(entries);
 
     auto overlayPath = outputPath / (dslFileName + ".dsl.files.zip");
@@ -59,6 +84,8 @@ void writeDSL(fs::path infPath,
 
     int resourceCount = 0;
 
+    std::vector<std::string> resourceFileNames;
+
     for (auto& pack : inf.resources) {
         if (pack.fsi.empty())
             continue;
@@ -76,8 +103,13 @@ void writeDSL(fs::path infPath,
         for (auto& entry : entries) {
             resourceIndex[entry.name] = {&pack, entry.offset, entry.size};
             log.verbose("unpacking [%03d/%03d] %s", i, entries.size(), entry.name);
+            if (entry.offset >= archive.decodedSize()) {
+                log.regular("resource %s has invalid offset %x", entry.name, entry.offset);
+                continue;
+            }
             archive.read(entry.offset, entry.size, vec);
             zip.addFile(entry.name, vec.data(), vec.size());
+            resourceFileNames.push_back(entry.name);
             ++i;
             ++resourceCount;
             log.advance();
@@ -110,6 +142,8 @@ void writeDSL(fs::path infPath,
 
     int articleCount = 0;
 
+    ResourceFileSystem resourceFS(std::move(resourceFileNames));
+
     for (const auto& [textOffset, group] : groups) {
         log.advance();
         // headings of pictures, tables, etc
@@ -124,9 +158,9 @@ void writeDSL(fs::path infPath,
             writer.writeHeading(dictlsd::toUtf16(dslHeading));
         }
         auto articleRun = parseDudenText(context, article);
-        resolveReferences(context, articleRun, dict.ld());
+        resolveReferences(context, articleRun, dict.ld(), &resourceFS);
         inlineReferences(context, articleRun, resources);
-        resolveReferences(context, articleRun, dict.ld());
+        resolveReferences(context, articleRun, dict.ld(), &resourceFS);
         const auto& firstHeading = group.headings.front();
         resolveArticleReferences(articleRun, [&](auto offset) {
             auto it = groups.find(offset - 1);

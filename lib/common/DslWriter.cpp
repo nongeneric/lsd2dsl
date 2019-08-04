@@ -7,14 +7,6 @@
 using namespace dictlsd;
 namespace fs = boost::filesystem;
 
-void normalizeArticle(std::u16string& str) {
-    for (int i = str.length() - 1; i >= 0; --i) {
-        if (str[i] == u'\n') {
-            str.insert(i + 1, 1, u'\t');
-        }
-    }
-}
-
 void writeDSL(const LSDDictionary* reader,
               std::string lsdName,
               std::string outputPath,
@@ -122,9 +114,15 @@ namespace dsl {
     }
 
     void Writer::writeArticle(std::u16string article) {
-        write(u"\t");
-        normalizeArticle(article);
-        write(article.c_str());
+        std::u16string tab = u"\t";
+        write(tab);
+        for (auto ch : article) {
+            _dsl->write((char*)&ch, sizeof(ch));
+            if (ch == u'\n') {
+                write(tab);
+            }
+        }
+
         write(u"\n");
     }
 

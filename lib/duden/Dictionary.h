@@ -15,11 +15,12 @@ namespace duden {
 
 class FileSystem : public IFileSystem {
     fs::path _root;
+    CaseInsensitiveSet _files;
 
 public:
     FileSystem(fs::path root);
     std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path path) override;
-    std::vector<fs::path> files() override;
+    const CaseInsensitiveSet& files() override;
 };
 
 class Dictionary {
@@ -29,6 +30,9 @@ class Dictionary {
     LdFile _ld;
     std::unique_ptr<Archive> _articles;
     std::unique_ptr<dictlsd::IRandomAccessStream> _articlesBof;
+    std::vector<HicLeaf> _leafs;
+
+    void collectLeafs();
 
 public:
     Dictionary(IFileSystem* filesystem, InfFile const& inf);
@@ -36,7 +40,7 @@ public:
     std::vector<char> icon() const;
     unsigned articleCount() const;
     unsigned articleArchiveDecodedSize() const;
-    const std::vector<HicEntry>& entries() const;
+    const std::vector<HicLeaf>& entries() const;
     std::string article(uint32_t plainOffset, uint32_t size);
     const LdFile& ld() const;
 };

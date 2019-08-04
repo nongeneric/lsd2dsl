@@ -350,15 +350,20 @@ public:
 
 class InlineImageRun : public TextRun {
     std::string _name;
+    std::string _secondary;
 
 public:
-    InlineImageRun(std::string name) :
-        _name(name) { }
+    InlineImageRun(std::string name, std::string secondary) :
+        _name(name), _secondary(secondary) { }
 
     void accept(TextRunVisitor *visitor) override;
 
     const std::string& name() const {
         return _name;
+    }
+
+    const std::string& secondary() const {
+        return _secondary;
     }
 };
 

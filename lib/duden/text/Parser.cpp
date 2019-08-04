@@ -90,8 +90,10 @@ class Parser {
 
     void sticky() {
         if (lit("C%ID=")) {
-            int64_t i;
-            expect(dec(i));
+            int64_t i = 0;
+            if (!dec(i)) {
+                i = -1;
+            }
             current()->addRun(_context->make<IdRun>(i));
             return;
         }
@@ -221,7 +223,7 @@ class Parser {
     }
 
     bool parseRbg(const std::string& text, uint32_t& rgb) {
-        std::regex rx("^([0-9a-fA-F]{2}) ([0-9a-fA-F]{2}) ([0-9a-fA-F]{2})$");
+        std::regex rx("^([0-9a-fA-F]{2})\\s?([0-9a-fA-F]{2})\\s?([0-9a-fA-F]{2})$");
         std::smatch m;
         if (!std::regex_match(text, m, rx))
             return false;
