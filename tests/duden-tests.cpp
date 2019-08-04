@@ -543,7 +543,7 @@ TEST(duden, ResolveInlineImageReference) {
 }
 
 TEST(duden, ResolveAudioReference) {
-    auto text = u8"\\S{;.Ispeaker.bmp;T;à la longue.adp}";
+    auto text = u8"\\S{;.Ispeaker.bmp;T;à la longue.Adp}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
     FileStream stream("duden_testfiles/simple.ld");
@@ -551,9 +551,9 @@ TEST(duden, ResolveAudioReference) {
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
-                    "  InlineImageRun; name=speaker.bmp; secondary=à la longue.adp\n";
+                    "  InlineImageRun; name=speaker.bmp; secondary=à la longue.wav\n";
     ASSERT_EQ(expected, tree);
-    ASSERT_EQ(u8"[s]à la longue.adp[/s]", printDsl(run));
+    ASSERT_EQ(u8"[s]à la longue.wav[/s]", printDsl(run));
 }
 
 class TestFileSystem3 : public IFileSystem {

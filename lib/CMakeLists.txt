@@ -37,8 +37,6 @@ add_library(${PROJECT_NAME} STATIC
     lsd/LSAReader.cpp
     lsd/OggReader.h
     lsd/OggReader.cpp
-    lsd/WavWriter.h
-    lsd/WavWriter.cpp
     lsd/UnicodePathFile.h
     lsd/UnicodePathFile.cpp
     duden/Duden.cpp
@@ -50,6 +48,7 @@ add_library(${PROJECT_NAME} STATIC
     duden/HtmlRenderer.cpp
     duden/TableRenderer.cpp
     duden/IFileSystem.cpp
+    duden/AdpDecoder.cpp
     duden/text/TextRun.cpp
     duden/text/Table.cpp
     duden/text/Parser.cpp
@@ -60,6 +59,8 @@ add_library(${PROJECT_NAME} STATIC
     common/ZipWriter.cpp
     common/DslWriter.h
     common/DslWriter.cpp
+    common/WavWriter.h
+    common/WavWriter.cpp
     common/Log.h
     common/Log.cpp
     common/version.h

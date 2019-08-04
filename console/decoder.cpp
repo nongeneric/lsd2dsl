@@ -4,6 +4,8 @@
 #include "lib/common/bformat.h"
 #include "lib/common/overloaded.h"
 #include "lib/common/version.h"
+#include "lib/common/WavWriter.h"
+#include "lib/duden/AdpDecoder.h"
 #include "lib/duden/Dictionary.h"
 #include "lib/duden/Duden.h"
 #include "lib/duden/HtmlRenderer.h"
@@ -190,6 +192,20 @@ void parseFsi(std::string fsiPath, std::string output) {
     }
 }
 
+void decodeAdp(std::string adpPath, fs::path outputPath) {
+    std::ifstream input(adpPath);
+    std::ofstream output(outputPath / "decoded.wav");
+    input.seekg(0, std::ios_base::end);
+    std::vector<char> inputVec(input.tellg());
+    input.seekg(0);
+    input.read(&inputVec[0], inputVec.size());
+    std::vector<int16_t> pcmVec(2 * inputVec.size());
+    duden::decodeAdp(inputVec, &pcmVec[0]);
+    std::vector<char> wav;
+    dictlsd::createWav(pcmVec, wav, duden::ADP_SAMPLE_RATE);
+    output.write(reinterpret_cast<char*>(&wav[0]), wav.size());
+}
+
 class ConsoleLog : public Log {
     bool _verbose;
     bool _lastProgress = false;
@@ -240,7 +256,7 @@ public:
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
     std::string lsdPath, lsaPath, dudenPath, outputPath;
-    std::string bofPath, idxPath, fsiPath, hicPath, textPath;
+    std::string bofPath, idxPath, fsiPath, hicPath, adpPath, textPath;
     int sourceFilter = -1, targetFilter = -1;
     bool isDumb, dudenEncoding, verbose;
     po::options_description console_desc("Allowed options");
@@ -268,6 +284,7 @@ int main(int argc, char* argv[]) {
                 ("idx", po::value<std::string>(&idxPath), "Duden IDX file path")
                 ("fsi", po::value<std::string>(&fsiPath), "Duden FSI file path")
                 ("hic", po::value<std::string>(&hicPath), "Duden HIC file path")
+                ("adp", po::value<std::string>(&adpPath), "Duden ADP file path")
                 ("text", po::value<std::string>(&textPath), "Duden decoded text file path")
                 ("duden-utf", "Decode Duden to Utf");
         }
@@ -298,7 +315,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (lsdPath.empty() && lsaPath.empty() && dudenPath.empty() && bofPath.empty() &&
-        textPath.empty() && hicPath.empty() && fsiPath.empty()) {
+        textPath.empty() && hicPath.empty() && fsiPath.empty() && adpPath.empty()) {
         std::cout << console_desc;
         return 0;
     }
@@ -335,6 +352,9 @@ int main(int argc, char* argv[]) {
         }
         if (!fsiPath.empty()) {
             parseFsi(fsiPath, outputPath);
+        }
+        if (!adpPath.empty()) {
+            decodeAdp(adpPath, outputPath);
         }
     } catch (std::exception& exc) {
         std::cout << "an error occured while processing dictionary: " << exc.what() << std::endl;

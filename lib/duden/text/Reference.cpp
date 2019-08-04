@@ -3,6 +3,7 @@
 #include "lib/duden/Duden.h"
 #include "Parser.h"
 #include "lib/common/bformat.h"
+#include "lib/duden/AdpDecoder.h"
 #include <boost/algorithm/string.hpp>
 
 namespace duden {
@@ -54,6 +55,7 @@ class ReferenceResolverRewriter : public TextRunVisitor {
                     auto second = dynamic_cast<PlainRun*>(runs[2]);
                     if (first && first->text() == "T" && second) {
                         secondary = second->text();
+                        replaceAdpExtWithWav(secondary);
                     }
                 }
                 fixCase(code);

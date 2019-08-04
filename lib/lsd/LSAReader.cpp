@@ -1,7 +1,7 @@
 #include "LSAReader.h"
 
 #include "OggReader.h"
-#include "WavWriter.h"
+#include "lib/common/WavWriter.h"
 #include "BitStream.h"
 #include "tools.h"
 #include "UnicodePathFile.h"

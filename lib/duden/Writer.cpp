@@ -5,11 +5,13 @@
 #include "lib/common/bformat.h"
 #include "lib/duden/Duden.h"
 #include "lib/duden/Archive.h"
+#include "lib/duden/AdpDecoder.h"
 #include "lib/duden/text/TextRun.h"
 #include "lib/duden/text/Parser.h"
 #include "lib/duden/text/Printers.h"
 #include "lib/duden/text/Reference.h"
 #include "lib/lsd/tools.h"
+#include "lib/common/WavWriter.h"
 
 namespace duden {
 
@@ -86,6 +88,7 @@ void writeDSL(fs::path infPath,
 
     std::vector<std::string> resourceFileNames;
 
+    int adpCount = 0;
     for (auto& pack : inf.resources) {
         if (pack.fsi.empty())
             continue;
@@ -108,8 +111,17 @@ void writeDSL(fs::path infPath,
                 continue;
             }
             archive.read(entry.offset, entry.size, vec);
-            zip.addFile(entry.name, vec.data(), vec.size());
-            resourceFileNames.push_back(entry.name);
+
+            auto name = entry.name;
+            if (replaceAdpExtWithWav(name)) {
+                std::vector<int16_t> samples(2 * vec.size());
+                decodeAdp(vec, &samples[0]);
+                dictlsd::createWav(samples, vec, ADP_SAMPLE_RATE);
+                adpCount++;
+            }
+
+            zip.addFile(name, vec.data(), vec.size());
+            resourceFileNames.push_back(name);
             ++i;
             ++resourceCount;
             log.advance();
@@ -179,10 +191,11 @@ void writeDSL(fs::path infPath,
         ++articleCount;
     }
 
-    log.regular("done converting %d articles, %d tables and %d resources",
+    log.regular("done converting %d articles, %d tables and %d resources (%d audio files)",
                 articleCount,
                 tableCount,
-                resourceCount);
+                resourceCount,
+                adpCount);
 }
 
 } // namespace duden
