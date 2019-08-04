@@ -282,6 +282,10 @@ class HtmlVisitor : public TextRunVisitor {
         _result += bformat("<img src=\"data:image/%s;base64,%s\">", ext, str);
     }
 
+    void visit(LineBreakRun*) override {
+        _result += "<br>";
+    }
+
 public:
     HtmlVisitor(duden::RequestImageCallback requestImage) : _requestImage(requestImage) {}
     const std::string& result() const { return _result; }

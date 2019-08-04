@@ -402,7 +402,7 @@ TEST(duden, ParseText3) {
     ASSERT_EQ(expected, tree);
 
     auto html = printHtml(run);
-    ASSERT_EQ("<b>s<u>i</u>t f g<u>o</u>n</b>", html);
+    ASSERT_EQ("<b>s<u>i</u>t f g<u>o</u>n</b><br>", html);
 }
 
 TEST(duden, ParseText4) {
@@ -565,7 +565,7 @@ public:
         _files = {u8"123.bmp",
                   u8"euro.bmp",
                   u8"АбfD.BMP",
-                  u8"UNABKöMMLICH1V.ADP"};
+                  u8"UNABKöMMLICH1V.WAV"};
     }
      std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
         return {};
@@ -595,7 +595,7 @@ TEST(duden, ResolveInlineImageReferenceInconstistentCase2) {
     auto ld = parseLdFile(&stream);
     TestFileSystem3 fs;
     resolveReferences(context, run, ld, &fs);
-    ASSERT_EQ(u8"[s]UNABKöMMLICH1V.ADP[/s]", printDsl(run));
+    ASSERT_EQ(u8"[s]UNABKöMMLICH1V.WAV[/s]", printDsl(run));
 }
 
 TEST(duden, InlinePictureReference) {
@@ -1345,4 +1345,12 @@ TEST(duden, GroupHicEntries6) {
     ASSERT_EQ(10, groups[10].articleSize);
     ASSERT_EQ(5, groups[20].articleSize);
     ASSERT_EQ(-1, groups[25].articleSize);
+}
+
+TEST(duden, HandleNewLinesInHtml) {
+    auto text = "a\\\\b\nc";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto html = printHtml(run);
+    ASSERT_EQ("a<br>bc", html);
 }
