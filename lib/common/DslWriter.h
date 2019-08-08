@@ -3,7 +3,7 @@
 #include "Log.h"
 #include "lib/lsd/lsd.h"
 #include "lib/lsd/UnicodePathFile.h"
-#include <boost/filesystem.hpp>
+#include "lib/common/filesystem.h"
 #include <functional>
 #include <string>
 #include <vector>
@@ -19,7 +19,7 @@ namespace dsl {
 
 class Writer {
     std::unique_ptr<UnicodePathFile> _dsl;
-    boost::filesystem::path _dslPath;
+    fs::path _dslPath;
     void write(const std::u16string &line);
 
 public:

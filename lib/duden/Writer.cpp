@@ -75,7 +75,7 @@ void writeDSL(fs::path infPath,
         auto stream = std::make_unique<std::stringstream>();
         stream->write(vec.data(), vec.size());
         stream->seekg(0);
-        auto filename = boost::filesystem::path(pack.bof).stem().string();
+        auto filename = fs::path(pack.bof).stem().string();
         resources[filename] = std::move(stream);
     }
 

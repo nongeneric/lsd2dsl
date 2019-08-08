@@ -8,6 +8,7 @@
 #include "lib/duden/Writer.h"
 #include "lib/duden/InfFile.h"
 #include "lib/common/bformat.h"
+#include "lib/common/filesystem.h"
 
 #include <QTableView>
 #include <QAbstractListModel>
@@ -130,7 +131,7 @@ class DudenDictionaryEntry : public DictionaryEntry {
 
 public:
     DudenDictionaryEntry(QString path) : DictionaryEntry(path) {
-        auto infPath = boost::filesystem::path(path.toStdString());
+        auto infPath = fs::path(path.toStdString());
         dictlsd::FileStream infStream(infPath.string());
         auto inf = duden::parseInfFile(&infStream);
         _name = QString::fromStdString(inf.name);

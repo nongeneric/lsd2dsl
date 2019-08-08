@@ -1,5 +1,6 @@
 #include "IFileSystem.h"
 #include "lib/common/bformat.h"
+#include "lib/common/filesystem.h"
 #include <QString>
 #include <algorithm>
 
@@ -20,8 +21,8 @@ fs::path findExtension(IFileSystem& fileSystem, fs::path name) {
     return results.front();
 }
 
-bool CaseInsensitiveLess::operator()(const boost::filesystem::path& left,
-                                     const boost::filesystem::path& right) const {
+bool CaseInsensitiveLess::operator()(const fs::path& left,
+                                     const fs::path& right) const {
     auto qleft = QString::fromStdString(left.string());
     auto qright = QString::fromStdString(right.string());
     return qleft.compare(qright, Qt::CaseInsensitive) < 0;

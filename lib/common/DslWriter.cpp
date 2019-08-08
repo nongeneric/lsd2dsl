@@ -2,10 +2,9 @@
 #include "ZipWriter.h"
 #include "lib/lsd/tools.h"
 #include "lib/common/bformat.h"
-#include <boost/filesystem.hpp>
+#include "lib/common/filesystem.h"
 
 using namespace dictlsd;
-namespace fs = boost::filesystem;
 
 void writeDSL(const LSDDictionary* reader,
               std::string lsdName,

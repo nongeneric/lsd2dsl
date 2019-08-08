@@ -5,6 +5,7 @@
 #include "lib/common/overloaded.h"
 #include "lib/common/version.h"
 #include "lib/common/WavWriter.h"
+#include "lib/common/filesystem.h"
 #include "lib/duden/AdpDecoder.h"
 #include "lib/duden/Dictionary.h"
 #include "lib/duden/Duden.h"
@@ -20,7 +21,6 @@
 
 #include <QApplication>
 #include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
 
 #include <iostream>
 #include <string>
@@ -29,7 +29,6 @@
 #include <map>
 #include <string_view>
 
-namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 using namespace dictlsd;
 
@@ -113,7 +112,7 @@ void decodeBofIdx(std::string bofPath,
 
     if (fsiPath.empty()) {
         archive.read(0, -1, vec);
-        std::ofstream file(fs::path(output) / "decoded.dump");
+        std::ofstream file((fs::path(output) / "decoded.dump").string());
         if (dudenEncoding) {
             auto text = duden::dudenToUtf8(std::string{begin(vec), end(vec)});
             file.write(&text[0], text.size());
@@ -136,7 +135,7 @@ void decodeHic(std::string hicPath,
                std::string output) {
     FileStream fHic(hicPath);
     auto hic = duden::parseHicFile(&fHic);
-    std::ofstream f(fs::path(output) / "hic.dump");
+    std::ofstream f((fs::path(output) / "hic.dump").string());
     int leafNum = 0;
     auto print = [&](auto& print, auto page, int level) -> void {
         std::string space(level * 4, ' ');
@@ -194,7 +193,7 @@ void parseFsi(std::string fsiPath, std::string output) {
 
 void decodeAdp(std::string adpPath, fs::path outputPath) {
     std::ifstream input(adpPath);
-    std::ofstream output(outputPath / "decoded.wav");
+    std::ofstream output((outputPath / "decoded.wav").string());
     input.seekg(0, std::ios_base::end);
     std::vector<char> inputVec(input.tellg());
     input.seekg(0);

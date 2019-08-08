@@ -2,17 +2,15 @@
 
 #include "OggReader.h"
 #include "lib/common/WavWriter.h"
+#include "lib/common/filesystem.h"
 #include "BitStream.h"
 #include "tools.h"
 #include "UnicodePathFile.h"
 #include <stdexcept>
 #include <assert.h>
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
 namespace dictlsd {
-
-namespace fs = boost::filesystem;
 
 std::u16string readLSAString(IRandomAccessStream* bstr) {
     std::u16string res;
