@@ -1026,7 +1026,7 @@ TEST(duden, HandleNewLinesInDsl) {
     auto run = parseDudenText(context, "a\\\\b");
     ASSERT_EQ("a\nb", printDsl(run));
     run = parseDudenText(context, "a\nb");
-    ASSERT_EQ("a\nb", printDsl(run));
+    ASSERT_EQ("ab", printDsl(run));
 }
 
 TEST(duden, HandleAddendumInDsl) {
@@ -1054,7 +1054,7 @@ TEST(duden, PrintInlineRenderedTable) {
     auto tableRun = dynamic_cast<TableRun*>(run->runs().front());
     ASSERT_NE(nullptr, tableRun);
     tableRun->setRenderedName("table.bmp");
-    ASSERT_EQ("[s]table.bmp[/s]\n", printDsl(run));
+    ASSERT_EQ("[s]table.bmp[/s]", printDsl(run));
 }
 
 TEST(duden, InlineRenderAndPrintPicture) {
@@ -1178,19 +1178,12 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     auto expected = bformat(
                 "----------\n"
                 "Tabelle: table name\n"
-                "[b]Table: Name[/b]\n"
-                "[s]%s[/s]\n"
+                "[b]Table: Name[/b]"
+                "[s]%s[/s]"
                 "Footer 1\n"
                 "Footer 2\n"
                 "----------\n", name);
     ASSERT_EQ(expected, printDsl(run));
-}
-
-TEST(duden, RemoveConsecutiveNewLinesInDsl) {
-    std::string text = "\n\n\n\na\n\nb\n\n\nc\n";
-    ParsingContext context;
-    auto run = parseDudenText(context, text);
-    ASSERT_EQ("\na\nb\nc\n", printDsl(run));
 }
 
 TEST(duden, IgnoreMismatchedTokensInIllformedText) {

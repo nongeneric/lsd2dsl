@@ -355,9 +355,7 @@ class DslVisitor : public TextRunVisitor {
         _result += "\n";
     }
 
-    void visit(SoftLineBreakRun*) override {
-        _result += "\n";
-    }
+    void visit(SoftLineBreakRun*) override { }
 
     void visit(ReferencePlaceholderRun*) override { }
 
