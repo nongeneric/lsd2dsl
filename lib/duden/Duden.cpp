@@ -148,7 +148,10 @@ std::string dudenToUtf8(std::string str) {
                 ch = win1252toUtf(ch);
             }
         }
-        utf.push_back(ch);
+
+        if (ch) {
+            utf.push_back(ch);
+        }
 
         if (utf.back() == '}') {
             sref = false;

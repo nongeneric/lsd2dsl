@@ -265,7 +265,7 @@ class Parser {
             lit("}");
             return;
         }
-        if (lit("i{")) {
+        if (lit("i{") || lit("s{")) {
             finishPlain();
             push(_context->make<ItalicFormattingRun>());
             text();
@@ -450,7 +450,7 @@ class Parser {
             sref();
             return;
         }
-        assert(false);
+        // TODO: log unknown escape
     }
 
     bool control() {

@@ -15,6 +15,7 @@ enum class LogLevel {
 
 void writeDSL(fs::path infPath,
               fs::path outputPath,
+              int index,
               Log& progress);
 
 }

@@ -19,6 +19,4 @@ struct IFileSystem {
     ~IFileSystem() = default;
 };
 
-fs::path findExtension(IFileSystem& fileSystem, fs::path name);
-
 } // namespace duden

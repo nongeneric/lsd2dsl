@@ -25,7 +25,7 @@ struct InfFile {
     std::vector<ResourceArchive> resources;
 };
 
-InfFile parseInfFile(dictlsd::IRandomAccessStream* stream);
+std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream);
 void fixFileNameCase(InfFile& inf, IFileSystem* filesystem);
 
 } // namespace duden

@@ -1,6 +1,7 @@
 #include "Dictionary.h"
 #include <boost/algorithm/string.hpp>
 #include "lib/common/overloaded.h"
+#include "lib/common/bformat.h"
 
 using namespace dictlsd;
 
@@ -26,8 +27,12 @@ Dictionary::Dictionary(IFileSystem* filesystem, const InfFile& inf)
     : _filesystem(filesystem), _inf(inf) {
     auto hicStream = _filesystem->open(_inf.primary.hic);
     _hic = parseHicFile(hicStream.get());
-    auto ldPath = findExtension(*filesystem, ".ld");
-    auto ldStream = _filesystem->open(ldPath.filename());
+    const auto& files = filesystem->files();
+    auto ldName = fs::basename(_inf.primary.hic) + ".ld";
+    auto ldPathIter = files.find(ldName);
+    if (ldPathIter == end(files))
+        throw std::runtime_error(bformat("LD file %s not found", ldName));
+    auto ldStream = _filesystem->open(ldPathIter->filename());
     _ld = parseLdFile(ldStream.get());
     auto idxStream = _filesystem->open(_inf.primary.idx);
     _articlesBof = _filesystem->open(_inf.primary.bof);

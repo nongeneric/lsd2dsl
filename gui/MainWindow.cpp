@@ -127,13 +127,14 @@ class DudenDictionaryEntry : public DictionaryEntry {
     QString _name;
     QString _version;
     bool _supported;
+    int _index;
     std::vector<unsigned char> _icon = {};
 
 public:
-    DudenDictionaryEntry(QString path) : DictionaryEntry(path) {
+    DudenDictionaryEntry(QString path, int index) : DictionaryEntry(path), _index(index) {
         auto infPath = fs::path(path.toStdString());
         dictlsd::FileStream infStream(infPath.string());
-        auto inf = duden::parseInfFile(&infStream);
+        auto inf = duden::parseInfFile(&infStream)[index];
         _name = QString::fromStdString(inf.name);
         _version = QString::fromStdString(bformat("%x", inf.version));
         _supported = inf.supported;
@@ -146,7 +147,7 @@ public:
     const std::vector<unsigned char> &icon() override { return _icon; }
     bool supported() override { return _supported; }
     void dump(QString outDir, Log& log) override {
-        duden::writeDSL(path().toStdString(), outDir.toStdString(), log);
+        duden::writeDSL(path().toStdString(), outDir.toStdString(), _index, log);
     }
 };
 
@@ -188,7 +189,12 @@ public:
                 } else if (ext == "lsa") {
                     _dicts.emplace_back(new LSADictionaryEntry(path));
                 } else if (ext == "inf") {
-                    _dicts.emplace_back(new DudenDictionaryEntry(path));
+                    auto infPath = fs::path(path.toStdString());
+                    dictlsd::FileStream infStream(infPath.string());
+                    auto infs = duden::parseInfFile(&infStream);
+                    for (size_t i = 0; i < infs.size(); ++i) {
+                        _dicts.emplace_back(new DudenDictionaryEntry(path, i));
+                    }
                 }
             } catch(std::exception& e) {
                 QMessageBox::warning(nullptr, QString(e.what()), path);

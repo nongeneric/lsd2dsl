@@ -5,10 +5,12 @@
 
 namespace duden {
 
-InfFile parseInfFile(dictlsd::IRandomAccessStream* stream) {
-    InfFile inf;
+std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream) {
     std::string line;
-    std::vector<std::string> files;
+    uint32_t version = 0;
+    std::vector<std::vector<std::string>> allFiles;
+    std::vector<std::string> currentFiles;
+    std::vector<std::string> names;
 
     while (readLine(stream, line)) {
         if (line.empty())
@@ -16,83 +18,101 @@ InfFile parseInfFile(dictlsd::IRandomAccessStream* stream) {
         line = win1252toUtf8(line);
         switch (line[0]) {
         case 'V':
-            inf.version = std::stoi(line.substr(2), nullptr, 16);
+            version = std::stoi(line.substr(2), nullptr, 16);
             break;
-        case 'Q':
-            inf.name = line.substr(2);
-            boost::algorithm::trim_if(inf.name, boost::algorithm::is_any_of("\r\""));
-            break;
+        case 'T': {
+            if (!currentFiles.empty()) {
+                allFiles.push_back(currentFiles);
+                currentFiles.clear();
+            }
+            auto name = line.substr(2);
+            boost::algorithm::trim_if(name, boost::algorithm::is_any_of("\r\""));
+            names.push_back(name);
+        } break;
         case 'F':
             auto index = line.find(';');
             if (index == std::string::npos)
                 throw std::runtime_error("INF file syntax error");
             boost::algorithm::trim_right_if(line, boost::algorithm::is_any_of("\r"));
-            files.push_back(line.substr(index + 1));
+            currentFiles.push_back(line.substr(index + 1));
             break;
         }
     }
 
-    auto findExt = [&](auto ext) {
-        return std::find_if(begin(files), end(files), [&](auto file) {
-            boost::algorithm::to_lower(file);
-            return boost::algorithm::ends_with(file, ext);
-        });
-    };
+    allFiles.push_back(currentFiles);
 
-    auto hic = findExt(".hic");
+    std::vector<InfFile> infs;
 
-    if (hic == end(files))
-        throw std::runtime_error("dictionary doesn't contain a HIC file");
+    for (auto i = 0u; i < allFiles.size(); ++i) {
+        auto& files = allFiles[i];
 
-    inf.primary.hic = *hic;
+        InfFile inf;
+        inf.version = version;
+        inf.supported = true;
+        inf.name = names[i];
 
-    auto baseName = [] (auto name) {
-        boost::algorithm::to_lower(name);
-        return name.substr(0, name.size() - 4);
-    };
+        auto findExt = [&](auto ext) {
+            return std::find_if(begin(files), end(files), [&](auto file) {
+                boost::algorithm::to_lower(file);
+                return boost::algorithm::ends_with(file, ext);
+            });
+        };
 
-    auto primaryBaseName = baseName(*hic);
+        auto hic = findExt(".hic");
 
-    auto find = [&](auto name) {
-        return std::find_if(begin(files), end(files), [&](auto file) {
-            boost::algorithm::to_lower(file);
-            return file == name;
-        });
-    };
+        if (hic == end(files))
+            throw std::runtime_error("dictionary doesn't contain a HIC file");
 
-    auto primaryBof = find(primaryBaseName + ".bof");
-    auto primaryIdx = find(primaryBaseName + ".idx");
+        inf.primary.hic = *hic;
 
-    if (primaryBof == end(files) || primaryIdx == end(files))
-        throw std::runtime_error("dictionary doesn't contain an IDX or BOF file");
+        auto baseName = [] (auto name) {
+            boost::algorithm::to_lower(name);
+            return name.substr(0, name.size() - 4);
+        };
 
-    inf.primary.bof = *primaryBof;
-    inf.primary.idx = *primaryIdx;
+        auto primaryBaseName = baseName(*hic);
 
-    files.erase(primaryBof);
+        auto find = [&](auto name) {
+            return std::find_if(begin(files), end(files), [&](auto file) {
+                boost::algorithm::to_lower(file);
+                return file == name;
+            });
+        };
 
-    for (;;) {
-        auto bof = findExt(".bof");
-        if (bof == end(files))
-            break;
-        ResourceArchive resource;
-        resource.bof = *bof;
-        files.erase(bof);
-        auto base = baseName(resource.bof);
-        auto fsi = find(base + ".fsi");
-        auto idx = find(base + ".idx");
-        if (idx == end(files))
-            throw std::runtime_error("a resource archive doesn't have a corresponding IDX or FSI file");
-        if (fsi != end(files)) {
-            resource.fsi = *fsi;
+        auto primaryBof = find(primaryBaseName + ".bof");
+        auto primaryIdx = find(primaryBaseName + ".idx");
+
+        if (primaryBof == end(files) || primaryIdx == end(files))
+            throw std::runtime_error("dictionary doesn't contain an IDX or BOF file");
+
+        inf.primary.bof = *primaryBof;
+        inf.primary.idx = *primaryIdx;
+
+        files.erase(primaryBof);
+
+        for (;;) {
+            auto bof = findExt(".bof");
+            if (bof == end(files))
+                break;
+            ResourceArchive resource;
+            resource.bof = *bof;
+            files.erase(bof);
+            auto base = baseName(resource.bof);
+            auto fsi = find(base + ".fsi");
+            auto idx = find(base + ".idx");
+            if (idx == end(files))
+                throw std::runtime_error("a resource archive doesn't have a corresponding IDX or FSI file");
+            if (fsi != end(files)) {
+                resource.fsi = *fsi;
+            }
+            resource.idx = *idx;
+            inf.resources.push_back(resource);
         }
-        resource.idx = *idx;
-        inf.resources.push_back(resource);
+
+        infs.push_back(inf);
     }
 
-    inf.supported = true;
-
-    return inf;
+    return infs;
 }
 
 void fixFileNameCase(std::string& name, IFileSystem* filesystem) {

@@ -32,6 +32,8 @@
 namespace po = boost::program_options;
 using namespace dictlsd;
 
+const std::string dudenIndexParamName = "duden-index";
+
 struct Entry {
     std::u16string heading;
     std::u16string article;
@@ -81,9 +83,27 @@ int parseLSD(fs::path lsdPath,
     return 0;
 }
 
-int parseDuden(fs::path infPath, fs::path outputPath, Log& log) {
+int parseDuden(fs::path infPath, fs::path outputPath, std::optional<unsigned> index, Log& log) {
     FileStream infStream(infPath.string());
-    auto inf = duden::parseInfFile(&infStream);
+    auto infs = duden::parseInfFile(&infStream);
+    auto inf = infs[0];
+
+    if (infs.size() > 1) {
+        if (!index) {
+            log.regular("INF file contains %d dictionaries, but no index was specified via --%s",
+                        infs.size(),
+                        dudenIndexParamName);
+            return 1;
+        }
+        if (*index >= infs.size()) {
+            log.regular("INF file contains %d dictionaries, the specified index %d is too large "
+                        "(index starts from zero)",
+                        infs.size(),
+                        *index);
+            return 1;
+        }
+        inf = infs[*index];
+    }
 
     log.regular("Version:  %x", inf.version);
     log.regular("Name:     %d", inf.name);
@@ -94,7 +114,7 @@ int parseDuden(fs::path infPath, fs::path outputPath, Log& log) {
     }
 
     if (!outputPath.empty()) {
-        duden::writeDSL(infPath, outputPath, log);
+        duden::writeDSL(infPath, outputPath, index ? *index : 0, log);
     }
 
     return 0;
@@ -258,12 +278,14 @@ int main(int argc, char* argv[]) {
     std::string bofPath, idxPath, fsiPath, hicPath, adpPath, textPath;
     int sourceFilter = -1, targetFilter = -1;
     bool isDumb, dudenEncoding, verbose;
+    int dudenIndex = -1;
     po::options_description console_desc("Allowed options");
     try {
         console_desc.add_options()
             ("help", "produce help message")
             ("lsd", po::value<std::string>(&lsdPath), "LSD dictionary to decode")
             ("duden", po::value<std::string>(&dudenPath), "Duden dictionary to decode (.inf file)")
+            (dudenIndexParamName.c_str(), po::value<int>(&dudenIndex), "Index for two-way Duden dictionaries")
             ("lsa", po::value<std::string>(&lsaPath), "LSA sound archive to decode")
             ("source-filter", po::value<int>(&sourceFilter),
                 "ignore dictionaries with source language != source-filter")
@@ -338,7 +360,11 @@ int main(int argc, char* argv[]) {
             decodeLSA(lsaPath, outputPath, log);
         }
         if (!dudenPath.empty()) {
-            parseDuden(dudenPath, outputPath, log);
+            std::optional<unsigned> optional;
+            if (dudenIndex != -1) {
+                optional = static_cast<unsigned>(dudenIndex);
+            }
+            parseDuden(dudenPath, outputPath, optional, log);
         }
         if (!bofPath.empty() && !idxPath.empty()) {
             decodeBofIdx(bofPath, idxPath, fsiPath, dudenEncoding, outputPath);

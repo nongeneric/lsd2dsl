@@ -220,9 +220,9 @@ public:
 
 TEST(duden, ParseInfFile) {
     FileStream stream("duden_testfiles/simple.inf");
-    auto inf = parseInfFile(&stream);
+    auto inf = parseInfFile(&stream)[0];
     ASSERT_EQ(0x400, inf.version);
-    ASSERT_EQ(u8"Duden - Das Fremdwörterbuch", inf.name);
+    ASSERT_EQ(u8"Duden - Das Fremdwörterbuch, 8. Aufl. Mannheim 2005", inf.name);
     ASSERT_EQ("DU5NEU.HIC", inf.primary.hic);
     ASSERT_EQ("du5neu.idx", inf.primary.idx);
     ASSERT_EQ("du5neu.bof", inf.primary.bof);
@@ -233,7 +233,7 @@ TEST(duden, ParseInfFile) {
 
     TestFileSystem filesystem;
     fixFileNameCase(inf, &filesystem);
-    ASSERT_EQ(u8"Duden - Das Fremdwörterbuch", inf.name);
+    ASSERT_EQ(u8"Duden - Das Fremdwörterbuch, 8. Aufl. Mannheim 2005", inf.name);
     ASSERT_EQ("DU5NEU.HIC", inf.primary.hic);
     ASSERT_EQ("du5neu.IDX", inf.primary.idx);
     ASSERT_EQ("du5neu.bof", inf.primary.bof);
@@ -247,32 +247,44 @@ TEST(duden, ParseInfFile) {
     ASSERT_EQ("", inf.resources[0].fsi);
 }
 
-class TestFileSystem2 : public IFileSystem {
-    CaseInsensitiveSet _files;
+TEST(duden, ParseTwoWayDictInfFile) {
+    FileStream stream("duden_testfiles/two-way-dict.inf");
+    auto infs = parseInfFile(&stream);
+    ASSERT_EQ(2, infs.size());
 
-public:
-    TestFileSystem2() {
-        fs::path root = "/tmp";
-        _files = {root / "123_abc.bin", root / "abc.bin", root / "file.ext"};
-    }
+    auto inf = infs[0];
+    ASSERT_EQ(0x302, inf.version);
+    ASSERT_EQ(u8"Duden - Oxford - Kompaktwörterbuch Deutsch-Englisch", inf.name);
+    ASSERT_EQ("DODEK.HIC", inf.primary.hic);
+    ASSERT_EQ("DODEK.IDX", inf.primary.idx);
+    ASSERT_EQ("DODEK.BOF", inf.primary.bof);
+    ASSERT_EQ(1, inf.resources.size());
+    ASSERT_EQ("", inf.resources[0].fsi);
+    ASSERT_EQ("dodekkey.IDX", inf.resources[0].idx);
+    ASSERT_EQ("dodekkey.BOF", inf.resources[0].bof);
 
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
-        return {};
-    }
-
-    const CaseInsensitiveSet& files() override {
-        return _files;
-    }
-};
+    inf = infs[1];
+    ASSERT_EQ(0x302, inf.version);
+    ASSERT_EQ(u8"Duden - Oxford - Kompaktwörterbuch  Englisch-Deutsch", inf.name);
+    ASSERT_EQ("DOEDK.HIC", inf.primary.hic);
+    ASSERT_EQ("DOEDK.IDX", inf.primary.idx);
+    ASSERT_EQ("DOEDK.BOF", inf.primary.bof);
+    ASSERT_EQ(1, inf.resources.size());
+    ASSERT_EQ("", inf.resources[0].fsi);
+    ASSERT_EQ("doedkkey.IDX", inf.resources[0].idx);
+    ASSERT_EQ("doedkkey.BOF", inf.resources[0].bof);
+}
 
 TEST(duden, CaseInsensitiveFileSystemSearch) {
-    TestFileSystem2 fileSystem;
-    auto found = fileSystem.files().find("/tmp/ABC.bin");
-    ASSERT_NE(end(fileSystem.files()), found);
-    ASSERT_EQ("/tmp/abc.bin", found->string());
-    auto foundExt = findExtension(fileSystem, ".ext");
-    ASSERT_EQ("/tmp/file.ext", foundExt.string());
-    EXPECT_THROW(findExtension(fileSystem, ".bin"), std::runtime_error);
+    CaseInsensitiveSet set{"123_abc.bin", "abc.bin", "file.ext"};
+    auto found = set.find("ABC.bin");
+    ASSERT_NE(end(set), found);
+    ASSERT_EQ("abc.bin", found->string());
+    found = set.find("file.eXT");
+    ASSERT_NE(end(set), found);
+    ASSERT_EQ("file.ext", found->string());
+    found = set.find("123");
+    ASSERT_EQ(end(set), found);
 }
 
 TEST(duden, Unicode) {
@@ -1160,6 +1172,8 @@ TEST(duden, IgnoreUnknownEscapes) {
     ParsingContext context;
     auto run = parseDudenText(context, "a@bc");
     ASSERT_EQ("abc", printDsl(run));
+    run = parseDudenText(context, "\\00520FE");
+    ASSERT_EQ("00520FE", printDsl(run));
 }
 
 TEST_F(duden_qt, InlineRenderAndPrintTable) {
@@ -1346,4 +1360,23 @@ TEST(duden, HandleNewLinesInHtml) {
     auto run = parseDudenText(context, text);
     auto html = printHtml(run);
     ASSERT_EQ("a<br>bc", html);
+}
+
+TEST(duden, IgnoreZeroesInDecodedText) {
+    uint8_t data[] {
+        0xA2, 0xA5, 0xA4, 0x55, 0xA2, 0xAD, 0xA4, 0x56, 0x5C, 0
+    };
+    auto decoded = dudenToUtf8(reinterpret_cast<char*>(data));
+    ASSERT_EQ(u8"a͜i\\", decoded);
+}
+
+TEST(duden, TreatLowerSEscapeAsItalic) {
+    std::string text = "\\s{abc}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  ItalicFormattingRun\n"
+                    "    PlainRun: abc\n";
+    ASSERT_EQ(expected, tree);
 }

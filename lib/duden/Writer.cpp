@@ -42,10 +42,11 @@ public:
 
 void writeDSL(fs::path infPath,
               fs::path outputPath,
+              int index,
               Log& log) {
     auto inputPath = infPath.parent_path();
     dictlsd::FileStream infStream(infPath.string());
-    auto inf = duden::parseInfFile(&infStream);
+    auto inf = duden::parseInfFile(&infStream).at(index);
     duden::FileSystem fs(infPath.parent_path().string());
     duden::fixFileNameCase(inf, &fs);
     duden::Dictionary dict(&fs, inf);
@@ -169,6 +170,7 @@ void writeDSL(fs::path infPath,
             auto dslHeading = printDsl(headingRun);
             writer.writeHeading(dictlsd::toUtf16(dslHeading));
         }
+
         auto articleRun = parseDudenText(context, article);
         resolveReferences(context, articleRun, dict.ld(), &resourceFS);
         inlineReferences(context, articleRun, resources);
@@ -191,7 +193,7 @@ void writeDSL(fs::path infPath,
         ++articleCount;
     }
 
-    log.regular("done converting %d articles, %d tables and %d resources (%d audio files)",
+    log.regular("done converting: %d articles, %d tables, %d resources, %d audio files",
                 articleCount,
                 tableCount,
                 resourceCount,
