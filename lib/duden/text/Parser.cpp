@@ -94,6 +94,7 @@ class Parser {
             if (!dec(i)) {
                 i = -1;
             }
+            lit("%");
             current()->addRun(_context->make<IdRun>(i));
             return;
         }
@@ -108,6 +109,7 @@ class Parser {
         if (digit(i)) {
             current()->addRun(_context->make<StickyRun>(i));
         }
+
         // ignore unknown escape
     }
 
@@ -172,6 +174,13 @@ class Parser {
             text(false);
             finishPlain();
         }
+        if (lit(":")) {
+            int64_t from, to;
+            expect(dec(from));
+            expect(lit("-"));
+            expect(dec(to));
+            placeholder->setRange(from, to);
+        }
         if (!lit("}")) {
             // misformed reference, the previous ';' wasn't properly escaped
             appendPlain(';');
@@ -181,6 +190,7 @@ class Parser {
                 text(false);
                 finishPlain();
             }
+            expect(lit("}"));
             // TODO: might be possible to recover
             // and retry sid()
         }
@@ -424,7 +434,7 @@ class Parser {
                 push(_context->make<ColorFormattingRun>(rgb, findColorName(rgb)));
             } else if (name == "WebLink") {
                 push(_context->make<WebLinkFormattingRun>());
-            } else if (name == "Right") {
+            } else if (name == "Left" || name == "Right" || name == "Center") {
                 push(_context->make<AlignmentFormattingRun>());
             } else {
                 assert(false);
@@ -438,7 +448,7 @@ class Parser {
                 popIf<AddendumFormattingRun>();
             } else if (name == "WebLink") {
                 popIf<WebLinkFormattingRun>();
-            } else if (name == "Right") {
+            } else if (name == "Left" || name == "Right" || name == "Center") {
                 popIf<AlignmentFormattingRun>();
             } else {
                 popIf<ColorFormattingRun>();
@@ -532,6 +542,8 @@ public:
 
     TextRun* parse() {
         text();
+        if (*_ptr != '\0')
+            throw std::runtime_error("incomplete parse");
         return _root;
     }
 };

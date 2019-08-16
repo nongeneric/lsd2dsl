@@ -402,20 +402,12 @@ std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicLeaf> entries) {
             && entry.type != HicEntryType::Variant;
     }), end(entries));
 
-    std::map<int32_t, int32_t> sizes;
-    if (!entries.empty()) {
-        for (auto i = 0u; i < entries.size() - 1; ++i) {
-            auto size = entries[i + 1].textOffset - entries[i].textOffset;
-            sizes[entries[i].textOffset] = size;
+    for (auto it = begin(groups); it != end(groups); ++it) {
+        auto next = std::next(it);
+        if (next != end(groups)) {
+            it->second.articleSize = next->first - it->first;
         }
-    }
-
-    for (auto& group : groups) {
-        auto size = sizes.find(group.first);
-        if (size != end(sizes)) {
-            group.second.articleSize = size->second;
-        }
-        std::sort(begin(group.second.headings), end(group.second.headings));
+        std::sort(begin(it->second.headings), end(it->second.headings));
     }
 
     return groups;

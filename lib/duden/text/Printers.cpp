@@ -115,11 +115,14 @@ public:
     }
 
     void visit(ReferencePlaceholderRun* run) override {
+        auto range = run->range() ? bformat("; range=%d-%d", run->range()->from, run->range()->to)
+                   : "";
         print(run,
-              bformat("ReferencePlaceholderRun; code=%s; num=%d; num2=%d",
+              bformat("ReferencePlaceholderRun; code=%s; num=%d; num2=%d%s",
                       run->id().code,
                       run->id().num,
-                      run->id().num2));
+                      run->id().num2,
+                      range));
         TextRunVisitor::visit(run);
     }
 

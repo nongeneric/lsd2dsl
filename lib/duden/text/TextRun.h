@@ -206,8 +206,13 @@ struct ReferenceId {
     int64_t num2;
 };
 
+struct ReferenceSelectionRange {
+    int64_t from, to;
+};
+
 class ReferencePlaceholderRun : public TextRun {
     ReferenceId _id;
+    std::optional<ReferenceSelectionRange> _range;
 
 public:
     void accept(TextRunVisitor *visitor) override;
@@ -216,8 +221,16 @@ public:
         _id = id;
     }
 
+    void setRange(int64_t from, int64_t to) {
+        _range = {from, to};
+    }
+
     const ReferenceId& id() const {
         return _id;
+    }
+
+    std::optional<ReferenceSelectionRange> range() const {
+        return _range;
     }
 };
 

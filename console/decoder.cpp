@@ -189,9 +189,10 @@ void parseDudenText(std::string textPath, std::string output) {
     std::ifstream f(textPath);
     if (!f.is_open())
         throw std::runtime_error("can't open file");
-    std::istream_iterator<char> eof;
-    std::istream_iterator<char> it(f);
-    std::string text {it, eof};
+    f.seekg(0, std::ios_base::end);
+    std::string text(f.tellg(), ' ');
+    f.seekg(0);
+    f.read(&text[0], text.size());
     auto run = duden::parseDudenText(context, text);
     std::ofstream of(output + "/textdump");
     auto tree = duden::printTree(run);

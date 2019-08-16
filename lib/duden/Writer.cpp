@@ -38,6 +38,11 @@ public:
     }
 };
 
+uint32_t calcBofOffset(duden::Dictionary& dict) {
+    auto head = dict.article(0, 0x200);
+    return head.find('@');
+}
+
 }
 
 void writeDSL(fs::path infPath,
@@ -51,7 +56,7 @@ void writeDSL(fs::path infPath,
     duden::fixFileNameCase(inf, &fs);
     duden::Dictionary dict(&fs, inf);
 
-    std::string dslFileName = "dictionary";
+    std::string dslFileName = inf.name;
 
     log.regular("Articles: %d", dict.articleCount());
 
@@ -157,12 +162,14 @@ void writeDSL(fs::path infPath,
 
     ResourceFileSystem resourceFS(std::move(resourceFileNames));
 
+    auto bofOffset = calcBofOffset(dict);
+
     for (const auto& [textOffset, group] : groups) {
         log.advance();
         // headings of pictures, tables, etc
         if (static_cast<unsigned>(textOffset) >= dict.articleArchiveDecodedSize())
             continue;
-        auto article = dict.article(textOffset, group.articleSize);
+        auto article = dict.article(textOffset + bofOffset, group.articleSize);
         ParsingContext context;
         TextRun* headingRun = nullptr;
         for (const auto& heading : group.headings) {
@@ -175,7 +182,9 @@ void writeDSL(fs::path infPath,
         resolveReferences(context, articleRun, dict.ld(), &resourceFS);
         inlineReferences(context, articleRun, resources);
         resolveReferences(context, articleRun, dict.ld(), &resourceFS);
+
         const auto& firstHeading = group.headings.front();
+
         resolveArticleReferences(articleRun, [&](auto offset) {
             auto it = groups.find(offset - 1);
             if (it == end(groups)) {

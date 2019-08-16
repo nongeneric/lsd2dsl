@@ -20,6 +20,8 @@ struct ReferenceInfo {
 };
 
 struct LdFile {
+    int sourceLanguage;
+    int targetLanguage;
     std::vector<ReferenceInfo> references;
     std::vector<ReferenceRange> ranges;
 };

@@ -480,6 +480,19 @@ TEST(duden, ParseTextReferenceWithEscapedSemicolon) {
     ASSERT_EQ(expected, tree);
 }
 
+TEST(duden, ParseTextReferenceWithSelectionRange) {
+    auto text = "\\S{ref;:06831017:05172-05835}abc";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  ReferencePlaceholderRun; code=; num=6831017; num2=-1; range=5172-5835\n"
+                    "    TextRun\n"
+                    "      PlainRun: ref\n"
+                    "  PlainRun: abc\n";
+    ASSERT_EQ(expected, tree);
+}
+
 TEST(duden, ResolveArticleReference) {
     auto text = "\\S{Diskettenformat;:025004230}";
     ParsingContext context;
@@ -1001,6 +1014,18 @@ TEST(duden, ParseId) {
     ASSERT_EQ(expected, printTree(run));
 }
 
+TEST(duden, ParseIdWithTrailingPercentSign) {
+    std::string text = "a@C%ID=12345%\nb";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto expected = "TextRun\n"
+                    "  PlainRun: a\n"
+                    "  IdRun: 12345\n"
+                    "  SoftLineBreakRun\n"
+                    "  PlainRun: b\n";
+    ASSERT_EQ(expected, printTree(run));
+}
+
 TEST(duden, ParseEmptyId) {
     std::string text = "a@C%ID=\nb";
     ParsingContext context;
@@ -1047,9 +1072,13 @@ TEST(duden, HandleAddendumInDsl) {
     ASSERT_EQ("Abc (123)", printDsl(run));
 }
 
-TEST(duden, HandleRightAlignmentInDsl) {
+TEST(duden, HandleAlignmentInDsl) {
     ParsingContext context;
     auto run = parseDudenText(context, "\\F{_Right}abc\\F{Right_}");
+    ASSERT_EQ("abc", printDsl(run));
+    run = parseDudenText(context, "\\F{_Left}abc\\F{Left_}");
+    ASSERT_EQ("abc", printDsl(run));
+    run = parseDudenText(context, "\\F{_Center}abc\\F{Center_}");
     ASSERT_EQ("abc", printDsl(run));
 }
 
@@ -1215,7 +1244,7 @@ TEST(duden, IgnoreMismatchedTokensInIllformedText) {
 
 TEST(duden, IgnoreIllformedTableReferences) {
     // even Duden can't parse this
-    std::string text = "\\S{here comes the semicolon; and text continues;.MT:660042728;Tabelle}";
+    std::string text = "\\S{here comes the semicolon; and text continues;.MT:660042728;Tabelle}abc";
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto expected = "TextRun\n"
@@ -1224,7 +1253,8 @@ TEST(duden, IgnoreIllformedTableReferences) {
                     "      PlainRun: here comes the semicolon\n"
                     "    PlainRun: ; and text continues\n"
                     "    PlainRun: .MT:660042728\n"
-                    "    PlainRun: Tabelle\n";
+                    "    PlainRun: Tabelle\n"
+                    "  PlainRun: abc\n";
     ASSERT_EQ(expected, printTree(run));
 }
 
