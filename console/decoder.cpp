@@ -83,9 +83,38 @@ int parseLSD(fs::path lsdPath,
     return 0;
 }
 
+int printDudenInfo(fs::path infPath, Log& log) {
+    duden::FileSystem fs(infPath.parent_path().string());
+    FileStream infStream(infPath.string());
+
+    auto infs = duden::parseInfFile(&infStream, &fs);
+    for (size_t i = 0; i < infs.size(); ++i) {
+        duden::Dictionary dict(&fs, infPath, i);
+        log.regular("Dictionary: %s", dict.ld().name);
+        log.regular("  Version: %x", dict.inf().version);
+
+        auto ld = dict.ld();
+        log.regular("  Source: %s", ld.sourceLanguage);
+        log.regular("  Primary:");
+        log.regular("    BOF: %s", dict.inf().primary.bof);
+        log.regular("    HIC: %s", dict.inf().primary.hic);
+        log.regular("    IDX: %s", dict.inf().primary.idx);
+        for (auto& resource : dict.inf().resources) {
+            log.regular("  Resource:");
+            log.regular("    BOF: %s", resource.bof);
+            if (!resource.fsi.empty()) {
+                log.regular("    FSI: %s", resource.fsi);
+            }
+            log.regular("    IDX: %s", resource.idx);
+        }
+    }
+    return 0;
+}
+
 int parseDuden(fs::path infPath, fs::path outputPath, std::optional<unsigned> index, Log& log) {
     FileStream infStream(infPath.string());
-    auto infs = duden::parseInfFile(&infStream);
+    duden::FileSystem fs(infPath.parent_path().string());
+    auto infs = duden::parseInfFile(&infStream, &fs);
     auto inf = infs[0];
 
     if (infs.size() > 1) {
@@ -106,7 +135,6 @@ int parseDuden(fs::path infPath, fs::path outputPath, std::optional<unsigned> in
     }
 
     log.regular("Version:  %x", inf.version);
-    log.regular("Name:     %d", inf.name);
 
     if (!inf.supported) {
         log.regular("Unsupported dictionary version");
@@ -278,7 +306,7 @@ int main(int argc, char* argv[]) {
     std::string lsdPath, lsaPath, dudenPath, outputPath;
     std::string bofPath, idxPath, fsiPath, hicPath, adpPath, textPath;
     int sourceFilter = -1, targetFilter = -1;
-    bool isDumb, dudenEncoding, verbose;
+    bool isDumb, dudenEncoding, dudenPrintInfo, verbose;
     int dudenIndex = -1;
     po::options_description console_desc("Allowed options");
     try {
@@ -308,6 +336,7 @@ int main(int argc, char* argv[]) {
                 ("hic", po::value<std::string>(&hicPath), "Duden HIC file path")
                 ("adp", po::value<std::string>(&adpPath), "Duden ADP file path")
                 ("text", po::value<std::string>(&textPath), "Duden decoded text file path")
+                ("duden-info", "Print dictionary info and return")
                 ("duden-utf", "Decode Duden to Utf");
         }
 
@@ -328,6 +357,7 @@ int main(int argc, char* argv[]) {
         isDumb = console_vm.count("dumb");
         verbose = console_vm.count("verbose");
         dudenEncoding = console_vm.count("duden-utf");
+        dudenPrintInfo = console_vm.count("duden-info");
         po::notify(console_vm);
     } catch(std::exception& e) {
         std::cout << "can't parse program options:\n";
@@ -361,6 +391,9 @@ int main(int argc, char* argv[]) {
             decodeLSA(lsaPath, outputPath, log);
         }
         if (!dudenPath.empty()) {
+            if (dudenPrintInfo) {
+                return printDudenInfo(dudenPath, log);
+            }
             std::optional<unsigned> optional;
             if (dudenIndex != -1) {
                 optional = static_cast<unsigned>(dudenIndex);

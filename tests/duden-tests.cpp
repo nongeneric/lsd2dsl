@@ -200,13 +200,16 @@ class TestFileSystem : public IFileSystem {
     CaseInsensitiveSet _files;
 
 public:
-    TestFileSystem() {
+    TestFileSystem(bool empty = false) {
+        if (empty)
+            return;
         _files = {"d5snd.idx",
                   "d5snd.fsi",
                   "d5snd.Bof",
                   "DU5NEU.HIC",
                   "du5neu.IDX",
-                  "du5neu.bof"};
+                  "du5neu.bof",
+                  "du5neU.Ld"};
     }
 
     std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
@@ -220,59 +223,85 @@ public:
 
 TEST(duden, ParseInfFile) {
     FileStream stream("duden_testfiles/simple.inf");
-    auto inf = parseInfFile(&stream)[0];
-    ASSERT_EQ(0x400, inf.version);
-    ASSERT_EQ(u8"Duden - Das Fremdwörterbuch, 8. Aufl. Mannheim 2005", inf.name);
-    ASSERT_EQ("DU5NEU.HIC", inf.primary.hic);
-    ASSERT_EQ("du5neu.idx", inf.primary.idx);
-    ASSERT_EQ("du5neu.bof", inf.primary.bof);
-    ASSERT_EQ(1, inf.resources.size());
-    ASSERT_EQ("d5snd.fsi", inf.resources[0].fsi);
-    ASSERT_EQ("d5snd.idx", inf.resources[0].idx);
-    ASSERT_EQ("d5snd.bof", inf.resources[0].bof);
-
     TestFileSystem filesystem;
-    fixFileNameCase(inf, &filesystem);
-    ASSERT_EQ(u8"Duden - Das Fremdwörterbuch, 8. Aufl. Mannheim 2005", inf.name);
-    ASSERT_EQ("DU5NEU.HIC", inf.primary.hic);
-    ASSERT_EQ("du5neu.IDX", inf.primary.idx);
-    ASSERT_EQ("du5neu.bof", inf.primary.bof);
+    auto inf = parseInfFile(&stream, &filesystem)[0];
+    EXPECT_EQ(0x400, inf.version);
+    EXPECT_EQ("du5neU.Ld", inf.ld);
+    EXPECT_EQ("DU5NEU.HIC", inf.primary.hic);
+    EXPECT_EQ("du5neu.IDX", inf.primary.idx);
+    EXPECT_EQ("du5neu.bof", inf.primary.bof);
     ASSERT_EQ(1, inf.resources.size());
-    ASSERT_EQ("d5snd.fsi", inf.resources[0].fsi);
-    ASSERT_EQ("d5snd.idx", inf.resources[0].idx);
-    ASSERT_EQ("d5snd.Bof", inf.resources[0].bof);
-
-    inf.resources[0].fsi = "";
-    fixFileNameCase(inf, &filesystem);
-    ASSERT_EQ("", inf.resources[0].fsi);
+    EXPECT_EQ("d5snd.fsi", inf.resources[0].fsi);
+    EXPECT_EQ("d5snd.idx", inf.resources[0].idx);
+    EXPECT_EQ("d5snd.Bof", inf.resources[0].bof);
 }
 
 TEST(duden, ParseTwoWayDictInfFile) {
     FileStream stream("duden_testfiles/two-way-dict.inf");
-    auto infs = parseInfFile(&stream);
+    TestFileSystem filesystem(true);
+    auto infs = parseInfFile(&stream, &filesystem);
     ASSERT_EQ(2, infs.size());
 
     auto inf = infs[0];
-    ASSERT_EQ(0x302, inf.version);
-    ASSERT_EQ(u8"Duden - Oxford - Kompaktwörterbuch Deutsch-Englisch", inf.name);
-    ASSERT_EQ("DODEK.HIC", inf.primary.hic);
-    ASSERT_EQ("DODEK.IDX", inf.primary.idx);
-    ASSERT_EQ("DODEK.BOF", inf.primary.bof);
-    ASSERT_EQ(1, inf.resources.size());
-    ASSERT_EQ("", inf.resources[0].fsi);
-    ASSERT_EQ("dodekkey.IDX", inf.resources[0].idx);
-    ASSERT_EQ("dodekkey.BOF", inf.resources[0].bof);
+    EXPECT_EQ(0x302, inf.version);
+    EXPECT_EQ("DOEDK.HIC", inf.primary.hic);
+    EXPECT_EQ("DOEDK.IDX", inf.primary.idx);
+    EXPECT_EQ("DOEDK.BOF", inf.primary.bof);
+    ASSERT_EQ(2, inf.resources.size());
+    EXPECT_EQ("", inf.resources[0].fsi);
+    EXPECT_EQ("dodekkey.IDX", inf.resources[0].idx);
+    EXPECT_EQ("dodekkey.BOF", inf.resources[0].bof);
+    EXPECT_EQ("", inf.resources[1].fsi);
+    EXPECT_EQ("doedkkey.IDX", inf.resources[1].idx);
+    EXPECT_EQ("doedkkey.BOF", inf.resources[1].bof);
 
     inf = infs[1];
-    ASSERT_EQ(0x302, inf.version);
-    ASSERT_EQ(u8"Duden - Oxford - Kompaktwörterbuch  Englisch-Deutsch", inf.name);
-    ASSERT_EQ("DOEDK.HIC", inf.primary.hic);
-    ASSERT_EQ("DOEDK.IDX", inf.primary.idx);
-    ASSERT_EQ("DOEDK.BOF", inf.primary.bof);
-    ASSERT_EQ(1, inf.resources.size());
-    ASSERT_EQ("", inf.resources[0].fsi);
-    ASSERT_EQ("doedkkey.IDX", inf.resources[0].idx);
-    ASSERT_EQ("doedkkey.BOF", inf.resources[0].bof);
+    EXPECT_EQ(0x302, inf.version);
+    EXPECT_EQ("DODEK.HIC", inf.primary.hic);
+    EXPECT_EQ("DODEK.IDX", inf.primary.idx);
+    EXPECT_EQ("DODEK.BOF", inf.primary.bof);
+    ASSERT_EQ(2, inf.resources.size());
+    EXPECT_EQ("", inf.resources[0].fsi);
+    EXPECT_EQ("dodekkey.IDX", inf.resources[0].idx);
+    EXPECT_EQ("dodekkey.BOF", inf.resources[0].bof);
+    EXPECT_EQ("", inf.resources[1].fsi);
+    EXPECT_EQ("doedkkey.IDX", inf.resources[1].idx);
+    EXPECT_EQ("doedkkey.BOF", inf.resources[1].bof);
+}
+
+TEST(duden, ParseTwoWayDictInfFileWithoutSecondTitle) {
+    FileStream stream("duden_testfiles/two-way-dict-no-title.inf");
+    TestFileSystem filesystem(true);
+    auto infs = parseInfFile(&stream, &filesystem);
+    ASSERT_EQ(2, infs.size());
+
+    auto inf = infs[0];
+    EXPECT_EQ(0x300, inf.version);
+    EXPECT_EQ("CHWDE.LD", inf.ld);
+    EXPECT_EQ("chwde.hic", inf.primary.hic);
+    EXPECT_EQ("CHWDE.IDX", inf.primary.idx);
+    EXPECT_EQ("CHWDE.BOF", inf.primary.bof);
+    ASSERT_EQ(2, inf.resources.size());
+    EXPECT_EQ("", inf.resources[0].fsi);
+    EXPECT_EQ("CHWDEKEY.IDX", inf.resources[0].idx);
+    EXPECT_EQ("CHWDEKEY.BOF", inf.resources[0].bof);
+    EXPECT_EQ("", inf.resources[1].fsi);
+    EXPECT_EQ("CHWEDKEY.IDX", inf.resources[1].idx);
+    EXPECT_EQ("CHWEDKEY.BOF", inf.resources[1].bof);
+
+    inf = infs[1];
+    EXPECT_EQ(0x300, inf.version);
+    EXPECT_EQ("CHWED.LD", inf.ld);
+    EXPECT_EQ("chwed.hic", inf.primary.hic);
+    EXPECT_EQ("CHWED.IDX", inf.primary.idx);
+    EXPECT_EQ("CHWED.BOF", inf.primary.bof);
+    ASSERT_EQ(2, inf.resources.size());
+    EXPECT_EQ("", inf.resources[0].fsi);
+    EXPECT_EQ("CHWDEKEY.IDX", inf.resources[0].idx);
+    EXPECT_EQ("CHWDEKEY.BOF", inf.resources[0].bof);
+    EXPECT_EQ("", inf.resources[1].fsi);
+    EXPECT_EQ("CHWEDKEY.IDX", inf.resources[1].idx);
+    EXPECT_EQ("CHWEDKEY.BOF", inf.resources[1].bof);
 }
 
 TEST(duden, CaseInsensitiveFileSystemSearch) {
@@ -323,6 +352,7 @@ TEST(duden, UnicodeDontIgnoreEscapesInsideTables) {
 TEST(duden, SimpleLdFileTest) {
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
+    ASSERT_EQ("Some thing", ld.name);
     ASSERT_EQ(4, ld.ranges.size());
 
     ASSERT_EQ("btb", ld.ranges[0].fileName);
@@ -1409,4 +1439,34 @@ TEST(duden, TreatLowerSEscapeAsItalic) {
                     "  ItalicFormattingRun\n"
                     "    PlainRun: abc\n";
     ASSERT_EQ(expected, tree);
+}
+
+TEST(duden, GuessLanguages) {
+    auto deuCode = 1031;
+    auto engCode = 1033;
+
+    LdFile ld1, ld2;
+    auto set = [] (auto& ld, auto source) {
+        ld.sourceLanguage = source;
+        ld.sourceLanguageCode = -1;
+        ld.targetLanguageCode = -1;
+    };
+
+    set(ld1, "deu");
+    duden::updateLanguageCodes({&ld1});
+    EXPECT_EQ(deuCode, ld1.sourceLanguageCode);
+    EXPECT_EQ(deuCode, ld1.targetLanguageCode);
+
+    set(ld1, "enu");
+    duden::updateLanguageCodes({&ld1});
+    EXPECT_EQ(engCode, ld1.sourceLanguageCode);
+    EXPECT_EQ(deuCode, ld1.targetLanguageCode);
+
+    set(ld1, "deu");
+    set(ld2, "enu");
+    duden::updateLanguageCodes({&ld1, &ld2});
+    EXPECT_EQ(deuCode, ld1.sourceLanguageCode);
+    EXPECT_EQ(engCode, ld1.targetLanguageCode);
+    EXPECT_EQ(engCode, ld2.sourceLanguageCode);
+    EXPECT_EQ(deuCode, ld2.targetLanguageCode);
 }

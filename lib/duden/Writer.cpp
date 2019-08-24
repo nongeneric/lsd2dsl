@@ -50,14 +50,12 @@ void writeDSL(fs::path infPath,
               int index,
               Log& log) {
     auto inputPath = infPath.parent_path();
-    dictlsd::FileStream infStream(infPath.string());
-    auto inf = duden::parseInfFile(&infStream).at(index);
     duden::FileSystem fs(infPath.parent_path().string());
-    duden::fixFileNameCase(inf, &fs);
-    duden::Dictionary dict(&fs, inf);
+    duden::Dictionary dict(&fs, infPath, index);
 
-    std::string dslFileName = inf.name;
+    std::string dslFileName = dict.ld().name;
 
+    log.regular("Name:     %s", dict.ld().name);
     log.regular("Articles: %d", dict.articleCount());
 
     const auto& entries = dict.entries();
@@ -67,7 +65,7 @@ void writeDSL(fs::path infPath,
     ZipWriter zip(overlayPath.string());
 
     ResourceFiles resources;
-    for (auto& pack : inf.resources) {
+    for (auto& pack : dict.inf().resources) {
         if (!pack.fsi.empty())
             continue;
 
@@ -86,7 +84,8 @@ void writeDSL(fs::path infPath,
     }
 
     dsl::Writer writer(outputPath.string(), dslFileName);
-    writer.setName(dictlsd::toUtf16(inf.name));
+    writer.setName(dictlsd::toUtf16(dict.ld().name));
+    writer.setLanguage(dict.ld().sourceLanguageCode, dict.ld().targetLanguageCode);
 
     std::map<std::string, std::tuple<const ResourceArchive*, uint32_t, uint32_t>> resourceIndex;
 
@@ -95,7 +94,7 @@ void writeDSL(fs::path infPath,
     std::vector<std::string> resourceFileNames;
 
     int adpCount = 0;
-    for (auto& pack : inf.resources) {
+    for (auto& pack : dict.inf().resources) {
         if (pack.fsi.empty())
             continue;
 

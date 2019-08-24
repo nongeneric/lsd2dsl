@@ -67,11 +67,13 @@ public:
     virtual void dump(QString outDir, Log& log) = 0;
 };
 
+QString printLanguage(int code) {
+    return QString::fromStdString(toUtf8(langFromCode(code)));
+}
+
 class LSDDictionaryEntry : public DictionaryEntry {
     LSDDictionary _reader;
-    QString printLanguage(int code) {
-        return QString::fromStdString(toUtf8(langFromCode(code)));
-    }
+
 public:
     LSDDictionaryEntry(QString path)
         : DictionaryEntry(path),
@@ -126,22 +128,26 @@ public:
 class DudenDictionaryEntry : public DictionaryEntry {
     QString _name;
     QString _version;
+    QString _source, _target;
     bool _supported;
     int _index;
     std::vector<unsigned char> _icon = {};
 
 public:
-    DudenDictionaryEntry(QString path, int index) : DictionaryEntry(path), _index(index) {
+    DudenDictionaryEntry(QString path, int index, duden::FileSystem* fs) : DictionaryEntry(path), _index(index) {
         auto infPath = fs::path(path.toStdString());
-        dictlsd::FileStream infStream(infPath.string());
-        auto inf = duden::parseInfFile(&infStream)[index];
-        _name = QString::fromStdString(inf.name);
-        _version = QString::fromStdString(bformat("%x", inf.version));
-        _supported = inf.supported;
+        duden::Dictionary dict(fs, infPath, index);
+        _name = QString::fromStdString(dict.ld().name);
+        _version = QString::fromStdString(bformat("%x", dict.inf().version));
+        _supported = dict.inf().supported;
+        auto source = dict.ld().sourceLanguageCode;
+        _source = QString("%1 (%2)").arg(source).arg(printLanguage(source));
+        auto target = dict.ld().targetLanguageCode;
+        _target = QString("%1 (%2)").arg(target).arg(printLanguage(target));
     }
     QString name() override { return _name; }
-    QString source() override { return ""; }
-    QString target() override { return ""; }
+    QString source() override { return _source; }
+    QString target() override { return _target; }
     unsigned entries() override { return 0; }
     QString version() override { return _version; }
     const std::vector<unsigned char> &icon() override { return _icon; }
@@ -191,9 +197,10 @@ public:
                 } else if (ext == "inf") {
                     auto infPath = fs::path(path.toStdString());
                     dictlsd::FileStream infStream(infPath.string());
-                    auto infs = duden::parseInfFile(&infStream);
+                    duden::FileSystem fs(infPath.parent_path().string());
+                    auto infs = duden::parseInfFile(&infStream, &fs);
                     for (size_t i = 0; i < infs.size(); ++i) {
-                        _dicts.emplace_back(new DudenDictionaryEntry(path, i));
+                        _dicts.emplace_back(new DudenDictionaryEntry(path, i, &fs));
                     }
                 }
             } catch(std::exception& e) {

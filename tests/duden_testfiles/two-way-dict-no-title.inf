@@ -1,0 +1,42 @@
+V 300
+T Duden - Chemiewörterbuch Deutsch - Englisch - Deutsch
+;
+F 702;chwde.abk
+F 161821;CHWDE.BOF
+F 473088;chwde.fi
+F 213191;chwde.hic
+F 264;CHWDE.IDX
+F 289792;chwde.ki
+F 442;chwde.ld
+F 838;chwed.abk
+F 158432;CHWED.BOF
+F 464896;chwed.fi
+F 202467;chwed.hic
+F 256;CHWED.IDX
+F 243712;chwed.ki
+F 440;chwed.ld
+F 152341;CHWDEKEY.BOF
+F 248;CHWDEKEY.IDX
+F 822;duchde.bmp
+F 824;duchdex.bmp
+F 822;duched.bmp
+F 824;duchedx.bmp
+F 149696;CHWEDKEY.BOF
+F 244;CHWEDKEY.IDX
+F 139745;es_chwde.dat
+F 38148;es_chwde.idx
+F 766;es_chwde.img
+F 88343;es_chwde.xqdd
+F 111334;es_chwed.dat
+F 30411;es_chwed.idx
+F 766;es_chwed.img
+F 62964;es_chwed.xqdd
+F 1118;VK_DUDEN.BMP
+;
+L 134 CHWDE.LD
+L 135 CHWED.LD
+;
+C 4;CHWDE.LD
+C 4;CHWED.LD
+;
+Q »Duden - Chemiewörterbuch - Deutsch - Englisch - Deutsch

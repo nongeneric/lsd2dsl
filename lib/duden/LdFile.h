@@ -20,12 +20,15 @@ struct ReferenceInfo {
 };
 
 struct LdFile {
-    int sourceLanguage;
-    int targetLanguage;
+    std::string name;
+    std::string sourceLanguage;
+    int sourceLanguageCode = -1;
+    int targetLanguageCode = -1;
     std::vector<ReferenceInfo> references;
     std::vector<ReferenceRange> ranges;
 };
 
 LdFile parseLdFile(dictlsd::IRandomAccessStream* stream);
+void updateLanguageCodes(std::vector<LdFile*> lds);
 
 } // namespace duden

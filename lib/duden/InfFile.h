@@ -20,12 +20,11 @@ struct ResourceArchive {
 struct InfFile {
     int version;
     bool supported;
-    std::string name;
+    std::string ld;
     PrimaryArchive primary;
     std::vector<ResourceArchive> resources;
 };
 
-std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream);
-void fixFileNameCase(InfFile& inf, IFileSystem* filesystem);
+std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSystem* filesystem);
 
 } // namespace duden

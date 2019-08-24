@@ -23,17 +23,25 @@ void Dictionary::collectLeafs() {
     collect(collect, _hic.root);
 }
 
-Dictionary::Dictionary(IFileSystem* filesystem, const InfFile& inf)
-    : _filesystem(filesystem), _inf(inf) {
+Dictionary::Dictionary(IFileSystem* filesystem, fs::path infPath, int index)
+    : _filesystem(filesystem) {
+    auto infStream = _filesystem->open(infPath.filename());
+    auto infs = parseInfFile(infStream.get(), filesystem);
+    _inf = infs.at(index);
+
+    auto ldStream = _filesystem->open(_inf.ld);
+    _ld = parseLdFile(ldStream.get());
+
+    if (infs.size() == 1) {
+        updateLanguageCodes({&_ld});
+    } else {
+        auto secondaryLdStream = _filesystem->open(infs.at(index == 1 ? 0 : 1).ld);
+        auto secondaryLd = parseLdFile(secondaryLdStream.get());
+        updateLanguageCodes({&_ld, &secondaryLd});
+    }
+
     auto hicStream = _filesystem->open(_inf.primary.hic);
     _hic = parseHicFile(hicStream.get());
-    const auto& files = filesystem->files();
-    auto ldName = fs::basename(_inf.primary.hic) + ".ld";
-    auto ldPathIter = files.find(ldName);
-    if (ldPathIter == end(files))
-        throw std::runtime_error(bformat("LD file %s not found", ldName));
-    auto ldStream = _filesystem->open(ldPathIter->filename());
-    _ld = parseLdFile(ldStream.get());
     auto idxStream = _filesystem->open(_inf.primary.idx);
     _articlesBof = _filesystem->open(_inf.primary.bof);
     _articles = std::make_unique<Archive>(idxStream.get(), _articlesBof.get());
@@ -66,6 +74,10 @@ std::string Dictionary::article(uint32_t plainOffset, uint32_t size) {
 
 const LdFile& Dictionary::ld() const {
     return _ld;
+}
+
+const InfFile& Dictionary::inf() const {
+    return _inf;
 }
 
 FileSystem::FileSystem(fs::path root) : _root(root) {}

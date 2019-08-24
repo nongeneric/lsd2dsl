@@ -35,7 +35,7 @@ class Dictionary {
     void collectLeafs();
 
 public:
-    Dictionary(IFileSystem* filesystem, InfFile const& inf);
+    Dictionary(IFileSystem* filesystem, fs::path infPath, int index);
     std::string annotation() const;
     std::vector<char> icon() const;
     unsigned articleCount() const;
@@ -43,6 +43,7 @@ public:
     const std::vector<HicLeaf>& entries() const;
     std::string article(uint32_t plainOffset, uint32_t size);
     const LdFile& ld() const;
+    const InfFile& inf() const;
 };
 
 } // namespace duden
