@@ -44,7 +44,7 @@ Dictionary::Dictionary(IFileSystem* filesystem, fs::path infPath, int index)
     _hic = parseHicFile(hicStream.get());
     auto idxStream = _filesystem->open(_inf.primary.idx);
     _articlesBof = _filesystem->open(_inf.primary.bof);
-    _articles = std::make_unique<Archive>(idxStream.get(), _articlesBof.get());
+    _articles = std::make_unique<Archive>(idxStream.get(), std::move(_articlesBof));
     collectLeafs();
 }
 

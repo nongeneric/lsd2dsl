@@ -1,0 +1,41 @@
+V 302
+T e-Taschenwörterbuch Englisch mit Sprachausgabe
+T e-Taschenwörterbuch Deutsch-Englisch
+;
+F 6748;TWDE.ABK
+F 1848126;TWDE.BOF
+F 3347456 4;TWDE.FI
+F 842336;twde.hic
+F 2764;TWDE.IDX
+F 915456;TWDE.KI
+F 4240;TWDE.LD
+F 4534;twde.ico
+F 709;twde.ini
+F 975161;twde.lem
+F 820420;twde.mwc
+;
+T e-Taschenwörterbuch Englisch-Deutsch
+;
+F 6748;TWED.ABK
+F 2013751;TWED.BOF
+F 3178496 4;TWED.FI
+F 566389;twed.hic
+F 2656;TWED.IDX
+F 546816;TWED.KI
+F 4240;TWED.LD
+F 4534;twed.ico
+F 487;twed.ini
+F 250597;twed.lem
+F 795675;twed.mwc
+;
+F 207696340 9;TWEDAWAV.FSD
+F 1074176 9;TWEDAWAV.FSI
+;
+L 100 TWED.LD
+L 101 TWDE.LD
+;
+C 4;TWED.LD
+C 4;TWDE.LD
+C 9;TWED.LD
+;
+Q e-Taschenwörterbuch Englisch mit Sprachausgabe

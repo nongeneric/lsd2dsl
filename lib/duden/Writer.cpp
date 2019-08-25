@@ -6,6 +6,7 @@
 #include "lib/duden/Duden.h"
 #include "lib/duden/Archive.h"
 #include "lib/duden/AdpDecoder.h"
+#include "lib/duden/FsdFile.h"
 #include "lib/duden/text/TextRun.h"
 #include "lib/duden/text/Parser.h"
 #include "lib/duden/text/Printers.h"
@@ -46,6 +47,17 @@ uint32_t calcBofOffset(duden::Dictionary& dict) {
     return std::distance(begin(head), it);
 }
 
+std::unique_ptr<IResourceArchiveReader> makeArchiveReader(fs::path inputPath,
+                                                          const duden::ResourceArchive& archive) {
+    if (archive.fsd.empty()) {
+        dictlsd::FileStream fIdx((inputPath / archive.idx).string());
+        auto fBof = std::make_shared<dictlsd::FileStream>((inputPath / archive.bof).string());
+        return std::make_unique<Archive>(&fIdx, fBof);
+    } else {
+        auto fFsd = std::make_shared<dictlsd::FileStream>((inputPath / archive.fsd).string());
+        return std::make_unique<FsdFile>(fFsd);
+    }
+}
 }
 
 void writeDSL(fs::path infPath,
@@ -75,8 +87,8 @@ void writeDSL(fs::path infPath,
         log.regular("unpacking %s", pack.bof);
 
         dictlsd::FileStream fIndex((inputPath / pack.idx).string());
-        dictlsd::FileStream fBof((inputPath / pack.bof).string());
-        Archive archive(&fIndex, &fBof);
+        auto fBof = std::make_shared<dictlsd::FileStream>((inputPath / pack.bof).string());
+        Archive archive(&fIndex, fBof);
         std::vector<char> vec;
         archive.read(0, -1, vec);
         auto stream = std::make_unique<std::stringstream>();
@@ -102,23 +114,22 @@ void writeDSL(fs::path infPath,
             continue;
 
         dictlsd::FileStream fFsi((inputPath / pack.fsi).string());
-        dictlsd::FileStream fIndex((inputPath / pack.idx).string());
-        dictlsd::FileStream fBof((inputPath / pack.bof).string());
         auto entries = parseFsiFile(&fFsi);
 
-        log.resetProgress(pack.bof, entries.size());
+        log.resetProgress(pack.fsi, entries.size());
 
-        Archive archive(&fIndex, &fBof);
+        auto reader = makeArchiveReader(inputPath, pack);
+
         std::vector<char> vec;
         int i = 0;
         for (auto& entry : entries) {
             resourceIndex[entry.name] = {&pack, entry.offset, entry.size};
             log.verbose("unpacking [%03d/%03d] %s", i, entries.size(), entry.name);
-            if (entry.offset >= archive.decodedSize()) {
+            if (entry.offset >= reader->decodedSize()) {
                 log.regular("resource %s has invalid offset %x", entry.name, entry.offset);
                 continue;
             }
-            archive.read(entry.offset, entry.size, vec);
+            reader->read(entry.offset, entry.size, vec);
 
             auto name = entry.name;
             if (replaceAdpExtWithWav(name)) {
@@ -154,8 +165,8 @@ void writeDSL(fs::path infPath,
         }
         auto [pack, offset, size] = it->second;
         dictlsd::FileStream fIndex((inputPath / pack->idx).string());
-        dictlsd::FileStream fBof((inputPath / pack->bof).string());
-        Archive archive(&fIndex, &fBof);
+        auto fBof = std::make_shared<dictlsd::FileStream>((inputPath / pack->bof).string());
+        Archive archive(&fIndex, fBof);
         archive.read(offset, size, vec);
         return vec;
     });

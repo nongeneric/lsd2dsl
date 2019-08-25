@@ -20,6 +20,7 @@ struct ReferenceInfo {
 };
 
 struct LdFile {
+    std::string baseFileName;
     std::string name;
     std::string sourceLanguage;
     int sourceLanguageCode = -1;

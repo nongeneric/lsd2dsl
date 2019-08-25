@@ -1,15 +1,17 @@
 #pragma once
 
 #include "Duden.h"
+#include "IResourceArchiveReader.h"
 #include <istream>
 #include <stdint.h>
 #include <vector>
+#include <memory>
 
 namespace duden {
 
-class Archive {
+class Archive : public IResourceArchiveReader {
     std::vector<uint32_t> _index;
-    dictlsd::IRandomAccessStream* _bof;
+    std::shared_ptr<dictlsd::IRandomAccessStream> _bof;
     std::vector<char> _bofBuf;
     std::vector<char> _decodedBofBlock;
     unsigned _lastBlock = -1;
@@ -19,9 +21,9 @@ class Archive {
 
 public:
     Archive(dictlsd::IRandomAccessStream* index,
-            dictlsd::IRandomAccessStream* bof);
-    void read(uint32_t plainOffset, uint32_t size, std::vector<char>& output);
-    unsigned decodedSize() const;
+            std::shared_ptr<dictlsd::IRandomAccessStream> bof);
+    void read(uint32_t plainOffset, uint32_t size, std::vector<char>& output) override;
+    unsigned decodedSize() const override;
 };
 
 } // namespace duden

@@ -135,9 +135,9 @@ void decodeBofIdx(std::string bofPath,
                   std::string fsiPath,
                   bool dudenEncoding,
                   std::string output) {
-    FileStream fBof(bofPath);
     FileStream fIdx(idxPath);
-    duden::Archive archive(&fIdx, &fBof);
+    auto fBof = std::make_shared<FileStream>(bofPath);
+    duden::Archive archive(&fIdx, fBof);
     std::vector<char> vec;
 
     if (fsiPath.empty()) {

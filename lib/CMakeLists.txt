@@ -49,6 +49,7 @@ add_library(${PROJECT_NAME} STATIC
     duden/TableRenderer.cpp
     duden/IFileSystem.cpp
     duden/AdpDecoder.cpp
+    duden/FsdFile.cpp
     duden/text/TextRun.cpp
     duden/text/Table.cpp
     duden/text/Parser.cpp

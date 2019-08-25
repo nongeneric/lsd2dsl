@@ -198,6 +198,7 @@ TEST(duden, DecodeFixedTreeBofBlock) {
 
 class TestFileSystem : public IFileSystem {
     CaseInsensitiveSet _files;
+    std::vector<std::unique_ptr<std::string>> _lds;
 
 public:
     TestFileSystem(bool empty = false) {
@@ -212,11 +213,17 @@ public:
                   "du5neU.Ld"};
     }
 
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
-        return {};
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path path) override {
+        if (boost::algorithm::to_lower_copy(path.extension().string()) == ".ld") {
+            _lds.push_back(std::make_unique<std::string>());
+            auto& ld = _lds.back();
+            *ld = "K" + path.stem().string();
+            return std::make_unique<dictlsd::InMemoryStream>(ld->c_str(), ld->size());
+        }
+        throw std::runtime_error("");
     }
 
-    const CaseInsensitiveSet& files() override {
+    CaseInsensitiveSet& files() override {
         return _files;
     }
 };
@@ -316,6 +323,86 @@ TEST(duden, ParseTwoWayDictInfFileWithoutSecondTitle) {
     EXPECT_EQ("CHWEDKEY.BOF", inf.resources[1].bof);
 }
 
+TEST(duden, ParseTwoWayDictInfFileWithSpacesAfterSemicolon) {
+    FileStream stream("duden_testfiles/spaces_after_semicolon.inf");
+    TestFileSystem filesystem(true);
+    filesystem.files() = {
+        "FWMEDE.idX",
+        "FWMEED.Idx"
+    };
+    auto infs = parseInfFile(&stream, &filesystem);
+    ASSERT_EQ(2, infs.size());
+
+    auto inf = infs[0];
+    EXPECT_EQ(0x290, inf.version);
+    EXPECT_EQ("FWMEED.LD", inf.ld);
+    EXPECT_EQ("FWMEED.hic", inf.primary.hic);
+    EXPECT_EQ("FWMEED.Idx", inf.primary.idx);
+    EXPECT_EQ("FWMEED.BOF", inf.primary.bof);
+
+    inf = infs[1];
+    EXPECT_EQ(0x290, inf.version);
+    EXPECT_EQ("FWMEDE.LD", inf.ld);
+    EXPECT_EQ("FWMEDE.hic", inf.primary.hic);
+    EXPECT_EQ("FWMEDE.idX", inf.primary.idx);
+    EXPECT_EQ("FWMEDE.BOF", inf.primary.bof);
+}
+
+TEST(duden, ParseTwoWayDictInfFileWithFsdBlob) {
+    FileStream stream("duden_testfiles/fsd_blob.inf");
+    TestFileSystem filesystem(true);
+    auto infs = parseInfFile(&stream, &filesystem);
+    ASSERT_EQ(2, infs.size());
+
+    auto inf = infs[0];
+    EXPECT_EQ(0x302, inf.version);
+    EXPECT_EQ("TWED.LD", inf.ld);
+    EXPECT_EQ("twed.hic", inf.primary.hic);
+    EXPECT_EQ("TWED.IDX", inf.primary.idx);
+    EXPECT_EQ("TWED.BOF", inf.primary.bof);
+    ASSERT_EQ(1, inf.resources.size());
+    EXPECT_EQ("TWEDAWAV.FSI", inf.resources[0].fsi);
+    EXPECT_EQ("TWEDAWAV.FSD", inf.resources[0].fsd);
+
+    inf = infs[1];
+    EXPECT_EQ(0x302, inf.version);
+    EXPECT_EQ("TWDE.LD", inf.ld);
+    EXPECT_EQ("twde.hic", inf.primary.hic);
+    EXPECT_EQ("TWDE.IDX", inf.primary.idx);
+    EXPECT_EQ("TWDE.BOF", inf.primary.bof);
+    ASSERT_EQ(1, inf.resources.size());
+    EXPECT_EQ("TWEDAWAV.FSI", inf.resources[0].fsi);
+    EXPECT_EQ("TWEDAWAV.FSD", inf.resources[0].fsd);
+}
+
+class TestFileSystem4 : public IFileSystem {
+    std::string _ld = "KDU1NEU";
+    CaseInsensitiveSet _files;
+
+public:
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
+        return std::make_unique<dictlsd::InMemoryStream>(_ld.c_str(), _ld.size());
+    }
+
+    CaseInsensitiveSet& files() override {
+        return _files;
+    }
+};
+
+TEST(duden, ParseInfWithInconsistenPrimaryFileNames) {
+    FileStream stream("duden_testfiles/inconsistent_primary_file_names.inf");
+    TestFileSystem4 filesystem;
+    auto infs = parseInfFile(&stream, &filesystem);
+    ASSERT_EQ(1, infs.size());
+
+    auto inf = infs[0];
+    EXPECT_EQ(1, inf.version);
+    EXPECT_EQ("DU1.LD", inf.ld);
+    EXPECT_EQ("DU1NEU.HIC", inf.primary.hic);
+    EXPECT_EQ("DU1.IDX", inf.primary.idx);
+    EXPECT_EQ("DU1.BOF", inf.primary.bof);
+}
+
 TEST(duden, CaseInsensitiveFileSystemSearch) {
     CaseInsensitiveSet set{"123_abc.bin", "abc.bin", "file.ext"};
     auto found = set.find("ABC.bin");
@@ -378,6 +465,7 @@ TEST(duden, UnicodeIgnoreEscapesInsideEscapeC) {
 TEST(duden, SimpleLdFileTest) {
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
+    ASSERT_EQ("BTB", ld.baseFileName);
     ASSERT_EQ("Some thing", ld.name);
     ASSERT_EQ(4, ld.ranges.size());
 
@@ -648,7 +736,7 @@ TEST(duden, ResolveInlineImageReference) {
     ASSERT_EQ(u8"[s]euro.bmp[/s]", printDsl(run));
 }
 
-TEST(duden, ResolveAudioReference) {
+TEST(duden, ResolveAudioSReference) {
     auto text = u8"\\S{;.Ispeaker.bmp;T;à la longue.Adp}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
@@ -660,6 +748,38 @@ TEST(duden, ResolveAudioReference) {
                     "  InlineImageRun; name=speaker.bmp; secondary=à la longue.wav\n";
     ASSERT_EQ(expected, tree);
     ASSERT_EQ(u8"[s]à la longue.wav[/s]", printDsl(run));
+}
+
+TEST(duden, ResolveAudioWReference) {
+    const uint8_t encoded[] = {
+        '\\', 'w', '{', 'a', 'b', 'g', 'e', 'w', 0xf6, 'h',
+        'n', 'e', 'n', '_', '9', '2', '.', 'a', 'd', 'p', '}', 0
+    };
+    auto text = dudenToUtf8(std::string(reinterpret_cast<const char*>(encoded)));
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    resolveReferences(context, run, ld, nullptr);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  InlineSoundRun; name=[(abgewöhnen_92.wav)]\n";
+    ASSERT_EQ(expected, tree);
+    ASSERT_EQ(u8"[s]abgewöhnen_92.wav[/s]", printDsl(run));
+}
+
+TEST(duden, ResolveAudioWReference2) {
+    auto text = "\\w{AE000001.adp \"AAA\";BE000001.adp \"BBB\";CC000001.adp \"CCC\"}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    resolveReferences(context, run, ld, nullptr);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  InlineSoundRun; name=[(AE000001.wav, AAA), (BE000001.wav, BBB), (CC000001.wav, CCC)]\n";
+    ASSERT_EQ(expected, tree);
+    ASSERT_EQ(u8"[s]AE000001.wav[/s] AAA, [s]BE000001.wav[/s] BBB, [s]CC000001.wav[/s] CCC", printDsl(run));
 }
 
 class TestFileSystem3 : public IFileSystem {

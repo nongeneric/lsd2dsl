@@ -139,6 +139,10 @@ void InlineImageRun::accept(TextRunVisitor *visitor) {
     visitor->visit(this);
 }
 
+void InlineSoundRun::accept(TextRunVisitor *visitor) {
+    visitor->visit(this);
+}
+
 class DedupVisitor : public TextRunVisitor {
     std::string _result;
 

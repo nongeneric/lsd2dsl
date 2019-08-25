@@ -429,6 +429,26 @@ public:
     void accept(TextRunVisitor *visitor) override;
 };
 
+struct InlineSoundName {
+    std::string file;
+    std::string label;
+};
+
+class InlineSoundRun : public TextRun {
+    std::vector<InlineSoundName> _names;
+
+public:
+    void accept(TextRunVisitor *visitor) override;
+
+    const std::vector<InlineSoundName>& names() {
+        return _names;
+    }
+
+    void setNames(std::vector<InlineSoundName> names) {
+        _names = std::move(names);
+    }
+};
+
 class ParsingContext {
     std::vector<std::unique_ptr<TextRun>> _runs;
 
@@ -473,6 +493,7 @@ public:
     virtual void visit(ReferencePlaceholderRun* run) { visitImpl(run); }
     virtual void visit(LineBreakRun* run) { visitImpl(run); }
     virtual void visit(SoftLineBreakRun* run) { visitImpl(run); }
+    virtual void visit(InlineSoundRun* run) { visitImpl(run); }
     virtual void visit(TableRun* run) { visitImpl(run); }
     virtual void visit(TableTag* run) { visitImpl(run); }
     virtual void visit(TableCellRun* run) { visitImpl(run); }

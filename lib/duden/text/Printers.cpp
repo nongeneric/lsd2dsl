@@ -187,6 +187,19 @@ public:
                       run->secondary()));
     }
 
+    void visit(InlineSoundRun* run) override {
+        std::vector<std::string> pairs;
+        for (auto& [file, label] : run->names()) {
+            if (label.empty()) {
+                pairs.push_back(bformat("(%s)", file));
+            } else {
+                pairs.push_back(bformat("(%s, %s)", file, label));
+            }
+        }
+        auto names = bformat("[%s]", boost::algorithm::join(pairs, ", "));
+        print(run, bformat("InlineSoundRun; name=%s", names));
+    }
+
     void visit(StickyRun* run) override {
         print(run,
               bformat("StickyRun; num=%s",
@@ -410,6 +423,18 @@ class DslVisitor : public TextRunVisitor {
     void visit(InlineImageRun* run) override {
         const auto& file = run->secondary().empty() ? run->name() : run->secondary();
         _result += bformat("[s]%s[/s]", file);
+    }
+
+    void visit(InlineSoundRun* run) override {
+        std::vector<std::string> parts;
+        for (auto& [file, label] : run->names()) {
+            if (label.empty()) {
+                parts.push_back(bformat("[s]%s[/s]", file));
+            } else {
+                parts.push_back(bformat("[s]%s[/s] %s", file, label));
+            }
+        }
+        _result += boost::algorithm::join(parts, ", ");
     }
 
 public:

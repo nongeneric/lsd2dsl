@@ -5,6 +5,7 @@
 #include "lib/common/bformat.h"
 #include "lib/duden/AdpDecoder.h"
 #include <boost/algorithm/string.hpp>
+#include <regex>
 
 namespace duden {
 
@@ -32,6 +33,32 @@ class ReferenceResolverRewriter : public TextRunVisitor {
         if (it != end(files)) {
             file = it->string();
         }
+    }
+
+    void visit(InlineSoundRun* run) override {
+        std::vector<InlineSoundName> names;
+
+        std::regex rx("^(.*?)( \"(.*?)\")?$");
+        std::smatch m;
+
+        for (auto run : run->runs()) {
+            auto plain = dynamic_cast<PlainRun*>(run);
+            if (!plain)
+                throw std::runtime_error("misformed InlineSoundRun");
+
+            std::string file, label;
+            auto text = plain->text();
+            if (std::regex_match(text, m, rx)) {
+                file = m[1];
+                label = m[3];
+            } else {
+                file = text;
+            }
+
+            replaceAdpExtWithWav(file);
+            names.push_back({file, label});
+        }
+        run->setNames(std::move(names));
     }
 
     void visit(ReferencePlaceholderRun* run) override {

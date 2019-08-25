@@ -25,6 +25,8 @@ LdFile parseLdFile(dictlsd::IRandomAccessStream* stream) {
             ld.name = line.substr(1);
         } else if (line[0] == 'S') {
             ld.sourceLanguage = line.substr(1);
+        } else if (line[0] == 'K') {
+            ld.baseFileName = line.substr(1);
         } else if (line[0] == 'D') {
             boost::smatch m;
             if (!boost::regex_match(line, m, boost::regex("^D(.+?) (\\d+) (\\d+).*$")))

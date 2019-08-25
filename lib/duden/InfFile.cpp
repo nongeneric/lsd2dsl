@@ -1,6 +1,7 @@
 #include "InfFile.h"
 
 #include "Duden.h"
+#include "LdFile.h"
 #include "boost/algorithm/string.hpp"
 
 namespace duden {
@@ -37,15 +38,17 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
                 auto index = line.find(' ', 2);
                 if (index == std::string::npos)
                     throw std::runtime_error("INF file syntax error");
-                boost::algorithm::trim_right_if(line, boost::algorithm::is_any_of("\r"));
-                lds.push_back(fixFileNameCase(line.substr(index + 1), fsFileSet));
+                auto value = line.substr(index + 1);
+                boost::algorithm::trim_if(value, boost::algorithm::is_any_of("\r "));
+                lds.push_back(fixFileNameCase(value, fsFileSet));
             } break;
             case 'F': {
                 auto index = line.find(';');
                 if (index == std::string::npos)
                     throw std::runtime_error("INF file syntax error");
-                boost::algorithm::trim_right_if(line, boost::algorithm::is_any_of("\r"));
-                files.insert(fs::path(fixFileNameCase(line.substr(index + 1), fsFileSet)));
+                auto value = line.substr(index + 1);
+                boost::algorithm::trim_if(value, boost::algorithm::is_any_of("\r "));
+                files.insert(fs::path(fixFileNameCase(value, fsFileSet)));
             } break;
         }
     }
@@ -60,14 +63,15 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
         });
     };
 
-    for (auto& ld : lds) {
+    for (auto& name : lds) {
+        auto ld = parseLdFile(filesystem->open(name).get());
         InfFile inf;
         inf.version = version;
         inf.supported = true;
-        inf.ld = ld;
-        inf.primary.hic = fixFileNameCase(fs::path(ld).stem().string() + ".hic", files);
-        inf.primary.idx = fixFileNameCase(fs::path(ld).stem().string() + ".idx", files);
-        inf.primary.bof = fixFileNameCase(fs::path(ld).stem().string() + ".bof", files);
+        inf.ld = name;
+        inf.primary.hic = fixFileNameCase(ld.baseFileName + ".hic", files);
+        inf.primary.idx = fixFileNameCase(fs::path(name).stem().string() + ".idx", files);
+        inf.primary.bof = fixFileNameCase(fs::path(name).stem().string() + ".bof", files);
         files.erase(inf.primary.bof);
         files.erase(inf.primary.idx);
         infs.push_back(inf);
@@ -81,7 +85,6 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
         auto idx = files.find(fsi->stem().string() + ".idx");
         if (bof == end(files) || idx == end(files)) {
             fsiResource = {};
-            files.erase(fsi);
             fsi = end(files);
         } else {
             fsiResource.bof = fixFileNameCase(bof->string(), files);
@@ -97,6 +100,19 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
         }
 
         for (;;) {
+            auto fsd = findExt(".fsd");
+            if (fsd != end(files)) {
+                ResourceArchive resource;
+                resource.fsd = fsd->string();
+                files.erase(fsd);
+                auto base = fs::path(resource.fsd).stem().string();
+                resource.fsi = fixFileNameCase(base + ".fsi", files);
+                if (files.find(resource.fsi) == end(files))
+                    throw std::runtime_error("FSD blob doesn't have a corresponding FSI file");
+                inf.resources.push_back(resource);
+                continue;
+            }
+
             auto bof = findExt(".bof");
             if (bof == end(files))
                 break;

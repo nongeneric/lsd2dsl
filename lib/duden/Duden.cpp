@@ -159,7 +159,8 @@ std::string dudenToUtf8(std::string str) {
 
         auto size = utf.size();
         if (size >= 3) {
-            if (utf[size - 3] == '\\' && utf[size - 2] == 'S' && utf[size - 1] == '{') {
+            auto isSorW = utf[size - 2] == 'S' || utf[size - 2] == 'w';
+            if (utf[size - 3] == '\\' && isSorW && utf[size - 1] == '{') {
                 sref = true;
             }
         }
@@ -359,8 +360,13 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         auto curPos = stream->tell();
         auto nodeSize = read16(stream);
         auto entries = version >= 6 ? parseHicNode6(stream) : parseHicNode45(stream);
-        if (curPos + nodeSize + sizeof(nodeSize) != stream->tell())
-            throw std::runtime_error("failed to parse a HIC node");
+
+        if (curPos + nodeSize + sizeof(nodeSize) != stream->tell()) {
+            // blockCount is at times unreliable with off by one error
+            if (i != blockCount - 1)
+                throw std::runtime_error("failed to parse a HIC node");
+        }
+
         auto page = std::make_shared<HicPage>();
         page->offset = curPos;
         page->entries = std::move(entries);

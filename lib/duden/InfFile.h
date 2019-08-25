@@ -15,6 +15,7 @@ struct ResourceArchive {
     std::string bof;
     std::string idx;
     std::string fsi;
+    std::string fsd;
 };
 
 struct InfFile {

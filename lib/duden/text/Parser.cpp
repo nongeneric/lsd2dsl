@@ -230,6 +230,18 @@ class Parser {
         pop();
     }
 
+    void wref() {
+        push(_context->make<InlineSoundRun>());
+        text(false);
+        finishPlain();
+        while (lit(";")) {
+            text(false);
+            finishPlain();
+        }
+        expect_lit("}");
+        pop();
+    }
+
     void push(TextRun* run) {
         current()->addRun(run);
         _current = run;
@@ -496,6 +508,11 @@ class Parser {
         if (lit("S{")) {
             finishPlain();
             sref();
+            return;
+        }
+        if (lit("w{")) {
+            finishPlain();
+            wref();
             return;
         }
         // TODO: log unknown escape
