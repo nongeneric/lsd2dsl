@@ -5,7 +5,8 @@
 #include "lib/common/bformat.h"
 #include "lib/duden/AdpDecoder.h"
 #include <boost/algorithm/string.hpp>
-#include <regex>
+
+#include "lib/duden/text/Printers.h"
 
 namespace duden {
 
@@ -36,28 +37,28 @@ class ReferenceResolverRewriter : public TextRunVisitor {
     }
 
     void visit(InlineSoundRun* run) override {
+        if (!run->names().empty())
+            return; // already resolved
+
         std::vector<InlineSoundName> names;
-
-        std::regex rx("^(.*?)( \"(.*?)\")?$");
-        std::smatch m;
-
         for (auto run : run->runs()) {
-            auto plain = dynamic_cast<PlainRun*>(run);
+            auto plain = dynamic_cast<PlainRun*>(run->runs().front());
             if (!plain)
                 throw std::runtime_error("misformed InlineSoundRun");
 
-            std::string file, label;
-            auto text = plain->text();
-            if (std::regex_match(text, m, rx)) {
-                file = m[1];
-                label = m[3];
+            auto file = plain->text();
+            auto idx = file.find(" \"");
+            if (idx != std::string::npos) {
+                file = file.substr(0, idx);
+                run->replace(plain, _context.make<PlainRun>(plain->text().substr(idx)));
             } else {
-                file = text;
+                run->replace(plain, _context.make<PlainRun>(""));
             }
 
             replaceAdpExtWithWav(file);
-            names.push_back({file, label});
+            names.push_back({file, run});
         }
+
         run->setNames(std::move(names));
     }
 

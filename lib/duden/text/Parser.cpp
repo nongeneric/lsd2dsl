@@ -232,12 +232,14 @@ class Parser {
 
     void wref() {
         push(_context->make<InlineSoundRun>());
-        text(false);
-        finishPlain();
-        while (lit(";")) {
+
+        do {
+            push(_context->make<TextRun>());
             text(false);
             finishPlain();
-        }
+            pop();
+        } while (lit(";"));
+
         expect_lit("}");
         pop();
     }

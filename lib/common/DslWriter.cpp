@@ -12,7 +12,7 @@ void writeDSL(const LSDDictionary* reader,
               bool dumb,
               Log& log)
 {
-    dsl::Writer writer(outputPath, lsdName);
+    dsl::Writer writer(outputPath, fs::path(lsdName).replace_extension(".dsl").string());
     fs::path overlayPath = fs::path(writer.dslFileName()).string() + ".files.zip";
 
     auto overlayHeadings = reader->readOverlayHeadings();
@@ -70,7 +70,7 @@ namespace dsl {
     }
 
     Writer::Writer(std::string outputPath, std::string name) {
-        _dslPath = outputPath / fs::path(name).replace_extension("dsl");
+        _dslPath = fs::path(outputPath) / (fs::path(name).string() + ".dsl");
         _dsl.reset(new UnicodePathFile(_dslPath.string(), true));
         _dsl->write(_utf16bom, sizeof(_utf16bom));
     }

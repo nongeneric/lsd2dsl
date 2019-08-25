@@ -761,11 +761,14 @@ TEST(duden, ResolveAudioWReference) {
     FileStream stream("duden_testfiles/simple.ld");
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
+    resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
-                    "  InlineSoundRun; name=[(abgewöhnen_92.wav)]\n";
+                    "  InlineSoundRun; name=[(abgewöhnen_92.wav)]\n"
+                    "    TextRun\n"
+                    "      PlainRun: \n";
     ASSERT_EQ(expected, tree);
-    ASSERT_EQ(u8"[s]abgewöhnen_92.wav[/s]", printDsl(run));
+    ASSERT_EQ(u8"[s]abgewöhnen_92.wav[/s] ", printDsl(run));
 }
 
 TEST(duden, ResolveAudioWReference2) {
@@ -777,9 +780,38 @@ TEST(duden, ResolveAudioWReference2) {
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
     auto expected = "TextRun\n"
-                    "  InlineSoundRun; name=[(AE000001.wav, AAA), (BE000001.wav, BBB), (CC000001.wav, CCC)]\n";
+                    "  InlineSoundRun; name=[(AE000001.wav), (BE000001.wav), (CC000001.wav)]\n"
+                    "    TextRun\n"
+                    "      PlainRun:  \"AAA\"\n"
+                    "    TextRun\n"
+                    "      PlainRun:  \"BBB\"\n"
+                    "    TextRun\n"
+                    "      PlainRun:  \"CCC\"\n";
+
     ASSERT_EQ(expected, tree);
-    ASSERT_EQ(u8"[s]AE000001.wav[/s] AAA, [s]BE000001.wav[/s] BBB, [s]CC000001.wav[/s] CCC", printDsl(run));
+    ASSERT_EQ(u8"[s]AE000001.wav[/s] \"AAA\", [s]BE000001.wav[/s] \"BBB\", [s]CC000001.wav[/s] \"CCC\" ", printDsl(run));
+}
+
+TEST(duden, ResolveAudioWReference3) {
+    auto text = "\\w{AE000001.adp \"A@2AA@0@2\";BE000001.adp \"BBB\"}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    FileStream stream("duden_testfiles/simple.ld");
+    auto ld = parseLdFile(&stream);
+    resolveReferences(context, run, ld, nullptr);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  InlineSoundRun; name=[(AE000001.wav), (BE000001.wav)]\n"
+                    "    TextRun\n"
+                    "      PlainRun:  \"A\n"
+                    "      ItalicFormattingRun\n"
+                    "        PlainRun: AA\n"
+                    "      ItalicFormattingRun\n"
+                    "        PlainRun: \"\n"
+                    "    TextRun\n"
+                    "      PlainRun:  \"BBB\"\n";
+    ASSERT_EQ(expected, tree);
+    ASSERT_EQ(u8"[s]AE000001.wav[/s] \"A[i]AA[/i][i]\"[/i], [s]BE000001.wav[/s] \"BBB\" ", printDsl(run));
 }
 
 class TestFileSystem3 : public IFileSystem {

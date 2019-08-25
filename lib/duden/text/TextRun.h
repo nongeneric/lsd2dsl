@@ -431,7 +431,7 @@ public:
 
 struct InlineSoundName {
     std::string file;
-    std::string label;
+    TextRun* label = nullptr;
 };
 
 class InlineSoundRun : public TextRun {
