@@ -163,6 +163,22 @@ std::string dudenToUtf8(std::string str) {
                 sref = true;
             }
         }
+        if (size >= 2) {
+            if (utf[size - 2] == '@' && utf[size - 1] == 'C') {
+                auto c = next();
+                if (c == '%') {
+                    utf.push_back(c);
+                } else {
+                    utf.push_back(win1252toUtf(c));
+                    while (i < str.size()) {
+                        auto c = next();
+                        utf.push_back(win1252toUtf(c));
+                        if (c == '\n')
+                            break;
+                    }
+                }
+            }
+        }
     }
     static auto codec = QTextCodec::codecForName("UTF32LE");
     auto utf8 = codec->toUnicode((const char*)&utf[0], utf.size() * sizeof(uint32_t)).toUtf8();
@@ -368,8 +384,7 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         }
     }
 
-    if (headingCount != leafCount)
-        throw std::runtime_error("heading count inconsistency");
+    assert(headingCount == leafCount);
 
     return hicFile;
 }

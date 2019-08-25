@@ -69,6 +69,7 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
         inf.primary.idx = fixFileNameCase(fs::path(ld).stem().string() + ".idx", files);
         inf.primary.bof = fixFileNameCase(fs::path(ld).stem().string() + ".bof", files);
         files.erase(inf.primary.bof);
+        files.erase(inf.primary.idx);
         infs.push_back(inf);
     }
 
@@ -76,9 +77,17 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
     auto fsi = findExt(".fsi");
     if (fsi != end(files)) {
         fsiResource.fsi = fsi->string();
-        fsiResource.bof = fixFileNameCase(fsi->stem().string() + ".bof", files);
-        fsiResource.idx = fixFileNameCase(fsi->stem().string() + ".idx", files);
-        files.erase(fs::path(fsiResource.bof));
+        auto bof = files.find(fsi->stem().string() + ".bof");
+        auto idx = files.find(fsi->stem().string() + ".idx");
+        if (bof == end(files) || idx == end(files)) {
+            fsiResource = {};
+            files.erase(fsi);
+            fsi = end(files);
+        } else {
+            fsiResource.bof = fixFileNameCase(bof->string(), files);
+            fsiResource.idx = fixFileNameCase(idx->string(), files);
+            files.erase(fs::path(fsiResource.bof));
+        }
     }
 
     auto filesCopy = files;

@@ -32,8 +32,6 @@
 namespace po = boost::program_options;
 using namespace dictlsd;
 
-const std::string dudenIndexParamName = "duden-index";
-
 struct Entry {
     std::u16string heading;
     std::u16string article;
@@ -111,38 +109,22 @@ int printDudenInfo(fs::path infPath, Log& log) {
     return 0;
 }
 
-int parseDuden(fs::path infPath, fs::path outputPath, std::optional<unsigned> index, Log& log) {
+int parseDuden(fs::path infPath, fs::path outputPath, Log& log) {
     FileStream infStream(infPath.string());
     duden::FileSystem fs(infPath.parent_path().string());
     auto infs = duden::parseInfFile(&infStream, &fs);
-    auto inf = infs[0];
 
-    if (infs.size() > 1) {
-        if (!index) {
-            log.regular("INF file contains %d dictionaries, but no index was specified via --%s",
-                        infs.size(),
-                        dudenIndexParamName);
+    for (size_t i = 0; i < infs.size(); ++i) {
+        log.regular("Version:  %x", infs[i].version);
+
+        if (!infs[i].supported) {
+            log.regular("Unsupported dictionary version");
             return 1;
         }
-        if (*index >= infs.size()) {
-            log.regular("INF file contains %d dictionaries, the specified index %d is too large "
-                        "(index starts from zero)",
-                        infs.size(),
-                        *index);
-            return 1;
+
+        if (!outputPath.empty()) {
+            duden::writeDSL(infPath, outputPath, i, log);
         }
-        inf = infs[*index];
-    }
-
-    log.regular("Version:  %x", inf.version);
-
-    if (!inf.supported) {
-        log.regular("Unsupported dictionary version");
-        return 1;
-    }
-
-    if (!outputPath.empty()) {
-        duden::writeDSL(infPath, outputPath, index ? *index : 0, log);
     }
 
     return 0;
@@ -185,6 +167,7 @@ void decodeHic(std::string hicPath,
     auto hic = duden::parseHicFile(&fHic);
     std::ofstream f((fs::path(output) / "hic.dump").string());
     int leafNum = 0;
+    std::vector<duden::HicLeaf> leafs;
     auto print = [&](auto& print, auto page, int level) -> void {
         std::string space(level * 4, ' ');
         f << bformat("%spage %x\n", space, page->offset);
@@ -196,6 +179,7 @@ void decodeHic(std::string hicPath,
                                static_cast<int>(leaf.type),
                                leaf.textOffset,
                                leaf.heading);
+                    leafs.push_back(leaf);
                 },
                 [&](duden::HicNode& node) {
                     f << bformat("%sNODE %d (%x)  %d  %s\n",
@@ -210,6 +194,15 @@ void decodeHic(std::string hicPath,
     };
 
     print(print, hic.root, 0);
+
+    f << "\ngroups:\n\n";
+    for (auto& [offset, info] : duden::groupHicEntries(leafs)) {
+        f << bformat("%08x, %d\n", offset, info.articleSize);
+        for (auto& heading : info.headings) {
+            f << heading << "\n";
+        }
+        f << "\n";
+    }
 }
 
 void parseDudenText(std::string textPath, std::string output) {
@@ -307,14 +300,12 @@ int main(int argc, char* argv[]) {
     std::string bofPath, idxPath, fsiPath, hicPath, adpPath, textPath;
     int sourceFilter = -1, targetFilter = -1;
     bool isDumb, dudenEncoding, dudenPrintInfo, verbose;
-    int dudenIndex = -1;
     po::options_description console_desc("Allowed options");
     try {
         console_desc.add_options()
             ("help", "produce help message")
             ("lsd", po::value<std::string>(&lsdPath), "LSD dictionary to decode")
             ("duden", po::value<std::string>(&dudenPath), "Duden dictionary to decode (.inf file)")
-            (dudenIndexParamName.c_str(), po::value<int>(&dudenIndex), "Index for two-way Duden dictionaries")
             ("lsa", po::value<std::string>(&lsaPath), "LSA sound archive to decode")
             ("source-filter", po::value<int>(&sourceFilter),
                 "ignore dictionaries with source language != source-filter")
@@ -394,11 +385,7 @@ int main(int argc, char* argv[]) {
             if (dudenPrintInfo) {
                 return printDudenInfo(dudenPath, log);
             }
-            std::optional<unsigned> optional;
-            if (dudenIndex != -1) {
-                optional = static_cast<unsigned>(dudenIndex);
-            }
-            parseDuden(dudenPath, outputPath, optional, log);
+            parseDuden(dudenPath, outputPath, log);
         }
         if (!bofPath.empty() && !idxPath.empty()) {
             decodeBofIdx(bofPath, idxPath, fsiPath, dudenEncoding, outputPath);

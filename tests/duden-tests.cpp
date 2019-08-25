@@ -236,6 +236,18 @@ TEST(duden, ParseInfFile) {
     EXPECT_EQ("d5snd.Bof", inf.resources[0].bof);
 }
 
+TEST(duden, ParseInfFileFsiPackReferencesPrimaryPack) {
+    FileStream stream("duden_testfiles/fsi-pack-references-primary-pack.inf");
+    TestFileSystem filesystem;
+    auto inf = parseInfFile(&stream, &filesystem)[0];
+    EXPECT_EQ(0x400, inf.version);
+    EXPECT_EQ("du5neU.Ld", inf.ld);
+    EXPECT_EQ("DU5NEU.HIC", inf.primary.hic);
+    EXPECT_EQ("du5neu.IDX", inf.primary.idx);
+    EXPECT_EQ("du5neu.bof", inf.primary.bof);
+    ASSERT_EQ(0, inf.resources.size());
+}
+
 TEST(duden, ParseTwoWayDictInfFile) {
     FileStream stream("duden_testfiles/two-way-dict.inf");
     TestFileSystem filesystem(true);
@@ -347,6 +359,20 @@ TEST(duden, UnicodeDontIgnoreEscapesInsideTables) {
     };
     auto utf = dudenToUtf8((const char*)text);
     ASSERT_EQ(u8"Mụ̈nden\\tab{Mụ̈nden}", utf);
+}
+
+TEST(duden, UnicodeIgnoreEscapesInsideEscapeC) {
+    const uint8_t text[] = {
+        'a', '@', 'C', 'a', 0xf6, 'b', '\n', 'c', 0
+    };
+    auto utf = dudenToUtf8((const char*)text);
+    ASSERT_EQ(u8"a@Caöb\nc", utf);
+
+    const uint8_t text2[] = {
+        'a', '@', 'C', 'a', 0xf6, 'b', 0
+    };
+    utf = dudenToUtf8((const char*)text2);
+    ASSERT_EQ(u8"a@Caöb", utf);
 }
 
 TEST(duden, SimpleLdFileTest) {
@@ -523,6 +549,19 @@ TEST(duden, ParseTextReferenceWithSelectionRange) {
     ASSERT_EQ(expected, tree);
 }
 
+TEST(duden, ParseTextReferenceWithSelectionRangeWithoutEndOffset) {
+    auto text = "\\S{ref;:00022110:00000000}abc";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  ReferencePlaceholderRun; code=; num=22110; num2=-1; range=0-0\n"
+                    "    TextRun\n"
+                    "      PlainRun: ref\n"
+                    "  PlainRun: abc\n";
+    ASSERT_EQ(expected, tree);
+}
+
 TEST(duden, ResolveArticleReference) {
     auto text = "\\S{Diskettenformat;:025004230}";
     ParsingContext context;
@@ -581,6 +620,18 @@ TEST(duden, ResolveWebReference) {
                     "      PlainRun: http://www.example.com/\n"
                     "  PlainRun: abc\n";
     ASSERT_EQ(expected, tree);
+}
+
+TEST(duden, ParseInlineImageReference) {
+    auto text = "a\\S{;.Ieuro.bmp}b";
+    ParsingContext context;
+    auto expected = "TextRun\n"
+                    "  PlainRun: a\n"
+                    "  ReferencePlaceholderRun; code=Ieuro.bmp; num=-1; num2=-1\n"
+                    "    TextRun\n"
+                    "  PlainRun: b\n";
+    auto run = parseDudenText(context, text);
+    ASSERT_EQ(expected, printTree(run));
 }
 
 TEST(duden, ResolveInlineImageReference) {
@@ -751,6 +802,61 @@ TEST(duden, ParseTextTable1) {
                "      PlainRun: cell\n"
                "      SoftLineBreakRun\n";
     ASSERT_EQ(expected, cell);
+}
+
+TEST(duden, ParseTextTableWithNestedTable) {
+    auto text = read_all_text("duden_testfiles/table_in_table_cell");
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto tree = printTree(run);
+    auto expected = "TextRun\n"
+                    "  TableRun\n"
+                    "    TableTag 1; from=1; to=-1\n"
+                    "    TableTag 2; from=1; to=-1\n"
+                    "    TableTag 3; from=-1; to=-1\n"
+                    "    SoftLineBreakRun\n"
+                    "    TableCellRun\n"
+                    "      PlainRun: OuterTable\n"
+                    "      SoftLineBreakRun\n"
+                    "      TableRun\n"
+                    "        TableTag 1; from=1; to=-1\n"
+                    "        TableTag 2; from=1; to=-1\n"
+                    "        TableTag 3; from=-1; to=-1\n"
+                    "        SoftLineBreakRun\n"
+                    "        TableCellRun\n"
+                    "          PlainRun: InnerTable\n"
+                    "          SoftLineBreakRun\n"
+                    "      SoftLineBreakRun\n"
+                    "  SoftLineBreakRun\n";
+    ASSERT_EQ(expected, tree);
+
+    auto outerTable = dynamic_cast<TableRun*>(run->runs().front());
+    ASSERT_NE(nullptr, outerTable->table());
+    ASSERT_EQ(1, outerTable->table()->rows());
+    ASSERT_EQ(1, outerTable->table()->columns());
+
+    auto cell = outerTable->table()->cell(0, 0);
+    expected = "    TableCellRun\n"
+               "      PlainRun: OuterTable\n"
+               "      SoftLineBreakRun\n"
+               "      TableRun\n"
+               "        TableTag 1; from=1; to=-1\n"
+               "        TableTag 2; from=1; to=-1\n"
+               "        TableTag 3; from=-1; to=-1\n"
+               "        SoftLineBreakRun\n"
+               "        TableCellRun\n"
+               "          PlainRun: InnerTable\n"
+               "          SoftLineBreakRun\n"
+               "      SoftLineBreakRun\n";
+
+    ASSERT_EQ(expected, printTree(cell));
+
+    auto innerTable = dynamic_cast<TableRun*>(cell->runs().at(2));
+    ASSERT_NE(nullptr, innerTable);
+    ASSERT_NE(nullptr, innerTable->table());
+    ASSERT_EQ(1, innerTable->table()->rows());
+    ASSERT_EQ(1, innerTable->table()->columns());
+    ASSERT_EQ("InnerTable", printDsl(innerTable->table()->cell(0, 0)));
 }
 
 TEST(duden, ParseTextTableWithExtraCells) {
@@ -946,6 +1052,16 @@ TEST(duden, ParseColorsWithoutSpaces) {
     ASSERT_EQ(expected, printTree(run));
 }
 
+TEST(duden, ParseColorsWithoutSpacesAndUnderscore) {
+    std::string text = "\\F{~FF0000}abc\\F{FF0000~}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    auto expected = "TextRun\n"
+                    "  ColorFormattingRun; rgb=ff0000; name=red\n"
+                    "    PlainRun: abc\n";
+    ASSERT_EQ(expected, printTree(run));
+}
+
 TEST(duden, SimpleFormatting) {
     std::string text = "\\F{_FF 00 00}color\\F{FF 00 00_}"
                        "@1bold"
@@ -1083,6 +1199,13 @@ TEST(duden, ParseSoftLineBreak) {
 
 TEST(duden, IgnoreUnknownReferencesInDsl) {
     std::string text = "\\S{;.FWISSEN;30}";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    ASSERT_EQ("", printDsl(run));
+}
+
+TEST(duden, ParseUnterminatedReferences) {
+    std::string text = "\\S{Abc.\\\\\n@1abc";
     ParsingContext context;
     auto run = parseDudenText(context, text);
     ASSERT_EQ("", printDsl(run));
@@ -1233,6 +1356,12 @@ TEST(duden, IgnoreUnknownEscapes) {
     ASSERT_EQ("abc", printDsl(run));
     run = parseDudenText(context, "\\00520FE");
     ASSERT_EQ("00520FE", printDsl(run));
+}
+
+TEST(duden, IgnoreCurlyBraces) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "abc {...} def");
+    ASSERT_EQ("abc {...} def", printDsl(run));
 }
 
 TEST_F(duden_qt, InlineRenderAndPrintTable) {

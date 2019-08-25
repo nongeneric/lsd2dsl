@@ -2,6 +2,8 @@
 #include "Table.h"
 #include <QtGui/QColor>
 #include <regex>
+#include <stack>
+#include "lib/common/bformat.h"
 
 namespace duden {
 
@@ -22,6 +24,13 @@ std::string findColorName(uint32_t rgb) {
     return "black";
 }
 
+struct TableInfo {
+    TableRun* table = nullptr;
+    int tableCellsParsed = 0;
+    int tableRows = 0, tableColumns = 0;
+    bool tableCellActive = false;
+};
+
 class Parser {
     ParsingContext* _context;
     const char* _ptr;
@@ -29,15 +38,18 @@ class Parser {
     std::string _plain;
     TextRun* _root = nullptr;
     TextRun* _current = nullptr;
-    TableRun* _table = nullptr;
-    int _tableCellsParsed = 0;
-    int _tableRows = 0, _tableColumns = 0;
-    bool _tableCellActive = false;
+    std::stack<TableInfo> _tableStack;
 
     TextRun* current() {
         if (!_current)
             throw std::runtime_error("parsing error, mismatched tags");
         return _current;
+    }
+
+    char peek() {
+        if (*_ptr == 0)
+            throw std::runtime_error("parsing error, unexpected end of file");
+        return *_ptr;
     }
 
     bool chr(char& ch, bool acceptSemicolon, bool acceptClosingCurlyBrace = false) {
@@ -63,14 +75,30 @@ class Parser {
         return true;
     }
 
+    void expect_lit(const char* str) {
+        if (!lit(str)) {
+            std::string actual;
+            if (*_ptr == 0) {
+                actual = "<eof>";
+            } else {
+                actual = *_ptr;
+            }
+            throw std::runtime_error(
+                bformat("parsing error, expected \"%s\", but was \"%s\"", str, actual));
+        }
+    }
+
     void expect(bool result) {
         if (!result)
             throw std::runtime_error("parsing error");
     }
 
     bool digit(int& i) {
-        if ('0' <= *_ptr && *_ptr <= '9') {
-            i = *_ptr++ - '0';
+        if (*_ptr == '\0')
+            return false;
+        if ('0' <= peek() && peek() <= '9') {
+            i = peek() - '0';
+            _ptr++;
             return true;
         }
         return false;
@@ -99,9 +127,9 @@ class Parser {
             return;
         }
         if (lit("C")) {
-            while (*_ptr && *_ptr != '\n')
+            while (peek() && peek() != '\n')
                 ++_ptr;
-            expect(lit("\n"));
+            expect_lit("\n");
             return;
         }
 
@@ -115,23 +143,25 @@ class Parser {
 
     void tname(std::string& name) {
         name.clear();
-        while (*_ptr != '_' && *_ptr != '}') {
-            name += *_ptr++;
+        while (peek() != '_' && peek() != '~' && peek() != '}') {
+            name += peek();
+            _ptr++;
         }
     }
 
     void scode(std::string& name) {
         name.clear();
-        while (*_ptr != ':' && *_ptr != ';') {
-            name += *_ptr++;
+        while (peek() != ':' && peek() != ';' && peek() != '}') {
+            name += peek();
+            _ptr++;
         }
     }
 
     bool sftag(std::string& name) {
-        if (!lit("F{_"))
+        if (!lit("F{_") && !lit("F{~"))
             return false;
         tname(name);
-        expect(lit("}"));
+        expect_lit("}");
         return true;
     }
 
@@ -139,7 +169,7 @@ class Parser {
         if (!lit("F{"))
             return false;
         tname(name);
-        expect(lit("_}"));
+        expect(lit("_}") || lit("~}"));
         return true;
     }
 
@@ -167,7 +197,9 @@ class Parser {
         text(false);
         finishPlain();
         pop();
-        expect(lit(";"));
+        if (!lit(";")) { // misformed
+            return;
+        }
         auto id = sid();
         placeholder->setId(id);
         while (lit(";")) {
@@ -175,10 +207,11 @@ class Parser {
             finishPlain();
         }
         if (lit(":")) {
-            int64_t from, to;
+            int64_t from, to = 0;
             expect(dec(from));
-            expect(lit("-"));
-            expect(dec(to));
+            if (lit("-")) {
+                expect(dec(to));
+            }
             placeholder->setRange(from, to);
         }
         if (!lit("}")) {
@@ -190,7 +223,7 @@ class Parser {
                 text(false);
                 finishPlain();
             }
-            expect(lit("}"));
+            expect_lit("}");
             // TODO: might be possible to recover
             // and retry sid()
         }
@@ -215,8 +248,13 @@ class Parser {
         }
     }
 
+    TableInfo& table() {
+        assertTable();
+        return _tableStack.top();
+    }
+
     void assertTable() {
-        if (!_table) {
+        if (_tableStack.empty()) {
             throw std::runtime_error("table tag outside table");
         }
     }
@@ -317,8 +355,10 @@ class Parser {
         }
         if (lit("tab{")) {
             finishPlain();
-            _table = _context->make<TableRun>();
-            push(_table);
+            TableInfo info;
+            info.table = _context->make<TableRun>();
+            _tableStack.push(info);
+            push(info.table);
             text(true, true);
             return;
         }
@@ -326,7 +366,7 @@ class Parser {
             assertTable();
             int64_t i;
             expect(dec(i));
-            _tableColumns = i;
+            table().tableColumns = i;
             current()->addRun(_context->make<TableTag>(TableTagType::ColumnCount, i, -1));
             return;
         }
@@ -334,7 +374,7 @@ class Parser {
             assertTable();
             int64_t i;
             expect(dec(i));
-            _tableRows = i;
+            table().tableRows = i;
             current()->addRun(_context->make<TableTag>(TableTagType::RowCount, i, -1));
             return;
         }
@@ -372,24 +412,22 @@ class Parser {
         if (lit("tcc")) {
             finishPlain();
 
-            if (_tableCellsParsed >= _tableRows * _tableColumns) {
+            auto& info = table();
+            if (info.tableCellsParsed >= info.tableRows * info.tableColumns) {
                 if (lit("}")) {
-                    if (_tableCellActive) {
+                    if (info.tableCellActive) {
                         pop();
                     }
                     pop();
-                    _table = nullptr;
-                    _tableCellsParsed = 0;
-                    _tableCellActive = false;
+                    _tableStack.pop();
                 }
             } else {
-                if (_tableCellActive) {
+                if (info.tableCellActive) {
                     pop();
                 }
-                _tableCellActive = true;
+                info.tableCellActive = true;
                 push(_context->make<TableCellRun>());
-                assertTable();
-                _tableCellsParsed++;
+                info.tableCellsParsed++;
             }
 
             return;
@@ -541,7 +579,7 @@ public:
     }
 
     TextRun* parse() {
-        text();
+        text(true, true);
         if (*_ptr != '\0')
             throw std::runtime_error("incomplete parse");
         return _root;
@@ -624,6 +662,7 @@ public:
     TableVisitor(ParsingContext* context) : _context(context) {}
 
     void visit(TableRun* run) override {
+        visitImpl(run);
         run->setTable(std::make_unique<Table>(run, _context));
     }
 };

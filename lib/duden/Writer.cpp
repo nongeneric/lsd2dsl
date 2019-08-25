@@ -39,8 +39,11 @@ public:
 };
 
 uint32_t calcBofOffset(duden::Dictionary& dict) {
-    auto head = dict.article(0, 0x200);
-    return head.find('@');
+    auto head = dict.readEncoded(0, 0x200);
+    auto it = std::find(begin(head), end(head), '@');
+    if (it == end(head))
+        throw std::runtime_error("can't determine the offset of first article");
+    return std::distance(begin(head), it);
 }
 
 }
@@ -158,6 +161,7 @@ void writeDSL(fs::path infPath,
     });
 
     int articleCount = 0;
+    int failedArticleCount = 0;
 
     ResourceFileSystem resourceFS(std::move(resourceFileNames));
 
@@ -168,7 +172,6 @@ void writeDSL(fs::path infPath,
         // headings of pictures, tables, etc
         if (static_cast<unsigned>(textOffset) >= dict.articleArchiveDecodedSize())
             continue;
-        auto article = dict.article(textOffset + bofOffset, group.articleSize);
         ParsingContext context;
         TextRun* headingRun = nullptr;
         for (const auto& heading : group.headings) {
@@ -177,32 +180,40 @@ void writeDSL(fs::path infPath,
             writer.writeHeading(dictlsd::toUtf16(dslHeading));
         }
 
-        auto articleRun = parseDudenText(context, article);
-        resolveReferences(context, articleRun, dict.ld(), &resourceFS);
-        inlineReferences(context, articleRun, resources);
-        resolveReferences(context, articleRun, dict.ld(), &resourceFS);
+        try {
+            auto article = dict.article(textOffset + bofOffset, group.articleSize);
+            auto articleRun = parseDudenText(context, article);
+            resolveReferences(context, articleRun, dict.ld(), &resourceFS);
+            inlineReferences(context, articleRun, resources);
+            resolveReferences(context, articleRun, dict.ld(), &resourceFS);
 
-        const auto& firstHeading = group.headings.front();
+            const auto& firstHeading = group.headings.front();
 
-        resolveArticleReferences(articleRun, [&](auto offset) {
-            auto it = groups.find(offset - 1);
-            if (it == end(groups)) {
-                log.regular("Article [%s] references unknown article %d", firstHeading, offset - 1);
-                return "unknown"s;
+            resolveArticleReferences(articleRun, [&](auto offset) {
+                auto it = groups.find(offset - 1);
+                if (it == end(groups)) {
+                    log.regular("Article [%s] references unknown article %d", firstHeading, offset - 1);
+                    return "unknown"s;
+                }
+                return it->second.headings.front();
+            });
+            tableRenderer.render(articleRun);
+            if (group.headings.size() == 1) {
+                dedupHeading(headingRun, articleRun);
             }
-            return it->second.headings.front();
-        });
-        tableRenderer.render(articleRun);
-        if (group.headings.size() == 1) {
-            dedupHeading(headingRun, articleRun);
+            auto dslArticle = printDsl(articleRun);
+            writer.writeArticle(dictlsd::toUtf16(dslArticle));
+            ++articleCount;
+        } catch (std::exception& e) {
+            log.regular("failed to parse article [%s] with error: %s", group.headings.front(), e.what());
+            writer.writeArticle(dictlsd::toUtf16("<Parsing error>"));
+            failedArticleCount++;
         }
-        auto dslArticle = printDsl(articleRun);
-        writer.writeArticle(dictlsd::toUtf16(dslArticle));
-        ++articleCount;
     }
 
-    log.regular("done converting: %d articles, %d tables, %d resources, %d audio files",
+    log.regular("done converting: %d articles (%d errors), %d tables, %d resources, %d audio files",
                 articleCount,
+                failedArticleCount,
                 tableCount,
                 resourceCount,
                 adpCount);

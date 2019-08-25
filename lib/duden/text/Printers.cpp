@@ -137,7 +137,7 @@ public:
     }
 
     void visit(TableRun* run) override {
-        print(run, "TableRun");
+        print(run, bformat("TableRun%s", run->table() ? "" : " (null Table)"));
         TextRunVisitor::visit(run);
     }
 
@@ -250,6 +250,9 @@ class HtmlVisitor : public TextRunVisitor {
     }
 
     void visit(TableRun* run) override {
+        if (!run->table())
+            throw std::runtime_error("TableRun doesn't have an associated Table");
+
         auto table = run->table();
         auto columnWidth = 100 / table->columns();
         _result += "<table>";

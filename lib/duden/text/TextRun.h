@@ -443,6 +443,7 @@ public:
 };
 
 class TextRunVisitor {
+protected:
     void visitImpl(TextRun* run) {
         for (auto child : run->runs()) {
             child->accept(this);

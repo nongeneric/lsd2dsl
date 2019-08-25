@@ -66,6 +66,12 @@ const std::vector<HicLeaf>& Dictionary::entries() const {
     return _leafs;
 }
 
+std::vector<char> Dictionary::readEncoded(uint32_t plainOffset, uint32_t size) {
+    std::vector<char> buf;
+    _articles->read(plainOffset, size, buf);
+    return buf;
+}
+
 std::string Dictionary::article(uint32_t plainOffset, uint32_t size) {
     std::vector<char> buf;
     _articles->read(plainOffset, size, buf);

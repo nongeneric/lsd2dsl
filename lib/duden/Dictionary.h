@@ -41,6 +41,7 @@ public:
     unsigned articleCount() const;
     unsigned articleArchiveDecodedSize() const;
     const std::vector<HicLeaf>& entries() const;
+    std::vector<char> readEncoded(uint32_t plainOffset, uint32_t size);
     std::string article(uint32_t plainOffset, uint32_t size);
     const LdFile& ld() const;
     const InfFile& inf() const;
