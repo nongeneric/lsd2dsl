@@ -132,6 +132,7 @@ class ReferenceInlinerRewriter : public TextRunVisitor {
         std::string copyright;
         std::string file;
         std::string type;
+        std::string unnamed;
         TextRun* header;
         TextRun* description;
     };
@@ -150,6 +151,7 @@ class ReferenceInlinerRewriter : public TextRunVisitor {
         std::string crPrefix = "@C%CR=";
         std::string filePrefix = "@C%File=";
         std::string typePrefix = "@C%Type=";
+        std::string unnamedPrefix = "@C";
 
         auto parsePrefix = [&] (auto& prefix, auto& member) {
             if (boost::algorithm::starts_with(line, prefix)) {
@@ -165,7 +167,8 @@ class ReferenceInlinerRewriter : public TextRunVisitor {
 
             if (parsePrefix(crPrefix, info.copyright) ||
                 parsePrefix(filePrefix, info.file) ||
-                parsePrefix(typePrefix, info.type))
+                parsePrefix(typePrefix, info.type) ||
+                parsePrefix(unnamedPrefix, info.unnamed))
                 continue;
 
             if (boost::algorithm::starts_with(line, "@C%"))

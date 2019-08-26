@@ -4,6 +4,7 @@
 #include "lib/common/filesystem.h"
 #include <optional>
 #include <set>
+#include <map>
 
 namespace duden {
 
@@ -12,6 +13,9 @@ struct CaseInsensitiveLess {
 };
 
 using CaseInsensitiveSet = std::set<fs::path, CaseInsensitiveLess>;
+
+template <class T>
+using CaseInsensitiveMap = std::map<fs::path, T, CaseInsensitiveLess>;
 
 struct IFileSystem {
     virtual std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path path) = 0;

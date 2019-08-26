@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/duden/LdFile.h"
+#include "lib/duden/IFileSystem.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -512,7 +513,7 @@ public:
     virtual void visit(StickyRun* run) { visitImpl(run); }
 };
 
-using ResourceFiles = std::map<std::string, std::unique_ptr<std::istream>>;
+using ResourceFiles = CaseInsensitiveMap<std::unique_ptr<std::istream>>;
 
 bool dedupHeading(TextRun* heading, TextRun* article);
 

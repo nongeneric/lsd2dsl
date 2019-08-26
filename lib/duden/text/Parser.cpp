@@ -127,9 +127,9 @@ class Parser {
             return;
         }
         if (lit("C")) {
-            while (peek() && peek() != '\n')
+            while (*_ptr && *_ptr != '\n')
                 ++_ptr;
-            expect_lit("\n");
+            lit("\n");
             return;
         }
 

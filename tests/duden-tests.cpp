@@ -1502,6 +1502,12 @@ TEST(duden, ParseCbmm) {
     ASSERT_EQ("ab", printDsl(run));
 }
 
+TEST(duden, ParseCEscapeAtEOL) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "@9@C%");
+    ASSERT_EQ("", printDsl(run));
+}
+
 TEST(duden, IgnoreUnknownEscapes) {
     ParsingContext context;
     auto run = parseDudenText(context, "a@bc");
