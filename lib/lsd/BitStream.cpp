@@ -175,4 +175,10 @@ bool readLine(IRandomAccessStream* stream, std::string& line, char sep) {
     }
 }
 
+uint32_t peek32(IRandomAccessStream *stream) {
+    auto value = read32(stream);
+    stream->seek(stream->tell() - 4);
+    return value;
+}
+
 }

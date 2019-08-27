@@ -178,6 +178,32 @@ TEST(duden, ParseCFsiBlock2) {
     ASSERT_EQ(1018390, entries[47].size);
 }
 
+TEST(duden, ParseCFsiBlock3) {
+    FileStream stream("duden_testfiles/fsiCBlock3");
+    auto entries = parseFsiBlock(&stream);
+    ASSERT_EQ(39, entries.size());
+    EXPECT_EQ("BMM00434.BMP", entries[0].name);
+    EXPECT_EQ(0x8e6050, entries[0].offset);
+    EXPECT_EQ(116278, entries[0].size);
+
+    EXPECT_EQ("BMM00650.BMP", entries[38].name);
+    EXPECT_EQ(0x6ed12a, entries[38].offset);
+    EXPECT_EQ(123772, entries[38].size);
+}
+
+TEST(duden, ParseCFsiBlock4) {
+    FileStream stream("duden_testfiles/fsiCBlock4");
+    auto entries = parseFsiBlock(&stream);
+    ASSERT_EQ(40, entries.size());
+    EXPECT_EQ("B5BI1363.BMP", entries[0].name);
+    EXPECT_EQ(1170336, entries[0].offset);
+    EXPECT_EQ(29346, entries[0].size);
+
+    EXPECT_EQ("BMM00423.BMP", entries[39].name);
+    EXPECT_EQ(0, entries[39].offset);
+    EXPECT_EQ(108278, entries[39].size);
+}
+
 TEST(duden, ParseBFsiBlock) {
     FileStream stream("duden_testfiles/fsiBBlock");
     auto entries = parseFsiBlock(&stream);

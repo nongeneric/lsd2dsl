@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include "assert.h"
 #include "lib/common/overloaded.h"
+#include "lib/common/bformat.h"
 
 namespace duden {
 
@@ -303,12 +304,18 @@ std::vector<FsiEntry> parseFsiBlock(dictlsd::IRandomAccessStream* stream) {
         for (auto i = 0u; i < rawCount * 2; ++i) {
             auto offset = read32(stream);
             auto [last, str] = parseFsiString(stream);
-            if ((offset == 0 && str.empty()))
+            if (str.empty()) {
+                if (offset == 0)
+                    break;
+                read8(stream);
+                std::tie(last, str) = parseFsiString(stream);
+            }
+            if (offset == 0 && str.empty())
                 break;
             auto [name, size] = parseFsiEntry(str);
             name = win1252toUtf8(name);
             res.push_back({name, offset, size});
-            if (last)
+            if (last || peek32(stream) == 0xa1a1a1a1)
                 break;
             read8(stream);
         }
@@ -360,12 +367,7 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         auto curPos = stream->tell();
         auto nodeSize = read16(stream);
         auto entries = version >= 6 ? parseHicNode6(stream) : parseHicNode45(stream);
-
-        if (curPos + nodeSize + sizeof(nodeSize) != stream->tell()) {
-            // blockCount is at times unreliable with off by one error
-            if (i != blockCount - 1)
-                throw std::runtime_error("failed to parse a HIC node");
-        }
+        stream->seek(curPos + nodeSize + sizeof(nodeSize));
 
         auto page = std::make_shared<HicPage>();
         page->offset = curPos;

@@ -67,6 +67,7 @@ public:
 uint8_t read8(IRandomAccessStream* stream);
 uint16_t read16(IRandomAccessStream* stream);
 uint32_t read32(IRandomAccessStream* stream);
+uint32_t peek32(IRandomAccessStream* stream);
 bool readLine(IRandomAccessStream* stream, std::string& line, char sep = '\n');
 
 }
