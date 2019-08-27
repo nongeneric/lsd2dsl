@@ -96,11 +96,11 @@ class ReferenceResolverRewriter : public TextRunVisitor {
                 if (ref != end(_ld.references)) {
                     if (prefix != 'M')
                         return;
-                    if (ref->name == "Tabellen") {
+                    if (ref->name == "Tabellen" && run->id().num) {
                         auto [fileName, offset] = findFileName(run->id().num);
                         auto caption = run->runs().front();
                         newRun = _context.make<TableReferenceRun>(offset, fileName, caption);
-                    } else if (ref->name == "Bilder") {
+                    } else if (ref->name == "Bilder" && run->id().num) {
                         auto [fileName, offset] = findFileName(run->id().num);
                         auto caption = run->runs().back();
                         newRun = _context.make<PictureReferenceRun>(offset, fileName, caption);
