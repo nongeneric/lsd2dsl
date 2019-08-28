@@ -1727,6 +1727,19 @@ TEST(duden, GroupHicEntries6) {
     ASSERT_EQ(-1, groups[25].articleSize);
 }
 
+TEST(duden, GroupHicEntries7) {
+    std::vector<HicLeaf> leafs {
+        HicLeaf{"Adolf Brunner $$$$  16 27114624 -16", HicEntryType::Reference, 0x001e810a},
+        HicLeaf{"Adolf Busch $$$$ 14 620023071 1005 0", HicEntryType::Reference, 0x001e810b},
+        HicLeaf{"Adolf Butenandt $$$$ 55 620023184 1005 0", HicEntryType::Reference, 0x001e810d},
+        HicLeaf{"Alf Daens $$$$  -1 37310711 -16", HicEntryType::Reference, 0x001e810f},
+    };
+    auto groups = groupHicEntries(leafs);
+    ASSERT_EQ(2, groups.size());
+    ASSERT_EQ((std::vector{"Adolf Brunner"s}), groups[27114623].headings);
+    ASSERT_EQ((std::vector{"Alf Daens"s}), groups[37310710].headings);
+}
+
 TEST(duden, HandleNewLinesInHtml) {
     auto text = "a\\\\b\nc";
     ParsingContext context;

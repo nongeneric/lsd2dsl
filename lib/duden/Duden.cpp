@@ -397,26 +397,37 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
     return hicFile;
 }
 
-static std::tuple<std::string, int32_t> parseHeading(const std::string& heading) {
-    static std::regex rx(R"(^(.*?)( \$\$\$\$\s+\-?\d+\s(\d+)\s\-?\d+)?$)");
+struct ParsedHeading {
+    std::string name;
+    int64_t offset;
+};
+
+static std::optional<ParsedHeading> parseHeading(const std::string& heading) {
+    static std::regex rx(R"(^(.*?)( \$\$\$\$\s+(\-?\d+)\s(\d+)\s\-?\d+(\s\-?\d+)?)?$)");
     std::smatch m;
     if (!std::regex_match(heading, m, rx))
         throw std::runtime_error("can't parse heading");
+    if (m[5].length())
+        return {};
     int64_t offset = -1;
-    if (m[3].length()) {
-        offset = std::stoi(m[3]) - 1;
+    if (m[4].length()) {
+        offset = std::stoi(m[4]) - 1;
     }
-    return {m[1], offset};
+    return ParsedHeading{m[1], offset};
 }
 
 std::map<int32_t, HeadingGroup> groupHicEntries(std::vector<HicLeaf> entries) {
     std::map<int32_t, HeadingGroup> groups;
     for (const auto& entry : entries) {
-        auto [name, offset] = parseHeading(entry.heading);
-        offset = offset == -1 ? entry.textOffset : offset;
+        auto heading = parseHeading(entry.heading);
+        if (!heading)
+            continue;
+        if (heading->offset == -1) {
+            heading->offset = entry.textOffset;
+        }
         if (entry.type == HicEntryType::Variant)
             continue;
-        groups[offset].headings.emplace_back(std::move(name));
+        groups[heading->offset].headings.emplace_back(std::move(heading->name));
     }
 
     entries.erase(std::remove_if(begin(entries), end(entries), [](auto& entry) {
