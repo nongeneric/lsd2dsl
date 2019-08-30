@@ -115,8 +115,6 @@ int parseDuden(fs::path infPath, fs::path outputPath, Log& log) {
     auto infs = duden::parseInfFile(&infStream, &fs);
 
     for (size_t i = 0; i < infs.size(); ++i) {
-        log.regular("Version:  %x", infs[i].version);
-
         if (!infs[i].supported) {
             log.regular("Unsupported dictionary version");
             return 1;

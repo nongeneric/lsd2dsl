@@ -45,6 +45,7 @@ public:
     std::string article(uint32_t plainOffset, uint32_t size);
     const LdFile& ld() const;
     const InfFile& inf() const;
+    const HicFile& hic() const;
 };
 
 } // namespace duden

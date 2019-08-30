@@ -48,7 +48,7 @@ struct HicPage {
 
 struct HicFile {
     std::string name;
-    uint8_t version;
+    int version;
     std::shared_ptr<HicPage> root;
 };
 

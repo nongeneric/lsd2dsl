@@ -70,6 +70,7 @@ void writeDSL(fs::path infPath,
 
     std::string dslFileName = dict.ld().name;
 
+    log.regular("Version:  %x (HIC %d)", dict.inf().version, dict.hic().version);
     log.regular("Name:     %s", dict.ld().name);
     log.regular("Articles: %d", dict.articleCount());
 

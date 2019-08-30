@@ -86,6 +86,10 @@ const InfFile& Dictionary::inf() const {
     return _inf;
 }
 
+const HicFile& Dictionary::hic() const {
+    return _hic;
+}
+
 FileSystem::FileSystem(fs::path root) : _root(root) {}
 
 std::unique_ptr<dictlsd::IRandomAccessStream> FileSystem::open(fs::path path) {
