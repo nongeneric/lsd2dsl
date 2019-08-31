@@ -8,13 +8,15 @@
 inline constexpr int UNICODE_BIT = 1 << 11;
 inline constexpr int ZIP_VERSION = 36;
 
-ZipWriter::ZipWriter(std::string path) {
-    _zip = zipOpen64(path.c_str(), false);
-    if (!_zip)
-        throw std::runtime_error("can't create zip file");
-}
+ZipWriter::ZipWriter(std::string path) : _path(path) { }
 
 void ZipWriter::addFile(std::string name, const void* ptr, unsigned size) {
+    if (!_zip) {
+        _zip = zipOpen64(_path.c_str(), false);
+        if (!_zip)
+            throw std::runtime_error("can't create zip file");
+    }
+
     auto t = time(nullptr);
     auto tm = *localtime(&t);
     zip_fileinfo info{{(unsigned)tm.tm_sec,
@@ -56,5 +58,7 @@ void ZipWriter::addFile(std::string name, const void* ptr, unsigned size) {
 }
 
 ZipWriter::~ZipWriter() {
-    zipClose(_zip, nullptr);
+    if (_zip) {
+        zipClose(_zip, nullptr);
+    }
 }

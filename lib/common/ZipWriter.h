@@ -4,7 +4,8 @@
 #include <vector>
 
 class ZipWriter {
-    void* _zip;
+    void* _zip = nullptr;
+    std::string _path;
 
 public:
     ZipWriter(std::string path);
