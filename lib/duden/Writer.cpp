@@ -207,7 +207,8 @@ void writeDSL(fs::path infPath,
                     log.regular("Article [%s] references unknown article %d", firstHeading, offset - 1);
                     return "unknown"s;
                 }
-                return it->second.headings.front();
+                auto heading = it->second.headings.front();
+                return printDsl(parseDudenText(context, heading));
             });
             tableRenderer.render(articleRun);
             if (group.headings.size() == 1) {
