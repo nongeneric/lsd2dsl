@@ -1,0 +1,19 @@
+V 400
+;
+T Duden - Das Fremdwörterbuch, 8. Aufl. Mannheim 2005
+;
+F 5549;du5neu.abk
+F 3601726;du5neu.bof
+F 5708800;du5neu.fi
+F 827951;DU5NEU.HIC
+F 4732;du5neu.idx
+F 959488;du5neu.ki
+F 233;du5neu.ld
+F 584704;du5neu.fsi
+F 258588;es_du5neu.dat
+F 149214;es_du5neu.idx
+F 3266;es_du5neu.img
+F 241450;es_du5neu.xqdd
+;
+L 185 DU5NEU.LD
+Q "Duden - Das Fremdwörterbuch"

@@ -1,61 +1,40 @@
-cmake_minimum_required (VERSION 3.11)
+cmake_minimum_required (VERSION 3.14)
 
-project(lsd2dsl)
-
-set(lsd2dsl_VERSION "0.4.1")
+project(lsd2dsl VERSION 0.4.1 LANGUAGES C CXX)
 
 configure_file (
-    "${CMAKE_SOURCE_DIR}/version.h.in"
-    "${CMAKE_BINARY_DIR}/version.h"
+    "${CMAKE_SOURCE_DIR}/lib/common/version.h.in"
+    "${CMAKE_BINARY_DIR}/lib/common/version.h"
 )
 
+include_directories(${PROJECT_SOURCE_DIR})
 include_directories("${CMAKE_BINARY_DIR}")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(Boost_USE_STATIC_LIBS       OFF)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
-find_package(Boost 1.50 COMPONENTS system program_options filesystem REQUIRED)
+find_package(Boost 1.60 COMPONENTS system program_options filesystem regex REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
-find_library(GTEST gtest)
-find_library(MINIZIP minizip)
-find_library(Z z)
-find_library(VORBISFILE vorbisfile)
-find_library(SNDFILE sndfile)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
 
-option(CMAKE_RELEASE "CMAKE_RELEASE" FALSE)
-
-set(CMAKE_CXX_FLAGS "-Werror=return-type -Wall -Wextra -Werror -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
-
-if(CMAKE_RELEASE)
-    add_definitions(-DNDEBUG)
-    set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    add_compile_options(-O0 -ggdb)
 else()
-    set(CMAKE_CXX_FLAGS "-O0 -ggdb ${CMAKE_CXX_FLAGS}")
+    add_compile_options(-O3)
 endif()
 
-add_subdirectory(dictlsd)
+set(CMAKE_CXX_FLAGS "-Werror -Werror=return-type -Wall -Wextra -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "-Wno-everything ${CMAKE_C_FLAGS}")
 
-file(COPY simple_testdict1 DESTINATION .)
-
-add_executable(lsd2dsl
-    decoder.cpp
-    ZipWriter.h
-    ZipWriter.cpp
-    DslWriter.h
-    DslWriter.cpp
-    version.h
-)
-
-if(NOT CMAKE_RELEASE)
-    add_executable(tests tests.cpp)
-    target_link_libraries(tests dictlsd ${GTEST})
-endif()
-
-target_link_libraries(lsd2dsl dictlsd ${MINIZIP})
-add_subdirectory(qtgui)
+add_subdirectory(lib)
+add_subdirectory(tests)
+add_subdirectory(console)
+add_subdirectory(gui)
 
 if(WIN32)
     configure_file (

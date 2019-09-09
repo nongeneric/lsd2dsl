@@ -1,0 +1,15 @@
+\tab{\tcn2\tln3\tau
+\tcd\tfl1-3\tcl1-3
+\tcd\tfl1-3\tcl1-3
+\tcd\tfl1-3\tcl1-3
+\tld\tfu1-2\tlt1-2
+\tld\tfu1-2\tlt1-2
+\tld\tfu1-2\tlt1-2
+\tld\tfu1-2\tlt1-2
+\tcc@1bold cell
+\tccplain cell
+\tcc@3bold italic cell
+\tccrandom braces {
+\tccsub\sub{scripted}cell
+\tcc@2italic cell
+\tcc}

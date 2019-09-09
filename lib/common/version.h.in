@@ -1,0 +1,10 @@
+#pragma once
+
+const char* const g_version = "@PROJECT_VERSION@";
+
+constexpr bool g_debug =
+#ifdef NDEBUG
+false;
+#else
+true;
+#endif

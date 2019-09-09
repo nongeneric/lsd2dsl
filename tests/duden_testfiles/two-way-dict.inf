@@ -1,0 +1,44 @@
+V 302
+T Duden - Oxford - Kompaktwörterbuch Deutsch-Englisch
+;
+F 246;dodek.bmp
+F 246;dodekx.bmp
+F 980543;DODEK.BOF
+F 2367456 4;DODEK.FI
+F 320124;DODEK.HIC
+F 1260;DODEK.IDX
+F 372736;DODEK.KI
+F 321;DODEK.LD
+F 1050095;dodekkey.BOF
+F 1400;dodekkey.IDX
+F 558836;es_dodek.dat
+F 213462;es_dodek.idx
+F 766;es_dodek.img
+F 382578;es_dodek.xqdd
+;
+F 1118;vk_duden.bmp
+;
+T Duden - Oxford - Kompaktwörterbuch  Englisch-Deutsch
+;
+F 246;doedk.bmp
+F 246;doedkx.bmp
+F 1088360;DOEDK.BOF
+F 2251392 4;DOEDK.FI
+F 262605;DOEDK.HIC
+F 1236;DOEDK.IDX
+F 343344;DOEDK.KI
+F 321;DOEDK.LD
+F 707654;doedkkey.BOF
+F 968;doedkkey.IDX
+F 287366;es_doedk.dat
+F 101214;es_doedk.idx
+F 766;es_doedk.img
+F 134410;es_doedk.xqdd
+;
+L 215 DOEDK.LD
+L 216 DODEK.LD
+;
+C 4;DOEDK.LD
+C 4;DODEK.LD
+;
+Q »Duden - Oxford - Kompaktwörterbuch Englisch v3
