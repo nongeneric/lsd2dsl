@@ -34,7 +34,7 @@ public:
 };
 
 TEST(duden, HicNodeTest1) {
-    FileStream stream("duden_testfiles/HicNode99");
+    FileStream stream(testPath("duden_testfiles/HicNode99"));
 
     auto block = parseHicNode45(&stream);
     auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
@@ -59,7 +59,7 @@ TEST(duden, HicNodeTest1) {
 }
 
 TEST(duden, HicNodeTest2) {
-    FileStream stream("duden_testfiles/HicNode10c5");
+    FileStream stream(testPath("duden_testfiles/HicNode10c5"));
 
     auto block = parseHicNode45(&stream);
     auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
@@ -72,7 +72,7 @@ TEST(duden, HicNodeTest2) {
 }
 
 TEST(duden, HicNodeTest3) {
-    FileStream stream("duden_testfiles/block_hic_v6");
+    FileStream stream(testPath("duden_testfiles/block_hic_v6"));
 
     auto block = parseHicNode6(&stream);
     auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
@@ -88,7 +88,7 @@ TEST(duden, HicNodeTest3) {
 }
 
 TEST(duden, HicNodeTest4) {
-    FileStream stream("duden_testfiles/block_2847_heading_encoding");
+    FileStream stream(testPath("duden_testfiles/block_2847_heading_encoding"));
 
     auto block = parseHicNode6(&stream);
     auto at = [&](int i) { return std::get<HicLeaf>(block[i]); };
@@ -100,7 +100,7 @@ TEST(duden, HicNodeTest4) {
 }
 
 TEST(duden, HicNodeTest_ParseNonLeafs) {
-    FileStream stream("duden_testfiles/HicNode6a");
+    FileStream stream(testPath("duden_testfiles/HicNode6a"));
 
     auto block = parseHicNode45(&stream);
     auto at = [&](int i) { return std::get<HicNode>(block[i]); };
@@ -131,7 +131,7 @@ TEST(duden, ParseIndex) {
 }
 
 TEST(duden, ParseSingleItemFsiBlock) {
-    FileStream stream("duden_testfiles/fsiSingleItemBlock");
+    FileStream stream(testPath("duden_testfiles/fsiSingleItemBlock"));
 
     auto entries = parseFsiBlock(&stream);
 
@@ -142,7 +142,7 @@ TEST(duden, ParseSingleItemFsiBlock) {
 }
 
 TEST(duden, ParseSingleItemFsiBlockUnicode) {
-    FileStream stream("duden_testfiles/fsiSingleItemBlockUnicode");
+    FileStream stream(testPath("duden_testfiles/fsiSingleItemBlockUnicode"));
 
     auto entries = parseFsiBlock(&stream);
 
@@ -153,7 +153,7 @@ TEST(duden, ParseSingleItemFsiBlockUnicode) {
 }
 
 TEST(duden, ParseCFsiBlock) {
-    FileStream stream("duden_testfiles/fsiCBlock");
+    FileStream stream(testPath("duden_testfiles/fsiCBlock"));
     auto entries = parseFsiBlock(&stream);
     ASSERT_EQ(40, entries.size());
     ASSERT_EQ("110187Z.BMP", entries[0].name);
@@ -166,7 +166,7 @@ TEST(duden, ParseCFsiBlock) {
 }
 
 TEST(duden, ParseCFsiBlock2) {
-    FileStream stream("duden_testfiles/fsiCBlock2");
+    FileStream stream(testPath("duden_testfiles/fsiCBlock2"));
     auto entries = parseFsiBlock(&stream);
     ASSERT_EQ(48, entries.size());
     ASSERT_EQ("72.BMP", entries[0].name);
@@ -179,7 +179,7 @@ TEST(duden, ParseCFsiBlock2) {
 }
 
 TEST(duden, ParseCFsiBlock3) {
-    FileStream stream("duden_testfiles/fsiCBlock3");
+    FileStream stream(testPath("duden_testfiles/fsiCBlock3"));
     auto entries = parseFsiBlock(&stream);
     ASSERT_EQ(39, entries.size());
     EXPECT_EQ("BMM00434.BMP", entries[0].name);
@@ -192,7 +192,7 @@ TEST(duden, ParseCFsiBlock3) {
 }
 
 TEST(duden, ParseCFsiBlock4) {
-    FileStream stream("duden_testfiles/fsiCBlock4");
+    FileStream stream(testPath("duden_testfiles/fsiCBlock4"));
     auto entries = parseFsiBlock(&stream);
     ASSERT_EQ(40, entries.size());
     EXPECT_EQ("B5BI1363.BMP", entries[0].name);
@@ -205,14 +205,14 @@ TEST(duden, ParseCFsiBlock4) {
 }
 
 TEST(duden, ParseBFsiBlock) {
-    FileStream stream("duden_testfiles/fsiBBlock");
+    FileStream stream(testPath("duden_testfiles/fsiBBlock"));
     auto entries = parseFsiBlock(&stream);
     ASSERT_EQ(0, entries.size());
 }
 
 TEST(duden, DecodeFixedTreeBofBlock) {
     std::vector<char> decoded;
-    std::fstream f("duden_testfiles/bofFixedDeflateBlock");
+    std::fstream f(testPath("duden_testfiles/bofFixedDeflateBlock"));
     f.seekg(0, std::ios_base::end);
     std::vector<char> buf(f.tellg());
     f.seekg(0);
@@ -255,7 +255,7 @@ public:
 };
 
 TEST(duden, ParseInfFile) {
-    FileStream stream("duden_testfiles/simple.inf");
+    FileStream stream(testPath("duden_testfiles/simple.inf"));
     TestFileSystem filesystem;
     auto inf = parseInfFile(&stream, &filesystem)[0];
     EXPECT_EQ(0x400, inf.version);
@@ -270,7 +270,7 @@ TEST(duden, ParseInfFile) {
 }
 
 TEST(duden, ParseInfFileFsiPackReferencesPrimaryPack) {
-    FileStream stream("duden_testfiles/fsi-pack-references-primary-pack.inf");
+    FileStream stream(testPath("duden_testfiles/fsi-pack-references-primary-pack.inf"));
     TestFileSystem filesystem;
     auto inf = parseInfFile(&stream, &filesystem)[0];
     EXPECT_EQ(0x400, inf.version);
@@ -282,7 +282,7 @@ TEST(duden, ParseInfFileFsiPackReferencesPrimaryPack) {
 }
 
 TEST(duden, ParseTwoWayDictInfFile) {
-    FileStream stream("duden_testfiles/two-way-dict.inf");
+    FileStream stream(testPath("duden_testfiles/two-way-dict.inf"));
     TestFileSystem filesystem(true);
     auto infs = parseInfFile(&stream, &filesystem);
     ASSERT_EQ(2, infs.size());
@@ -315,7 +315,7 @@ TEST(duden, ParseTwoWayDictInfFile) {
 }
 
 TEST(duden, ParseTwoWayDictInfFileWithoutSecondTitle) {
-    FileStream stream("duden_testfiles/two-way-dict-no-title.inf");
+    FileStream stream(testPath("duden_testfiles/two-way-dict-no-title.inf"));
     TestFileSystem filesystem(true);
     auto infs = parseInfFile(&stream, &filesystem);
     ASSERT_EQ(2, infs.size());
@@ -350,7 +350,7 @@ TEST(duden, ParseTwoWayDictInfFileWithoutSecondTitle) {
 }
 
 TEST(duden, ParseTwoWayDictInfFileWithSpacesAfterSemicolon) {
-    FileStream stream("duden_testfiles/spaces_after_semicolon.inf");
+    FileStream stream(testPath("duden_testfiles/spaces_after_semicolon.inf"));
     TestFileSystem filesystem(true);
     filesystem.files() = {
         "FWMEDE.idX",
@@ -375,7 +375,7 @@ TEST(duden, ParseTwoWayDictInfFileWithSpacesAfterSemicolon) {
 }
 
 TEST(duden, ParseTwoWayDictInfFileWithFsdBlob) {
-    FileStream stream("duden_testfiles/fsd_blob.inf");
+    FileStream stream(testPath("duden_testfiles/fsd_blob.inf"));
     TestFileSystem filesystem(true);
     auto infs = parseInfFile(&stream, &filesystem);
     ASSERT_EQ(2, infs.size());
@@ -416,7 +416,7 @@ public:
 };
 
 TEST(duden, ParseInfWithInconsistenPrimaryFileNames) {
-    FileStream stream("duden_testfiles/inconsistent_primary_file_names.inf");
+    FileStream stream(testPath("duden_testfiles/inconsistent_primary_file_names.inf"));
     TestFileSystem4 filesystem;
     auto infs = parseInfFile(&stream, &filesystem);
     ASSERT_EQ(1, infs.size());
@@ -489,7 +489,7 @@ TEST(duden, UnicodeIgnoreEscapesInsideEscapeC) {
 }
 
 TEST(duden, SimpleLdFileTest) {
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     ASSERT_EQ("BTB", ld.baseFileName);
     ASSERT_EQ("Some thing", ld.name);
@@ -539,7 +539,7 @@ TEST(duden, ParseText1) {
 }
 
 TEST(duden, ParseText2) {
-    auto text = read_all_text("duden_testfiles/article1");
+    auto text = read_all_text(testPath("duden_testfiles/article1"));
     ParsingContext context;
     auto run = parseDudenText(context, reinterpret_cast<char*>(text.data()));
     auto tree = printTree(run);
@@ -680,7 +680,7 @@ TEST(duden, ResolveArticleReference) {
     auto text = "\\S{Diskettenformat;:025004230}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -695,7 +695,7 @@ TEST(duden, ResolveTableReference) {
     auto text = "\\S{Tabelle: table name;.MT:660151833;Tabelle}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -710,7 +710,7 @@ TEST(duden, ResolvePictureReference) {
     auto text = "\\S{;.MBB:620127616;Astana}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -724,7 +724,7 @@ TEST(duden, ResolveWebReference) {
     auto text = "\\S{http://www.example.com/;.MW:004549700;www.example.de/;http://www.example.de/}abc";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -752,7 +752,7 @@ TEST(duden, ResolveInlineImageReference) {
     auto text = "\\S{;.Ieuro.bmp;T}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -766,7 +766,7 @@ TEST(duden, ResolveAudioSReference) {
     auto text = u8"\\S{;.Ispeaker.bmp;T;à la longue.Adp}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -784,7 +784,7 @@ TEST(duden, ResolveAudioWReference) {
     auto text = dudenToUtf8(std::string(reinterpret_cast<const char*>(encoded)));
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     resolveReferences(context, run, ld, nullptr);
@@ -801,7 +801,7 @@ TEST(duden, ResolveAudioWReference2) {
     auto text = "\\w{AE000001.adp \"AAA\";BE000001.adp \"BBB\";CC000001.adp \"CCC\"}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -822,7 +822,7 @@ TEST(duden, ResolveAudioWReference3) {
     auto text = "\\w{AE000001.adp \"A@2AA@0@2\";BE000001.adp \"BBB\"}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
@@ -864,7 +864,7 @@ TEST(duden, ResolveInlineImageReferenceInconstistentCase) {
     auto text = u8"\\S{;.IаБFd.bmp;T}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     TestFileSystem3 fs;
     resolveReferences(context, run, ld, &fs);
@@ -875,7 +875,7 @@ TEST(duden, ResolveInlineImageReferenceInconstistentCase2) {
     auto text = u8"\\S{;.Ispeaker.bmp;T;unabkömmlich1v.adp}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     TestFileSystem3 fs;
     resolveReferences(context, run, ld, &fs);
@@ -886,12 +886,12 @@ TEST(duden, InlinePictureReference) {
     auto text = "\\S{;.MBB:620000166;Caption}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
 
     ResourceFiles files;
-    files["btb_pic"] = std::make_unique<std::ifstream>("duden_testfiles/duden_encoded_pic");
+    files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"));
     inlineReferences(context, run, files);
 
     auto picture = dynamic_cast<PictureReferenceRun*>(run->runs().front());
@@ -905,7 +905,7 @@ TEST(duden, InlinePictureReference) {
 }
 
 TEST(duden, ParseTextTable1) {
-    auto text = read_all_text("duden_testfiles/table1");
+    auto text = read_all_text(testPath("duden_testfiles/table1"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto tree = printTree(run);
@@ -983,7 +983,7 @@ TEST(duden, ParseTextTable1) {
 }
 
 TEST(duden, ParseTextTableWithNestedTable) {
-    auto text = read_all_text("duden_testfiles/table_in_table_cell");
+    auto text = read_all_text(testPath("duden_testfiles/table_in_table_cell"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto tree = printTree(run);
@@ -1038,7 +1038,7 @@ TEST(duden, ParseTextTableWithNestedTable) {
 }
 
 TEST(duden, ParseTextTableWithExtraCells) {
-    auto text = read_all_text("duden_testfiles/table_several_extra_cells_and_footer");
+    auto text = read_all_text(testPath("duden_testfiles/table_several_extra_cells_and_footer"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto tree = printTree(run);
@@ -1064,7 +1064,7 @@ TEST(duden, ParseTextTableWithExtraCells) {
 }
 
 TEST(duden, ParseTextTableWithCurlyBracesInCells) {
-    auto text = read_all_text("duden_testfiles/table_curly_braces");
+    auto text = read_all_text(testPath("duden_testfiles/table_curly_braces"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto tree = printTree(run);
@@ -1099,7 +1099,7 @@ TEST(duden, ParseTextTableWithCurlyBracesInCells) {
 
 */
 TEST(duden, ParseTextTableWithMergedCells) {
-    auto text = read_all_text("duden_testfiles/table_merged_cells");
+    auto text = read_all_text(testPath("duden_testfiles/table_merged_cells"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
 
@@ -1130,12 +1130,12 @@ TEST(duden, InlineTableReference) {
     auto text = "\\S{Tabelle: table name;.MT:660000000;Tabelle}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
 
     ResourceFiles files;
-    files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file");
+    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"));
     inlineReferences(context, run, files);
 
     auto tableRef = dynamic_cast<TableReferenceRun*>(run->runs().front());
@@ -1420,7 +1420,7 @@ TEST(duden, EscapeSquareBracketsInDsl) {
 }
 
 TEST(duden, PrintInlineRenderedTable) {
-    auto text = read_all_text("duden_testfiles/table1");
+    auto text = read_all_text(testPath("duden_testfiles/table1"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto tableRun = dynamic_cast<TableRun*>(run->runs().front());
@@ -1433,11 +1433,11 @@ TEST(duden, InlineRenderAndPrintPicture) {
     auto text = "\\S{;.MBB:620000166;Caption}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
-    files["btb_pic"] = std::make_unique<std::ifstream>("duden_testfiles/duden_encoded_pic");
+    files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"));
     inlineReferences(context, run, files);
     std::string name;
     TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
@@ -1552,11 +1552,11 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     auto text = "\\S{Tabelle: table name;.MT:660000000;Tabelle}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
-    files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file");
+    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"));
     inlineReferences(context, run, files);
     std::string name;
     TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
@@ -1625,11 +1625,11 @@ TEST(duden, HandleEmbeddedImagesInHtml2) {
     auto text = "\\S{Tabelle: table name;.MT:660000000;Tabelle}";
     ParsingContext context;
     auto run = parseDudenText(context, text);
-    FileStream stream("duden_testfiles/simple.ld");
+    FileStream stream(testPath("duden_testfiles/simple.ld"));
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
-    files["btb_tab"] = std::make_unique<std::ifstream>("duden_testfiles/tab_file_embedded_image");
+    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file_embedded_image"));
     inlineReferences(context, run, files);
     resolveReferences(context, run, ld, nullptr); // resolve inlined references
 

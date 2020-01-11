@@ -7,7 +7,7 @@ configure_file (
     "${CMAKE_BINARY_DIR}/lib/common/version.h"
 )
 
-include_directories(${PROJECT_SOURCE_DIR})
+include_directories("${PROJECT_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)

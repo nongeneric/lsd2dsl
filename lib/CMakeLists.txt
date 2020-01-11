@@ -3,10 +3,10 @@ project(lib)
 find_package(Qt5WebKitWidgets REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
-find_library(MINIZIP minizip REQUIRED)
-find_library(Z z REQUIRED)
-find_library(VORBISFILE vorbisfile REQUIRED)
-find_library(SNDFILE sndfile REQUIRED)
+find_library(MINIZIP minizip)
+find_library(Z z)
+find_library(VORBISFILE vorbisfile)
+find_library(SNDFILE sndfile)
 
 add_library(${PROJECT_NAME} STATIC
     lsd/lsd.h

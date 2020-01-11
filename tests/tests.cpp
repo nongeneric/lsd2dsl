@@ -76,7 +76,7 @@ TEST(Tests, bitStreamTest) {
 }
 
 TEST(Tests, decoderTest) {
-    std::fstream f("simple_testdict1/test.lsd", std::ios::in | std::ios::binary);
+    std::fstream f(testPath("simple_testdict1/test.lsd"), std::ios::in | std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1333];
     f.read(buf, 1333);
@@ -120,9 +120,9 @@ void assertFilesAreEqual(std::string path1, std::string path2) {
 }
 
 TEST(Tests, userLsdHeadingsTest) {
-    for (auto path : {"simple_testdict1/headingsTestDict1_12.lsd",
-                      "simple_testdict1/headingsTestDict1_x3.lsd",
-                      "simple_testdict1/headingsTestDict1_x5.lsd"}) {
+    for (auto path : {testPath("simple_testdict1/headingsTestDict1_12.lsd"),
+                      testPath("simple_testdict1/headingsTestDict1_x3.lsd"),
+                      testPath("simple_testdict1/headingsTestDict1_x5.lsd")}) {
         auto buf = read_all_bytes(path);
         BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
         LSDDictionary reader(&bstr);
@@ -146,9 +146,9 @@ TEST(Tests, userLsdHeadingsTest) {
 }
 
 TEST(Tests, overlayTest) {
-    for (auto path : {"simple_testdict1/overlay_12.lsd",
-                      "simple_testdict1/overlay_x3.lsd",
-                      "simple_testdict1/overlay_x5.lsd"}) {
+    for (auto path : {testPath("simple_testdict1/overlay_12.lsd"),
+                      testPath("simple_testdict1/overlay_x3.lsd"),
+                      testPath("simple_testdict1/overlay_x5.lsd")}) {
         auto buf = read_all_bytes(path);
         BitStreamAdapter bstr(new InMemoryStream(&buf[0], buf.size()));
         LSDDictionary reader(&bstr);
@@ -160,15 +160,15 @@ TEST(Tests, overlayTest) {
         auto entry1 = reader.readOverlayEntry(headings[0]);
         auto entry2 = reader.readOverlayEntry(headings[1]);
 
-        auto image1 = read_all_bytes("simple_testdict1/image1.bmp");
-        auto image2 = read_all_bytes("simple_testdict1/image2.bmp");
+        auto image1 = read_all_bytes(testPath("simple_testdict1/image1.bmp"));
+        auto image2 = read_all_bytes(testPath("simple_testdict1/image2.bmp"));
         ASSERT_EQ(image1, entry1);
         ASSERT_EQ(image2, entry2);
     }
 }
 
 TEST(Tests, extHeadingsTest) {
-    std::fstream f("simple_testdict1/testext.lsd", std::ios::in | std::ios::binary);
+    std::fstream f(testPath("simple_testdict1/testext.lsd"), std::ios::in | std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1390];
     f.read(buf, 1390);
@@ -183,7 +183,7 @@ TEST(Tests, extHeadingsTest) {
 }
 
 TEST(Tests, unsortedHeadingsTest) {
-    std::fstream f("simple_testdict1/unsorted_testdict.lsd", std::ios::in | std::ios::binary);
+    std::fstream f(testPath("simple_testdict1/unsorted_testdict.lsd"), std::ios::in | std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1280];
     f.read(buf, 1280);
@@ -206,7 +206,7 @@ TEST(Tests, unsortedHeadingsTest) {
 }
 
 TEST(Tests, collapseVariantHeadingsTest) {
-    std::fstream f("simple_testdict1/variants_testdict.lsd", std::ios::in | std::ios::binary);
+    std::fstream f(testPath("simple_testdict1/variants_testdict.lsd"), std::ios::in | std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1291];
     f.read(buf, 1291);
@@ -227,7 +227,7 @@ TEST(Tests, collapseVariantHeadingsTest) {
 }
 
 TEST(Tests, collapseVariantHeadingsTest2) {
-    std::fstream f("simple_testdict1/variants_testdict2.lsd", std::ios::in | std::ios::binary);
+    std::fstream f(testPath("simple_testdict1/variants_testdict2.lsd"), std::ios::in | std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1306];
     f.read(buf, 1306);
@@ -260,7 +260,7 @@ TEST(Tests, unicodePath) {
 
 TEST(Tests, unicodePath2) {
     char buf[6] = {0};
-    UnicodePathFile f(u8"simple_testdict1/é", false);
+    UnicodePathFile f(testPath(u8"simple_testdict1/é"), false);
     auto read = f.read(buf, 10);
     ASSERT_EQ(5, read);
     ASSERT_EQ(std::string("1234\n"), buf);

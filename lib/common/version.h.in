@@ -1,6 +1,7 @@
 #pragma once
 
-const char* const g_version = "@PROJECT_VERSION@";
+constexpr inline auto g_version = "@PROJECT_VERSION@";
+constexpr inline auto g_sourceDir = "@CMAKE_SOURCE_DIR@";
 
 constexpr bool g_debug =
 #ifdef NDEBUG
