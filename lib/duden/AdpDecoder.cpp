@@ -20,7 +20,9 @@ std::array<int, 8> valueTable {
 
 }
 
-void duden::decodeAdp(const std::vector<char>& input, int16_t* output) {
+void duden::decodeAdp(const std::vector<char>& input, std::vector<int16_t>& samples) {
+    samples.resize(input.size() * 2);
+    auto outptr = &samples[0];
     double sample = 0;
     int index = 0;
     for (uint8_t byte : input) {
@@ -30,10 +32,8 @@ void duden::decodeAdp(const std::vector<char>& input, int16_t* output) {
             auto b2 = (code >> 2) & 1;
             auto ss = stepTable[index];
             auto d = ss * b2 + ss / 2 * b1 + ss / 4 * b0 + ss / 8;
-            if (code & 8)
-                d = -d;
-            sample = sample + d;
-            *output++ = static_cast<int16_t>(std::round(std::clamp(sample, -32768., 32767.)));
+            sample += code & 8 ? -d : d;
+            *outptr++ = static_cast<int16_t>(std::round(std::clamp(sample, -32768., 32767.)));
             index = std::clamp(index + valueTable[code & 7], 0, 48);
         }
     }

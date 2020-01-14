@@ -123,6 +123,7 @@ void writeDSL(fs::path infPath,
 
         std::vector<char> vec;
         int i = 0;
+        std::vector<int16_t> samples;
         for (auto& entry : entries) {
             resourceIndex[entry.name] = {&pack, entry.offset, entry.size};
             log.verbose("unpacking [%03d/%03d] %s", i, entries.size(), entry.name);
@@ -134,8 +135,7 @@ void writeDSL(fs::path infPath,
 
             auto name = entry.name;
             if (replaceAdpExtWithWav(name)) {
-                std::vector<int16_t> samples(2 * vec.size());
-                decodeAdp(vec, &samples[0]);
+                decodeAdp(vec, samples);
                 dictlsd::createWav(samples, vec, ADP_SAMPLE_RATE);
                 adpCount++;
             }

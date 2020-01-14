@@ -229,7 +229,7 @@ public:
             return QVariant(icon);
         }
 
-        if (role == Qt::BackgroundColorRole && !dict->supported()) {
+        if (role == Qt::BackgroundRole && !dict->supported()) {
             return QColor("#fbe3e4");
         }
 
