@@ -12,8 +12,8 @@ void writeDSL(const LSDDictionary* reader,
               bool dumb,
               Log& log)
 {
-    dsl::Writer writer(outputPath, fs::path(lsdName).replace_extension(".dsl").string());
-    fs::path overlayPath = fs::path(writer.dslFileName()).string() + ".files.zip";
+    dsl::Writer writer(outputPath, fs::path(lsdName).replace_extension().string());
+    fs::path overlayPath = writer.dslFilePath() + ".files.zip";
 
     auto overlayHeadings = reader->readOverlayHeadings();
     if (overlayHeadings.size() > 0) {
@@ -31,11 +31,6 @@ void writeDSL(const LSDDictionary* reader,
         writer.setAnnotation(annoStr);
     }
 
-    auto iconArr = reader->icon();
-    if (!iconArr.empty()) {
-        writer.setIcon(iconArr);
-    }
-
     auto headings = reader->readHeadings();
     if (headings.size() != reader->header().entriesCount) {
         throw std::runtime_error("decoding error");
@@ -48,6 +43,11 @@ void writeDSL(const LSDDictionary* reader,
 
     writer.setName(reader->name());
     writer.setLanguage(reader->header().sourceLanguage, reader->header().targetLanguage);
+    auto iconArr = reader->icon();
+    if (!iconArr.empty()) {
+        writer.setIcon(iconArr);
+    }
+    writer.writeNewLine();
 
     log.resetProgress(writer.dslFileName(), headings.size());
     foreachReferenceSet(headings, [&](auto first, auto last) {
@@ -79,6 +79,10 @@ namespace dsl {
         return _dslPath.filename().string();
     }
 
+    std::string Writer::dslFilePath() const {
+        return _dslPath.string();
+    }
+
     void Writer::setName(std::u16string name) {
         write(u"#NAME\t\"" + name + u"\"\r\n");
     }
@@ -101,10 +105,13 @@ namespace dsl {
         path.replace_extension("bmp");
 
         write(u"#ICON_FILE\t\"" + toUtf16(path.filename().string()) + u"\"\n");
-        write(u"\n");
 
         UnicodePathFile file(path.string(), true);
         file.write(reinterpret_cast<const char*>(&icon[0]), icon.size());
+    }
+
+    void Writer::writeNewLine() {
+        write(u"\n");
     }
 
     void Writer::writeHeading(std::u16string heading) {

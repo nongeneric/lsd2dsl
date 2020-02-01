@@ -25,10 +25,12 @@ class Writer {
 public:
     Writer(std::string outputPath, std::string name);
     std::string dslFileName() const;
+    std::string dslFilePath() const;
     void setName(std::u16string name);
     void setAnnotation(std::u16string annotation);
     void setLanguage(int source, int target);
     void setIcon(std::vector<uint8_t> icon);
+    void writeNewLine();
     void writeHeading(std::u16string heading);
     void writeArticle(std::u16string article);
 };

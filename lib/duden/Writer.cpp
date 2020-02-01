@@ -77,8 +77,9 @@ void writeDSL(fs::path infPath,
     const auto& entries = dict.entries();
     auto groups = groupHicEntries(entries);
 
-    auto overlayPath = outputPath / (dslFileName + ".dsl.files.zip");
-    ZipWriter zip(overlayPath.string());
+    dsl::Writer writer(outputPath.string(), dslFileName);
+    auto overlayPath = writer.dslFilePath() + ".files.zip";
+    ZipWriter zip(overlayPath);
 
     ResourceFiles resources;
     for (auto& pack : dict.inf().resources) {
@@ -99,7 +100,6 @@ void writeDSL(fs::path infPath,
         resources[filename] = std::move(stream);
     }
 
-    dsl::Writer writer(outputPath.string(), dslFileName);
     writer.setName(dictlsd::toUtf16(dict.ld().name));
     writer.setLanguage(dict.ld().sourceLanguageCode, dict.ld().targetLanguageCode);
 

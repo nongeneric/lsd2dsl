@@ -15,6 +15,8 @@ parser.add_argument('--lsd-dir', dest='lsd_dir')
 parser.add_argument('--lsa-dir', dest='lsa_dir')
 parser.add_argument('--duden-dir', dest='duden_dir')
 parser.add_argument('--lsd2dsl-path', dest='lsd2dsl_path', required=True)
+parser.add_argument('--report-path', dest='report_path', required=True)
+parser.add_argument('--ignore-zip-hash', dest='ignore_zip_hash', action='store_true')
 args = parser.parse_args();
 
 tmp_dir = '/tmp/lsd2dsl-regression'
@@ -49,13 +51,13 @@ class Reporter:
         self._html += '</td>'
         
         self._html += '<td>'
-        for name, value in self._props:
-            self._html += f'{name}: {value}<br>'
+        for name, value in sorted(self._props):
+            self._html += f'{name}: {value}<br>\n'
         self._html += '</td>'
         
         self._html += '<td>'
-        for path, size, h in self._outputs:
-            self._html += f'{path} <b>{size} ({size//(1<<20)} MB)</b> {h}<br>'
+        for path, size, h in sorted(self._outputs):
+            self._html += f'{path} <b>{size} ({size//(1<<20)} MB)</b> {h}<br>\n'
         self._html += '</td>'
         
         self._html += '</tr>'
@@ -68,7 +70,11 @@ class Reporter:
     def add_outputs(self, path):
         for root, dirnames, filenames in os.walk(path):
             for f in filenames:
-                self._outputs.append((f, os.path.getsize(f'{root}/{f}'), self.md5hash(f'{root}/{f}')))
+                if args.ignore_zip_hash and f.endswith('.zip'):
+                    md5 = ''
+                else:
+                    md5 = self.md5hash(f'{root}/{f}')
+                self._outputs.append((f, os.path.getsize(f'{root}/{f}'), md5))
         
     def html(self):
         self._html += "</table>"
@@ -163,6 +169,5 @@ if args.lsd_dir:
 if args.lsa_dir:
     process_dicts(reporter, '.lsa', args.lsa_dir, convert_lsa)
         
-clear_dir(tmp_dir)
-with open(tmp_dir + '/report.html', 'w') as report:
+with open(args.report_path, 'w') as report:
     report.write(reporter.html())

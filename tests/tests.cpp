@@ -5,6 +5,7 @@
 #include "lib/lsd/ArticleHeading.h"
 #include "lib/lsd/CachePage.h"
 #include "lib/common/ZipWriter.h"
+#include "lib/common/DslWriter.h"
 #include "lib/lsd/tools.h"
 #include "test-utils.h"
 
@@ -264,4 +265,35 @@ TEST(Tests, unicodePath2) {
     auto read = f.read(buf, 10);
     ASSERT_EQ(5, read);
     ASSERT_EQ(std::string("1234\n"), buf);
+}
+
+class TestLog : public Log {
+    void reportLog(std::string, bool) override { }
+    void reportProgress(int) override { }
+    void reportProgressReset(std::string) override { }
+};
+
+TEST(tests, outputDslName) {
+    TestLog log;
+    FileStream ras(testPath("simple_testdict1/overlay_x5.lsd"));
+    BitStreamAdapter bstr(&ras);
+    LSDDictionary reader(&bstr);
+    auto outPath = "outPath";
+    if (fs::exists(outPath)) {
+        fs::remove_all(outPath);
+    }
+    fs::create_directories(outPath);
+    writeDSL(&reader, "overlay_x5.lsd", outPath, false, log);
+
+    std::set<std::string> fileNames;
+    for (auto& p : fs::directory_iterator(outPath)) {
+        fileNames.insert(p.path().filename().string());
+    }
+
+    std::set<std::string> expected {
+        "overlay_x5.dsl",
+        "overlay_x5.dsl.files.zip"
+    };
+
+    ASSERT_EQ(expected, fileNames);
 }
