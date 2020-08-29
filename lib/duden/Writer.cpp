@@ -136,7 +136,7 @@ void writeDSL(fs::path infPath,
             auto name = entry.name;
             if (replaceAdpExtWithWav(name)) {
                 decodeAdp(vec, samples);
-                dictlsd::createWav(samples, vec, ADP_SAMPLE_RATE);
+                dictlsd::createWav(samples, vec, ADP_SAMPLE_RATE, ADP_CHANNELS);
                 adpCount++;
             }
 

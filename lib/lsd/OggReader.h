@@ -6,6 +6,11 @@
 
 struct OggVorbis_File;
 
+struct VorbisInfo {
+    int channels;
+    long rate;
+};
+
 namespace dictlsd {
 
 class OggReader {
@@ -16,6 +21,7 @@ public:
     // little endian signed mono
     void readSamples(unsigned count, std::vector<short>& vec);
     uint64_t totalSamples();
+    VorbisInfo info();
     ~OggReader();
 };
 

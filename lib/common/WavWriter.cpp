@@ -60,11 +60,11 @@ SF_VIRTUAL_IO vio_vec_callbacks {
     vio_vec_tell
 };
 
-void createWav(std::vector<int16_t> const& samples, std::vector<char> &wav, int rate) {
+void createWav(std::vector<int16_t> const& samples, std::vector<char> &wav, int rate, int channels) {
     SF_INFO sfinfo;
     memset(&sfinfo, 0, sizeof sfinfo);
     sfinfo.samplerate = rate;
-    sfinfo.channels = 1; // mono
+    sfinfo.channels = channels;
     sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
     wav.clear();
     vio_vec vec = { &wav, 0 };

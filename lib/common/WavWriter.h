@@ -5,6 +5,6 @@
 
 namespace dictlsd {
 
-void createWav(std::vector<int16_t> const& samples, std::vector<char>& wav, int rate = 48000);
+void createWav(std::vector<int16_t> const& samples, std::vector<char>& wav, int rate, int channels);
 
 }

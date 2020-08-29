@@ -57,6 +57,14 @@ uint64_t OggReader::totalSamples() {
     return ov_pcm_total(_vfile.get(), -1);
 }
 
+VorbisInfo OggReader::info() {
+    VorbisInfo res;
+    auto info = ov_info(_vfile.get(), -1);
+    res.channels = info->channels;
+    res.rate = info->rate;
+    return res;
+}
+
 OggReader::~OggReader() { }
 
 }

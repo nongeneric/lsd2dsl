@@ -41,7 +41,7 @@ void LSAReader::collectHeadings() {
     _totalSamples = 0;
     for (size_t i = 0; i < _entriesCount; ++i) {
         std::u16string name = readLSAString(_bstr);
-        unsigned sampleOffset = 0;
+        uint32_t sampleOffset = 0;
         if (i > 0) {
             _bstr->readSome(&sampleOffset, 4);
             uint8_t marker;
@@ -51,7 +51,7 @@ void LSAReader::collectHeadings() {
             if (marker != 0xFF)
                 throw std::runtime_error("bad LSA file");
         }
-        unsigned size;
+        uint32_t size;
         _bstr->readSome(&size, 4);
         _totalSamples += size;
         _entries.push_back({name, sampleOffset, size});
@@ -59,24 +59,26 @@ void LSAReader::collectHeadings() {
     _oggOffset = _bstr->tell();
 }
 
-void LSAReader::dump(std::string path,
-                     Log& log)
-{
+void LSAReader::dump(std::string path, Log& log) {
     _bstr->seek(_oggOffset);
     OggReader oggReader(_bstr);
     std::vector<short> samples;
     std::vector<char> wav;
-    uint64_t curSample = 0;
 
-    for (LSAEntry& entry : _entries) {
-        if (curSample != entry.sampleOffset) { // int32 overflow, ignore
+    for (size_t i = 0; i < _entries.size(); ++i) {
+        auto& entry = _entries[i];
+        auto fileSampleSize = entry.sampleSize;
+        if (i != _entries.size() - 1) {
+            fileSampleSize = _entries[i + 1].sampleOffset - _entries[i].sampleOffset;
         }
 
         std::string name = toUtf8(entry.name);
         boost::algorithm::trim(name);
 
-        oggReader.readSamples(entry.sampleSize, samples);
-        createWav(samples, wav);
+        oggReader.readSamples(fileSampleSize, samples);
+        samples.resize(entry.sampleSize);
+        auto info = oggReader.info();
+        createWav(samples, wav, info.rate, info.channels);
 
         if (samples.size() != entry.sampleSize)
             throw std::runtime_error("error reading LSA");
@@ -85,7 +87,6 @@ void LSAReader::dump(std::string path,
         file.write(wav.data(), wav.size());
 
         log.advance();
-        curSample += samples.size();
     }
 }
 

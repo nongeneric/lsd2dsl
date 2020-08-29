@@ -10,8 +10,8 @@ namespace dictlsd {
 
 struct LSAEntry {
     std::u16string name;
-    unsigned sampleOffset; // easily overflowed for very big archives
-    unsigned sampleSize;
+    uint32_t sampleOffset; // easily overflowed for very big archives
+    uint32_t sampleSize;
 };
 
 class LSAReader {

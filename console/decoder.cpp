@@ -241,7 +241,7 @@ void decodeAdp(std::string adpPath, fs::path outputPath) {
     std::vector<int16_t> pcmVec;;
     duden::decodeAdp(inputVec, pcmVec);
     std::vector<char> wav;
-    dictlsd::createWav(pcmVec, wav, duden::ADP_SAMPLE_RATE);
+    dictlsd::createWav(pcmVec, wav, duden::ADP_SAMPLE_RATE, duden::ADP_CHANNELS);
     output.write(reinterpret_cast<char*>(&wav[0]), wav.size());
 }
 

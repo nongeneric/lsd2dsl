@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.14)
 
-project(lsd2dsl VERSION 0.5.1 LANGUAGES C CXX)
+project(lsd2dsl VERSION 0.5.2 LANGUAGES C CXX)
 
 configure_file (
     "${CMAKE_SOURCE_DIR}/lib/common/version.h.in"
@@ -11,6 +11,10 @@ include_directories("${PROJECT_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
+
+if(WIN32)
+    set(Boost_ARCHITECTURE "-x32")
+endif()
 
 set(Boost_USE_STATIC_LIBS       OFF)
 set(Boost_USE_MULTITHREADED      ON)
