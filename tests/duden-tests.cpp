@@ -1034,7 +1034,7 @@ TEST(duden, ParseTextTableWithNestedTable) {
     ASSERT_NE(nullptr, innerTable->table());
     ASSERT_EQ(1, innerTable->table()->rows());
     ASSERT_EQ(1, innerTable->table()->columns());
-    ASSERT_EQ("InnerTable", printDsl(innerTable->table()->cell(0, 0)));
+    ASSERT_EQ("InnerTable ", printDsl(innerTable->table()->cell(0, 0)));
 }
 
 TEST(duden, ParseTextTableWithExtraCells) {
@@ -1293,6 +1293,13 @@ TEST(duden, ParseWebLink) {
     ASSERT_EQ(expected, printTree(run));
 }
 
+TEST(duden, ConvertWebLinkToDsl) {
+    std::string text = "\\F{_WebLink}abc\\F{WebLink_}de";
+    ParsingContext context;
+    auto run = parseDudenText(context, text);
+    ASSERT_EQ("[url]abc[/url]de", duden::printDsl(run));
+}
+
 TEST(duden, ParseEscapedBackslash) {
     std::string text = "@\\@\\a@\\b@\\c";
     ParsingContext context;
@@ -1392,9 +1399,9 @@ TEST(duden, ParseUnterminatedReferences) {
 TEST(duden, HandleNewLinesInDsl) {
     ParsingContext context;
     auto run = parseDudenText(context, "a\\\\b");
-    ASSERT_EQ("a\nb", printDsl(run));
+    ASSERT_EQ("a[br]\nb", printDsl(run));
     run = parseDudenText(context, "a\nb");
-    ASSERT_EQ("ab", printDsl(run));
+    ASSERT_EQ("a b", printDsl(run));
 }
 
 TEST(duden, HandleAddendumInDsl) {
@@ -1426,7 +1433,7 @@ TEST(duden, PrintInlineRenderedTable) {
     auto tableRun = dynamic_cast<TableRun*>(run->runs().front());
     ASSERT_NE(nullptr, tableRun);
     tableRun->setRenderedName("table.bmp");
-    ASSERT_EQ("[s]table.bmp[/s]", printDsl(run));
+    ASSERT_EQ("[s]table.bmp[/s] ", printDsl(run));
 }
 
 TEST(duden, InlineRenderAndPrintPicture) {
@@ -1442,7 +1449,7 @@ TEST(duden, InlineRenderAndPrintPicture) {
     std::string name;
     TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
     renderer.render(run);
-    auto expected = "----------\n"
+    auto expected = "\n----------\n"
                     "[b]2. keplersches Gesetz:[/b]\n"
                     "Die vom Fahrstrahl in gleichen Zeitintervallen überstrichenen Flächen (rosa) sind gleich groß\n"
                     "[s]b5bi1607.BMP[/s]\n"
@@ -1562,12 +1569,12 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
     renderer.render(run);
     auto expected = bformat(
-                "----------\n"
+                "\n----------\n"
                 "Tabelle: table name\n"
-                "[b]Table: Name[/b]"
-                "[s]%s[/s]"
-                "Footer 1\n"
-                "Footer 2\n"
+                "[b]Table: Name[/b] "
+                "[s]%s[/s] "
+                "Footer 1[br]\n"
+                "Footer 2[br]\n[br]\n"
                 "----------\n", name);
     ASSERT_EQ(expected, printDsl(run));
 }
@@ -1795,4 +1802,49 @@ TEST(duden, GuessLanguages) {
     EXPECT_EQ(engCode, ld1.targetLanguageCode);
     EXPECT_EQ(engCode, ld2.sourceLanguageCode);
     EXPECT_EQ(deuCode, ld2.targetLanguageCode);
+}
+
+TEST(duden, CollapseNewLinesInDsl) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "@1Heading @0@C%ID=123\n\\\\\n@8\\\\\n@9\nabc\n123");
+    ASSERT_EQ("[b]Heading [/b][br]\n[br]\nabc 123", printDsl(run));
+
+    run = parseDudenText(context, "\n\n\n");
+    ASSERT_EQ("", printDsl(run));
+
+    run = parseDudenText(context, ".\n\n\n");
+    ASSERT_EQ(". ", printDsl(run));
+
+    run = parseDudenText(context, ".\n\\\\\\\n\n");
+    ASSERT_EQ(".[br]\n", printDsl(run));
+
+    run = parseDudenText(context, ".\n\nabc\n\\\\123");
+    ASSERT_EQ(". abc[br]\n123", printDsl(run));
+
+    run = parseDudenText(context, "1\\\\2\n\n\n");
+    ASSERT_EQ("1[br]\n2 ", printDsl(run));
+
+    run = parseDudenText(context, "@1abc@0\\\\\n@C%ID=000000001\n@0\\.\\\\\n");
+    ASSERT_EQ("[b]abc[/b][br]\n.[br]\n", printDsl(run));
+
+    run = parseDudenText(context, "@C%ID=000000001\n@0\\.\\\\\n");
+    ASSERT_EQ(".[br]\n", printDsl(run));
+}
+
+TEST(duden, EscapeDirectivesInDsl) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "#^");
+    ASSERT_EQ("\\#\\^", printDsl(run));
+}
+
+TEST(duden, HandleNonBreakingSpace) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "a~b");
+    ASSERT_EQ("a\xC2\xA0""b", printDsl(run));
+}
+
+TEST(duden, HandleTildeInDsl) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "@~");
+    ASSERT_EQ("\\~", printDsl(run));
 }

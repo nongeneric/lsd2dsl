@@ -4,6 +4,8 @@
 #include "lib/common/bformat.h"
 #include "lib/common/filesystem.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/range/algorithm_ext/erase.hpp>
+#include <boost/range/algorithm.hpp>
 #include <QByteArray>
 
 namespace duden {
@@ -330,6 +332,9 @@ class DslVisitor : public TextRunVisitor {
         auto text = run->text();
         boost::algorithm::replace_all(text, "[", "\\[");
         boost::algorithm::replace_all(text, "]", "\\]");
+        boost::algorithm::replace_all(text, "#", "\\#");
+        boost::algorithm::replace_all(text, "~", "\\~");
+        boost::algorithm::replace_all(text, "^", "\\^");
         _result += text;
     }
 
@@ -339,6 +344,10 @@ class DslVisitor : public TextRunVisitor {
 
     void visit(UnderlineFormattingRun* run) override {
         visitTag(run, "u");
+    }
+
+    void visit(WebLinkFormattingRun* run) override {
+        visitTag(run, "url");
     }
 
     void visit(SuperscriptFormattingRun* run) override {
@@ -368,10 +377,12 @@ class DslVisitor : public TextRunVisitor {
     }
 
     void visit(LineBreakRun*) override {
-        _result += "\n";
+        _result += "[br]\n";
     }
 
-    void visit(SoftLineBreakRun*) override { }
+    void visit(SoftLineBreakRun*) override {
+        _result += " ";
+    }
 
     void visit(ReferencePlaceholderRun*) override { }
 
@@ -382,17 +393,18 @@ class DslVisitor : public TextRunVisitor {
     }
 
     void visit(TableReferenceRun* run) override {
+        _result += "\n";
         _result += _separator;
         _result += "\n";
         TextRunVisitor::visit(run->referenceCaption());
         _result += "\n";
         TextRunVisitor::visit(run->content());
-        _result += "\n";
         _result += _separator;
         _result += "\n";
     }
 
     void visit(PictureReferenceRun* run) override {
+        _result += "\n";
         _result += _separator;
         _result += "\n";
         TextRunVisitor::visit(run->header());
@@ -440,6 +452,54 @@ public:
     const std::string& result() const { return _result; }
 };
 
+class ConsecutiveNewLineRewriter : public TextRunVisitor {
+public:
+    void visit(TextRun* run) override {
+        auto& runs = run->runs();
+        auto isNewLine = [] (auto textRun) {
+            return dynamic_cast<SoftLineBreakRun*>(textRun)
+                || dynamic_cast<LineBreakRun*>(textRun);
+        };
+
+        auto isInvisible = [] (auto textRun) -> bool {
+            return dynamic_cast<ReferencePlaceholderRun*>(textRun)
+                || dynamic_cast<IdRun*>(textRun);
+        };
+
+        boost::range::remove_erase_if(runs, isInvisible);
+        runs.erase(begin(runs), boost::find_if(runs, [=] (auto run) { return !isNewLine(run); }));
+
+        auto it = begin(runs);
+        while (it != end(runs)) {
+            TextRun* lineBreak = nullptr;
+            TextRun* softLineBreak = nullptr;
+            auto start = std::find_if(it, end(runs), isNewLine);
+            it = start;
+            while (it != end(runs) && isNewLine(*it)) {
+                if (auto typed = dynamic_cast<LineBreakRun*>(*it))
+                    lineBreak = typed;
+                if (auto typed = dynamic_cast<SoftLineBreakRun*>(*it))
+                    softLineBreak = typed;
+                ++it;
+            }
+            if (it - start < 2)
+                continue;
+            if (lineBreak) {
+                std::replace_if(start, it, [] (auto run) { return dynamic_cast<SoftLineBreakRun*>(run); }, nullptr);
+            } else {
+                std::fill(start, it, nullptr);
+                *start = softLineBreak;
+            }
+        }
+
+        boost::range::remove_erase(runs, nullptr);
+
+        for (auto child : runs) {
+            child->accept(this);
+        }
+    }
+};
+
 }
 
 std::string printTree(TextRun *run) {
@@ -455,13 +515,11 @@ std::string printHtml(TextRun *run, RequestImageCallback requestImage) {
 }
 
 std::string printDsl(TextRun *run) {
-    DslVisitor htmlVisitor;
-    run->accept(&htmlVisitor);
-    auto result = htmlVisitor.result();
-    result.erase(std::unique(begin(result), end(result), [](auto a, auto b) {
-        return a == '\n' && a == b;
-    }), end(result));
-    return result;
+    ConsecutiveNewLineRewriter newLineRewriter;
+    run->accept(&newLineRewriter);
+    DslVisitor dslVisitor;
+    run->accept(&dslVisitor);
+    return dslVisitor.result();
 }
 
 }

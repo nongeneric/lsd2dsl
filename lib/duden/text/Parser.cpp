@@ -530,6 +530,10 @@ class Parser {
                 appendPlain('\\');
                 return true;
             }
+            if (lit("~")) {
+                appendPlain('~');
+                return true;
+            }
             if (lit(";")) {
                 appendPlain(';');
                 return true;
@@ -578,6 +582,10 @@ class Parser {
             if (lit("\n") || lit("\r\n")) {
                 finishPlain();
                 current()->addRun(_context->make<SoftLineBreakRun>());
+                continue;
+            }
+            if (lit("~")) {
+                appendPlain("\xC2\xA0");
                 continue;
             }
             char ch;

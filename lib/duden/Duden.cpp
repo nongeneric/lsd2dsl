@@ -1,15 +1,18 @@
 #include "Duden.h"
 
+#include "lib/common/bformat.h"
+#include "lib/common/overloaded.h"
+
+#include "assert.h"
 #include "unzip/inflate.h"
 #include "zlib.h"
 #include <QTextCodec>
 #include <boost/algorithm/string.hpp>
+
+#include <optional>
 #include <regex>
 #include <tuple>
 #include <unordered_map>
-#include "assert.h"
-#include "lib/common/overloaded.h"
-#include "lib/common/bformat.h"
 
 namespace duden {
 

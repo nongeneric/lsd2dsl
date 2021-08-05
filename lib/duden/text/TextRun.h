@@ -503,7 +503,7 @@ public:
         visitImpl(run);
         auto content = run->content();
         if (content) {
-            TextRunVisitor::visit(content);
+            content->accept(this);
         }
     }
 
