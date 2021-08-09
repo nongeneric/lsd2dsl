@@ -1226,7 +1226,7 @@ TEST(duden, ParseColors) {
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto expected = "TextRun\n"
-                    "  ColorFormattingRun; rgb=0000ff; name=blue\n"
+                    "  ColorFormattingRun; rgb=0000ff; name=blue; tilde=0\n"
                     "    PlainRun: abc\n";
     ASSERT_EQ(expected, printTree(run));
 }
@@ -1236,7 +1236,7 @@ TEST(duden, ParseColorsWithoutSpaces) {
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto expected = "TextRun\n"
-                    "  ColorFormattingRun; rgb=ff0000; name=red\n"
+                    "  ColorFormattingRun; rgb=ff0000; name=red; tilde=0\n"
                     "    PlainRun: abc\n";
     ASSERT_EQ(expected, printTree(run));
 }
@@ -1246,13 +1246,14 @@ TEST(duden, ParseColorsWithoutSpacesAndUnderscore) {
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto expected = "TextRun\n"
-                    "  ColorFormattingRun; rgb=ff0000; name=red\n"
+                    "  ColorFormattingRun; rgb=ff0000; name=red; tilde=1\n"
                     "    PlainRun: abc\n";
     ASSERT_EQ(expected, printTree(run));
 }
 
 TEST(duden, SimpleFormatting) {
     std::string text = "\\F{_FF 00 00}color\\F{FF 00 00_}"
+                       "\\F{~FF0000}color\\F{FF0000~}"
                        "@1bold"
                        "@3bold italic"
                        "@2italic@0"
@@ -1263,6 +1264,7 @@ TEST(duden, SimpleFormatting) {
     ParsingContext context;
     auto run = parseDudenText(context, text);
     auto expected = "[c red]color[/c]"
+                    "color"
                     "[b]bold[/b]"
                     "[b][i]bold italic[/i][/b]"
                     "[i]italic[/i]"
@@ -1272,6 +1274,7 @@ TEST(duden, SimpleFormatting) {
                     "plain a[sub]sub[/sub] and a[sup]sup[/sup]";
     ASSERT_EQ(expected, printDsl(run));
     expected = "<font color=\"red\">color</font>"
+               "color"
                "<b>bold</b>"
                "<b><i>bold italic</i></b>"
                "<i>italic</i>"
@@ -1921,4 +1924,10 @@ TEST(duden, DefaultArticleResolveHint) {
     ASSERT_EQ("b", defaultArticleResolve(groups, 11, "b ", context));
     ASSERT_EQ("b", defaultArticleResolve(groups, 11, "b,", context));
     ASSERT_EQ("", defaultArticleResolve(groups, 15, "z", context));
+}
+
+TEST(duden, EscapeParenthesesInDslHeadings) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "Heading (not a variant)");
+    ASSERT_EQ("Heading \\(not a variant\\)", printDslHeading(run));
 }

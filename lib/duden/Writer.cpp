@@ -14,8 +14,6 @@
 #include "lib/lsd/tools.h"
 #include "lib/common/WavWriter.h"
 
-#include <boost/algorithm/string.hpp>
-
 namespace duden {
 
 using namespace std::literals;

@@ -157,9 +157,10 @@ class Parser {
         }
     }
 
-    bool sftag(std::string& name) {
+    bool sftag(std::string& name, bool& tilde) {
         if (!lit("F{_") && !lit("F{~"))
             return false;
+        tilde = *(_ptr - 1) == '~';
         tname(name);
         expect_lit("}");
         return true;
@@ -284,7 +285,7 @@ class Parser {
         return std::tuple<int, int>{from, to};
     }
 
-    bool parseRbg(const std::string& text, uint32_t& rgb) {
+    bool parseRgb(const std::string& text, uint32_t& rgb) {
         std::regex rx("^([0-9a-fA-F]{2})\\s?([0-9a-fA-F]{2})\\s?([0-9a-fA-F]{2})$");
         std::smatch m;
         if (!std::regex_match(text, m, rx))
@@ -477,13 +478,14 @@ class Parser {
             return;
         }
         std::string name;
-        if (sftag(name)) {
+        bool tilde = false;
+        if (sftag(name, tilde)) {
             finishPlain();
             uint32_t rgb;
             if (name == "ADD" || name == "UE") {
                 push(_context->make<AddendumFormattingRun>());
-            } else if (parseRbg(name, rgb)) {
-                push(_context->make<ColorFormattingRun>(rgb, findColorName(rgb)));
+            } else if (parseRgb(name, rgb)) {
+                push(_context->make<ColorFormattingRun>(rgb, findColorName(rgb), tilde));
             } else if (name == "WebLink") {
                 push(_context->make<WebLinkFormattingRun>());
             } else if (name == "Left" || name == "Right" || name == "Center") {

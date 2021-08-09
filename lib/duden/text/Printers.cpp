@@ -69,9 +69,10 @@ public:
 
     void visit(ColorFormattingRun* run) override {
         print(run,
-              bformat("ColorFormattingRun; rgb=%06x; name=%s",
+              bformat("ColorFormattingRun; rgb=%06x; name=%s; tilde=%d",
                       run->rgb(),
-                      run->name()));
+                      run->name(),
+                      run->tilde()));
         TextRunVisitor::visit(run);
     }
 
@@ -255,6 +256,10 @@ class HtmlVisitor : public TextRunVisitor {
     }
 
     void visit(ColorFormattingRun* run) override {
+        if (run->tilde()) {
+            TextRunVisitor::visit(run);
+            return;
+        }
         _result += "<font color=\"";
         _result += run->name();
         _result += "\">";
@@ -360,6 +365,10 @@ class DslVisitor : public TextRunVisitor {
     }
 
     void visit(ColorFormattingRun* run) override {
+        if (run->tilde()) {
+            TextRunVisitor::visit(run);
+            return;
+        }
         _result += "[c ";
         _result += run->name();
         _result += "]";

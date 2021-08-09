@@ -74,15 +74,17 @@ public:
 class ColorFormattingRun : public FormattingRun {
     uint32_t _rgb;
     std::string _name;
+    bool _tilde;
 
 public:
-    ColorFormattingRun(uint32_t rgb, std::string name)
-        : _rgb(rgb), _name(name) {}
+    ColorFormattingRun(uint32_t rgb, std::string name, bool tilde)
+        : _rgb(rgb), _name(name), _tilde(tilde) {}
 
     void accept(TextRunVisitor *visitor) override;
 
     uint32_t rgb() const { return _rgb; }
     const std::string& name() const { return _name; }
+    bool tilde() const { return _tilde; }
 };
 
 class AddendumFormattingRun : public FormattingRun {
