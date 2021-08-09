@@ -10,6 +10,7 @@
 #include "lib/duden/text/Parser.h"
 #include "lib/duden/text/Printers.h"
 #include "lib/duden/text/Reference.h"
+#include "lib/duden/Writer.h"
 #include "lib/duden/HtmlRenderer.h"
 #include "lib/duden/TableRenderer.h"
 #include "lib/common/bformat.h"
@@ -461,6 +462,16 @@ TEST(duden, UnicodeIgnoreEscapesInsideRefs) {
     };
     auto utf = dudenToUtf8((const char*)text);
     ASSERT_EQ(u8"Mụ̈nden\\S{;.MK;;Hannoversch Münden }Mụ̈nden", utf);
+}
+
+TEST(duden, UnicodeHandleEscapesInsideArticleRefs) {
+    const uint8_t text[] = {
+        0x74, 0x20, 0x5C, 0x53, 0x7B, 0x73, 0xA0, 0xE4, 0x75, 0x67, 0x65, 0x6E,
+        0x3B, 0x3A, 0x30, 0x30, 0x34, 0x38, 0x37, 0x32, 0x32, 0x32, 0x32, 0x7D,
+        0x2E, 0x00
+    };
+    auto utf = dudenToUtf8((const char*)text);
+    ASSERT_EQ(u8"t \\S{säugen;:004872222}.", utf);
 }
 
 TEST(duden, UnicodeDontIgnoreEscapesInsideTables) {
@@ -1483,6 +1494,16 @@ TEST(duden, DedupHeading) {
     article = parseDudenText(context, "Hea\nding");
     res = dedupHeading(heading, article);
     ASSERT_EQ(false, res);
+
+    article = parseDudenText(context, "    \n@1Heading @0\nAnd then body");
+    res = dedupHeading(heading, article);
+    ASSERT_EQ(true, res);
+    ASSERT_EQ("And then body", printDsl(article));
+
+    article = parseDudenText(context, "@1Heading: @0@C%ID=0000\nAnd then body");
+    res = dedupHeading(heading, article);
+    ASSERT_EQ(true, res);
+    ASSERT_EQ("And then body", printDsl(article));
 }
 
 TEST(duden, ParseRangeReference) {
@@ -1659,7 +1680,7 @@ TEST(duden, InlineArticleReference) {
     ParsingContext context;
     auto run = parseDudenText(context, "\\S{ArticleName;:000620083}\\S{SameName;:000620084}");
     resolveReferences(context, run, {}, nullptr);
-    resolveArticleReferences(run, [](auto offset) {
+    resolveArticleReferences(run, [](auto offset, [[maybe_unused]] auto& hint) {
         if (offset == 620083)
             return "ResolvedName";
         if (offset == 620084)
@@ -1667,6 +1688,46 @@ TEST(duden, InlineArticleReference) {
         return "error";
     });
     ASSERT_EQ("[ref]ResolvedName[/ref] (ArticleName)[ref]SameName[/ref]", printDsl(run));
+}
+
+TEST(duden, InlineArticleReferenceHandleSpaces) {
+    ParsingContext context;
+    auto run = parseDudenText(context,
+                              "\\S{ArticleName ;:000620083}"
+                              "\\S{SameName ;:000620084}"
+                              "\\S{ArticleName, ;:000620083}"
+                              "\\S{SameName, ;:000620084}"
+                              "\\S{. SameName, ;:000620084}"
+                              "\\S{Short, ;:000620085}");
+    resolveReferences(context, run, {}, nullptr);
+    resolveArticleReferences(run, [](auto offset, [[maybe_unused]] auto& hint) {
+        if (offset == 620083)
+            return "ResolvedName";
+        if (offset == 620084)
+            return "SameName";
+        if (offset == 620085)
+            return "VeryLongName";
+        return "error";
+    });
+    ASSERT_EQ("[ref]ResolvedName[/ref] (ArticleName) "
+              "[ref]SameName[/ref] "
+              "[ref]ResolvedName[/ref] (ArticleName), "
+              "[ref]SameName[/ref], "
+              ". [ref]SameName[/ref], "
+              "[ref]VeryLongName[/ref] (Short), ",
+              printDsl(run));
+}
+
+TEST(duden, InlineArticleReferenceWithAliasEndingWithSpace) {
+    ParsingContext context;
+    auto run = parseDudenText(context, "\\S{ArticleName ;:000620083}text");
+    resolveReferences(context, run, {}, nullptr);
+    resolveArticleReferences(run, [](auto offset, [[maybe_unused]] auto& hint) {
+        if (offset == 620083)
+            return "ResolvedName";
+        return "error";
+    });
+    ASSERT_EQ("[ref]ResolvedName[/ref] (ArticleName) text", printDsl(run));
 }
 
 TEST(duden, GroupHicEntries1) {
@@ -1847,4 +1908,17 @@ TEST(duden, HandleTildeInDsl) {
     ParsingContext context;
     auto run = parseDudenText(context, "@~");
     ASSERT_EQ("\\~", printDsl(run));
+}
+
+TEST(duden, DefaultArticleResolveHint) {
+    std::map<int32_t, HeadingGroup> groups;
+    groups[10] = {
+        {"a", "b", "c"}
+    };
+    ParsingContext context;
+    ASSERT_EQ("a", defaultArticleResolve(groups, 11, "z", context));
+    ASSERT_EQ("b", defaultArticleResolve(groups, 11, "b", context));
+    ASSERT_EQ("b", defaultArticleResolve(groups, 11, "b ", context));
+    ASSERT_EQ("b", defaultArticleResolve(groups, 11, "b,", context));
+    ASSERT_EQ("", defaultArticleResolve(groups, 15, "z", context));
 }

@@ -246,7 +246,7 @@ public:
     ArticleReferenceVisitor(ResolveArticle resolveArticle) : _resolveArticle(resolveArticle) {}
 
     void visit(ArticleReferenceRun* run) override {
-        run->setHeading(_resolveArticle(run->offset()));
+        run->setHeading(_resolveArticle(run->offset(), printDsl(run->caption())));
     }
 };
 
@@ -265,6 +265,14 @@ void inlineReferences(ParsingContext &context, TextRun *run, const ResourceFiles
 void resolveArticleReferences(TextRun *run, ResolveArticle resolveArticle) {
     ArticleReferenceVisitor visitor(resolveArticle);
     run->accept(&visitor);
+}
+
+std::string trimReferenceDisplayName(std::string str) {
+    boost::algorithm::trim_if(str, [](auto ch) {
+        return ch == ' ' || ch == '\t' || ch == ',' || ch == ';' || ch == '!' ||
+               ch == '?' || ch == '-' || ch == '.';
+    });
+    return str;
 }
 
 } // namespace duden

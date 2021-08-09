@@ -2,6 +2,7 @@
 
 #include "Dictionary.h"
 #include "InfFile.h"
+#include "lib/duden/text/Reference.h"
 #include "lib/common/Log.h"
 #include "lib/common/filesystem.h"
 #include <functional>
@@ -18,4 +19,8 @@ void writeDSL(fs::path infPath,
               int index,
               Log& progress);
 
+std::string defaultArticleResolve(const std::map<int32_t, HeadingGroup>& groups,
+                                  int64_t offset,
+                                  std::string hint,
+                                  ParsingContext& context);
 }

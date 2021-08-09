@@ -14,6 +14,8 @@
 #include "lib/lsd/tools.h"
 #include "lib/common/WavWriter.h"
 
+#include <boost/algorithm/string.hpp>
+
 namespace duden {
 
 using namespace std::literals;
@@ -58,6 +60,22 @@ std::unique_ptr<IResourceArchiveReader> makeArchiveReader(fs::path inputPath,
         return std::make_unique<FsdFile>(fFsd);
     }
 }
+}
+
+std::string defaultArticleResolve(const std::map<int32_t, HeadingGroup>& groups,
+                                  int64_t offset,
+                                  std::string hint,
+                                  ParsingContext& context)
+{
+    auto it = groups.find(offset - 1);
+    if (it == end(groups)) {
+        return {};
+    }
+    auto& headings = it->second.headings;
+    hint = trimReferenceDisplayName(hint);
+    auto exact = std::find(begin(headings), end(headings), hint);
+    auto& heading = exact == end(headings) ? headings.front() : *exact;
+    return printDsl(parseDudenText(context, heading));
 }
 
 void writeDSL(fs::path infPath,
@@ -188,7 +206,7 @@ void writeDSL(fs::path infPath,
         TextRun* headingRun = nullptr;
         for (const auto& heading : group.headings) {
             headingRun = parseDudenText(context, heading);
-            auto dslHeading = printDsl(headingRun);
+            auto dslHeading = printDslHeading(headingRun);
             writer.writeHeading(dictlsd::toUtf16(dslHeading));
         }
 
@@ -201,14 +219,13 @@ void writeDSL(fs::path infPath,
 
             const auto& firstHeading = group.headings.front();
 
-            resolveArticleReferences(articleRun, [&](auto offset) {
-                auto it = groups.find(offset - 1);
-                if (it == end(groups)) {
+            resolveArticleReferences(articleRun, [&](auto offset, auto& hint) {
+                auto heading = defaultArticleResolve(groups, offset, hint, context);
+                if (heading.empty()) {
                     log.regular("Article [%s] references unknown article %d", firstHeading, offset - 1);
-                    return "unknown"s;
+                    heading = "unknown";
                 }
-                auto heading = it->second.headings.front();
-                return printDsl(parseDudenText(context, heading));
+                return heading;
             });
             tableRenderer.render(articleRun);
             if (group.headings.size() == 1) {

@@ -27,7 +27,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
-    add_compile_options(-O0 -ggdb)
+    add_compile_options(-O0 -g -fno-limit-debug-info)
 else()
     add_compile_options(-O3)
 endif()

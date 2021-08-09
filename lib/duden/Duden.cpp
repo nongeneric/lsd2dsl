@@ -163,11 +163,19 @@ std::string dudenToUtf8(std::string str) {
 
         auto size = utf.size();
         if (size >= 3) {
-            auto isSorW = utf[size - 2] == 'S' || utf[size - 2] == 'w';
-            if (utf[size - 3] == '\\' && isSorW && utf[size - 1] == '{') {
+            if (utf[size - 3] == '\\' && utf[size - 2] == 'w' &&
+                utf[size - 1] == '{') {
                 sref = true;
             }
         }
+
+        if (size >= 4) {
+            if (utf[size - 4] == '\\' && utf[size - 3] == 'S' &&
+                utf[size - 2] == '{' && utf[size - 1] == ';') {
+                sref = true;
+            }
+        }
+
         if (size >= 2) {
             if (utf[size - 2] == '@' && utf[size - 1] == 'C') {
                 auto c = next();

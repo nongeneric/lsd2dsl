@@ -3,6 +3,7 @@
 #include "Table.h"
 #include "lib/common/bformat.h"
 #include "lib/common/filesystem.h"
+#include "lib/duden/text/Reference.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
 #include <boost/range/algorithm.hpp>
@@ -422,10 +423,17 @@ class DslVisitor : public TextRunVisitor {
     void visit(ArticleReferenceRun* run) override {
         const auto& headingName = run->heading();
         auto headingCaption = printDsl(run->caption());
-        if (headingName == headingCaption) {
-            _result += bformat("[ref]%s[/ref]", headingName);
+        auto trimmedCaption = trimReferenceDisplayName(headingCaption);
+        auto captionBody = headingCaption.find(trimmedCaption);
+        assert(captionBody != std::string::npos);
+
+        auto head = headingCaption.substr(0, captionBody);
+        auto tail = headingCaption.substr(captionBody + trimmedCaption.size());
+
+        if (headingName == trimmedCaption) {
+            _result += bformat("%s[ref]%s[/ref]%s", head, headingName, tail);
         } else {
-            _result += bformat("[ref]%s[/ref] (%s)", headingName, headingCaption);
+            _result += bformat("%s[ref]%s[/ref] (%s)%s", head, headingName, trimmedCaption, tail);
         }
     }
 
@@ -520,6 +528,13 @@ std::string printDsl(TextRun *run) {
     DslVisitor dslVisitor;
     run->accept(&dslVisitor);
     return dslVisitor.result();
+}
+
+std::string printDslHeading(TextRun* run) {
+    auto heading = printDsl(run);
+    boost::replace_all(heading, "(", "\\(");
+    boost::replace_all(heading, ")", "\\)");
+    return heading;
 }
 
 }

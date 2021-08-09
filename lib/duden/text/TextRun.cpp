@@ -148,7 +148,9 @@ class DedupVisitor : public TextRunVisitor {
 
 public:
     void visit(PlainRun* run) override {
-        _result += run->text();
+        _result += boost::trim_right_copy_if(run->text(), [] (auto ch) {
+            return ch == '\r' || ch == '\n' || ch == '\t' || ch == ':' || ch == ' ';
+        });
     }
 
     std::string result() const {
@@ -168,6 +170,7 @@ bool dedupHeading(TextRun* heading, TextRun* article) {
     visitor.clear();
     std::string articleStr;
     auto& runs = article->runs();
+
     for (auto it = begin(runs); it != end(runs); ++it) {
         (*it)->accept(&visitor);
         auto result = visitor.result();
