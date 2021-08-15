@@ -341,6 +341,7 @@ class DslVisitor : public TextRunVisitor {
         boost::algorithm::replace_all(text, "#", "\\#");
         boost::algorithm::replace_all(text, "~", "\\~");
         boost::algorithm::replace_all(text, "^", "\\^");
+        boost::algorithm::replace_all(text, "@", "\\@");
         _result += text;
     }
 

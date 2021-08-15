@@ -1541,12 +1541,6 @@ TEST(duden, ParseEscapedApostrophe) {
     ASSERT_EQ("a'b", printDsl(run));
 }
 
-TEST(duden, ParseEscapedAtSign) {
-    ParsingContext context;
-    auto run = parseDudenText(context, "a@@b");
-    ASSERT_EQ("a@b", printDsl(run));
-}
-
 TEST(duden, ParsePersonTag) {
     ParsingContext context;
     auto run = parseDudenText(context, "@C%NA=\"abc\"\n");
@@ -1897,8 +1891,8 @@ TEST(duden, CollapseNewLinesInDsl) {
 
 TEST(duden, EscapeDirectivesInDsl) {
     ParsingContext context;
-    auto run = parseDudenText(context, "#^");
-    ASSERT_EQ("\\#\\^", printDsl(run));
+    auto run = parseDudenText(context, "#^@@");
+    ASSERT_EQ("\\#\\^\\@", printDsl(run));
 }
 
 TEST(duden, HandleNonBreakingSpace) {
