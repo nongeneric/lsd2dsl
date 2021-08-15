@@ -3,10 +3,11 @@ project(lib)
 find_package(Qt5WebKitWidgets REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
-find_library(MINIZIP minizip)
 find_library(Z z)
 find_library(VORBISFILE vorbisfile)
 find_library(SNDFILE sndfile)
+
+add_subdirectory(minizip)
 
 add_library(${PROJECT_NAME} STATIC
     lsd/lsd.h
@@ -66,13 +67,14 @@ add_library(${PROJECT_NAME} STATIC
     common/Log.cpp
     common/version.h
 )
+
 target_link_libraries(${PROJECT_NAME}
     ${Boost_LIBRARIES}
     Qt5::Core
     Qt5::Widgets
     Qt5::WebKitWidgets
+    minizip
     ${Z}
-    ${MINIZIP}
     ${VORBISFILE}
     ${SNDFILE}
 )

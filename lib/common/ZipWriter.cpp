@@ -1,8 +1,8 @@
 #include "ZipWriter.h"
 
+#include "lib/minizip/zip.h"
+
 #include <zlib.h>
-#include <minizip/mz_zip.h>
-#include <minizip/mz_compat.h>
 #include <stdexcept>
 #include <cstring>
 #include <time.h>
@@ -19,20 +19,27 @@ void ZipWriter::addFile(std::string name, const void* ptr, unsigned size) {
             throw std::runtime_error("can't create zip file");
     }
 
-    zip_fileinfo file_info;
-    memset(&file_info, 0, sizeof(file_info));
-    file_info.dosDate = mz_zip_time_t_to_dos_date(time(nullptr));
-
+    auto t = time(nullptr);
+    auto tm = *localtime(&t);
+    zip_fileinfo info{{(unsigned)tm.tm_sec,
+                       (unsigned)tm.tm_min,
+                       (unsigned)tm.tm_hour,
+                       (unsigned)tm.tm_mday,
+                       (unsigned)tm.tm_mon,
+                       (unsigned)tm.tm_year + 1900},
+                      0,
+                      0,
+                      0};
     auto ret = zipOpenNewFileInZip4_64(_zip,
                                        name.c_str(),
-                                       &file_info,
+                                       &info,
                                        nullptr,
                                        0,
                                        nullptr,
                                        0,
                                        nullptr,
                                        Z_DEFLATED,
-                                       MZ_COMPRESS_LEVEL_DEFAULT,
+                                       Z_DEFAULT_COMPRESSION,
                                        0,
                                        -MAX_WBITS,
                                        DEF_MEM_LEVEL,
