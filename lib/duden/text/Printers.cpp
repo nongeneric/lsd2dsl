@@ -141,7 +141,10 @@ public:
     }
 
     void visit(TableRun* run) override {
-        print(run, bformat("TableRun%s", run->table() ? "" : " (null Table)"));
+        print(run,
+              bformat("TableRun%s%s",
+                      run->table() ? "" : " (null Table)",
+                      run->renderedName().empty() ? "" : " " + run->renderedName()));
         TextRunVisitor::visit(run);
     }
 
@@ -400,7 +403,7 @@ class DslVisitor : public TextRunVisitor {
     void visit(TableRun* run) override {
         assert(!run->renderedName().empty() &&
                "trying to print TableRun without rendering first");
-        _result += bformat("[s]%s[/s]", run->renderedName());
+        _result += bformat("\n[s]%s[/s]", run->renderedName());
     }
 
     void visit(TableReferenceRun* run) override {

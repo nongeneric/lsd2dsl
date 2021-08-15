@@ -203,7 +203,7 @@ void decodeHic(std::string hicPath,
     }
 }
 
-void parseDudenText(std::string textPath, std::string output) {
+void parseDudenText(std::string textPath, std::string output, bool dudenEncoding) {
     duden::ParsingContext context;
     std::ifstream f(textPath);
     if (!f.is_open())
@@ -212,6 +212,9 @@ void parseDudenText(std::string textPath, std::string output) {
     std::string text(f.tellg(), ' ');
     f.seekg(0);
     f.read(&text[0], text.size());
+    if (dudenEncoding) {
+        text = duden::dudenToUtf8(text);
+    }
     auto run = duden::parseDudenText(context, text);
     std::ofstream of(output + "/textdump");
     auto tree = duden::printTree(run);
@@ -392,7 +395,7 @@ int main(int argc, char* argv[]) {
             decodeHic(hicPath, outputPath);
         }
         if (!textPath.empty()) {
-            parseDudenText(textPath, outputPath);
+            parseDudenText(textPath, outputPath, dudenEncoding);
         }
         if (!fsiPath.empty()) {
             parseFsi(fsiPath, outputPath);

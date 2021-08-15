@@ -126,6 +126,7 @@ std::string dudenToUtf8(std::string str) {
         auto first = next();
         uint32_t ch = first;
         if (!sref) {
+            auto pos = i;
             if (first >= 0xa0) {
                 ch = (ch << 8) | next();
                 if (first >= 0xf6) {
@@ -135,8 +136,11 @@ std::string dudenToUtf8(std::string str) {
                     }
                 }
             }
-            if (ch >= 0xf600)
-                throw std::runtime_error("bad encoding");
+            if (ch >= 0xf600) {
+                // bad encoding, backtrack and skip one char
+                i = pos;
+                ch = '?';
+            }
             if (ch < 0xa0) {
             } else if (ch < 0xa100) {
                 ch &= 0xff;

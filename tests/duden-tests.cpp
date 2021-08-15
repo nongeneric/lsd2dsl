@@ -1447,7 +1447,7 @@ TEST(duden, PrintInlineRenderedTable) {
     auto tableRun = dynamic_cast<TableRun*>(run->runs().front());
     ASSERT_NE(nullptr, tableRun);
     tableRun->setRenderedName("table.bmp");
-    ASSERT_EQ("[s]table.bmp[/s] ", printDsl(run));
+    ASSERT_EQ("\n[s]table.bmp[/s] ", printDsl(run));
 }
 
 TEST(duden, InlineRenderAndPrintPicture) {
@@ -1589,7 +1589,7 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     auto expected = bformat(
                 "\n----------\n"
                 "Tabelle: table name\n"
-                "[b]Table: Name[/b] "
+                "[b]Table: Name[/b] \n"
                 "[s]%s[/s] "
                 "Footer 1[br]\n"
                 "Footer 2[br]\n[br]\n"
@@ -1924,4 +1924,9 @@ TEST(duden, EscapeParenthesesInDslHeadings) {
     ParsingContext context;
     auto run = parseDudenText(context, "Heading (not a variant)");
     ASSERT_EQ("Heading \\(not a variant\\)", printDslHeading(run));
+}
+
+TEST(duden, SkipIncorrectlyEncodedChars) {
+    ParsingContext context;
+    ASSERT_EQ("a?1234", dudenToUtf8("a\xFC""1234"));
 }
