@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.14)
 
-project(lsd2dsl VERSION 0.5.4 LANGUAGES C CXX)
+project(lsd2dsl VERSION 0.5.5 LANGUAGES C CXX)
 
 configure_file (
     "${CMAKE_SOURCE_DIR}/lib/common/version.h.in"
@@ -26,7 +26,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TYPE MATCHES Debug)
     add_compile_options(-fno-limit-debug-info)
 endif()
 

@@ -8,7 +8,7 @@ class ZipWriter {
     std::string _path;
 
 public:
-    ZipWriter(std::string path);
+    explicit ZipWriter(std::string path);
     void addFile(std::string name, const void* ptr, unsigned size);
     ~ZipWriter();
 };
