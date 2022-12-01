@@ -11,9 +11,9 @@ namespace {
 std::string fixFileNameCase(const std::string& name, const CaseInsensitiveSet& files) {
     if (name.empty())
         return name;
-    auto it = files.find(fs::path(name));
+    auto it = files.find(std::filesystem::u8path(name));
     if (it != end(files)) {
-        return it->filename().string();
+        return it->filename().u8string();
     }
     return name;
 }
@@ -48,16 +48,16 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
                     throw std::runtime_error("INF file syntax error");
                 auto value = line.substr(index + 1);
                 boost::algorithm::trim_if(value, boost::algorithm::is_any_of("\r "));
-                files.insert(fs::path(fixFileNameCase(value, fsFileSet)));
+                files.insert(std::filesystem::u8path(fixFileNameCase(value, fsFileSet)));
             } break;
         }
     }
 
-    std::vector<InfFile> infs;    
+    std::vector<InfFile> infs;
 
     auto findExt = [&](auto ext) {
         return std::find_if(begin(files), end(files), [&](auto file) {
-            auto str = file.string();
+            auto str = file.u8string();
             boost::algorithm::to_lower(str);
             return boost::algorithm::ends_with(str, ext);
         });
@@ -70,8 +70,8 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
         inf.supported = true;
         inf.ld = name;
         inf.primary.hic = fixFileNameCase(ld.baseFileName + ".hic", files);
-        inf.primary.idx = fixFileNameCase(fs::path(name).stem().string() + ".idx", files);
-        inf.primary.bof = fixFileNameCase(fs::path(name).stem().string() + ".bof", files);
+        inf.primary.idx = fixFileNameCase(std::filesystem::u8path(name).stem().u8string() + ".idx", files);
+        inf.primary.bof = fixFileNameCase(std::filesystem::u8path(name).stem().u8string() + ".bof", files);
         files.erase(inf.primary.bof);
         files.erase(inf.primary.idx);
         infs.push_back(inf);
@@ -81,15 +81,15 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
     auto fsi = findExt(".fsi");
     if (fsi != end(files)) {
         fsiResource.fsi = fsi->string();
-        auto bof = files.find(fsi->stem().string() + ".bof");
-        auto idx = files.find(fsi->stem().string() + ".idx");
+        auto bof = files.find(std::filesystem::u8path(fsi->stem().u8string() + ".bof"));
+        auto idx = files.find(std::filesystem::u8path(fsi->stem().u8string() + ".idx"));
         if (bof == end(files) || idx == end(files)) {
             fsiResource = {};
             fsi = end(files);
         } else {
             fsiResource.bof = fixFileNameCase(bof->string(), files);
             fsiResource.idx = fixFileNameCase(idx->string(), files);
-            files.erase(fs::path(fsiResource.bof));
+            files.erase(std::filesystem::u8path(fsiResource.bof));
         }
     }
 
@@ -105,7 +105,7 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
                 ResourceArchive resource;
                 resource.fsd = fsd->string();
                 files.erase(fsd);
-                auto base = fs::path(resource.fsd).stem().string();
+                auto base = std::filesystem::u8path(resource.fsd).stem().u8string();
                 resource.fsi = fixFileNameCase(base + ".fsi", files);
                 if (files.find(resource.fsi) == end(files))
                     throw std::runtime_error("FSD blob doesn't have a corresponding FSI file");
@@ -119,7 +119,7 @@ std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSys
             ResourceArchive resource;
             resource.bof = bof->string();
             files.erase(bof);
-            auto base = fs::path(resource.bof).stem().string();
+            auto base = std::filesystem::u8path(resource.bof).stem().u8string();
             resource.fsi = fixFileNameCase(base + ".fsi", files);
             resource.idx = fixFileNameCase(base + ".idx", files);
             if (files.find(resource.fsi) == end(files)) {

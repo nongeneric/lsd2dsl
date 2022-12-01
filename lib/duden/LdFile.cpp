@@ -1,7 +1,7 @@
 #include "LdFile.h"
 #include "Duden.h"
-#include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <regex>
 
 namespace duden {
 
@@ -17,8 +17,8 @@ LdFile parseLdFile(dictlsd::IRandomAccessStream* stream) {
             continue;
         line = win1252toUtf8(line);
         if (line[0] == 'G' || line[0] == 'g') {
-            boost::smatch m;
-            if (!boost::regex_match(line, m, boost::regex("^.(.*?)\\|(.*?)\\|(.*?)$")))
+            std::smatch m;
+            if (!std::regex_match(line, m, std::regex("^.(.*?)\\|(.*?)\\|(.*?)$")))
                 throw std::runtime_error("LD parsing error");
             ld.references.push_back({m[1], m[2], m[3]});
         } else if (line[0] == 'B') {
@@ -28,8 +28,8 @@ LdFile parseLdFile(dictlsd::IRandomAccessStream* stream) {
         } else if (line[0] == 'K') {
             ld.baseFileName = line.substr(1);
         } else if (line[0] == 'D') {
-            boost::smatch m;
-            if (!boost::regex_match(line, m, boost::regex("^D(.+?) (\\d+) (\\d+).*$")))
+            std::smatch m;
+            if (!std::regex_match(line, m, std::regex("^D(.+?) (\\d+) (\\d+).*$")))
                 throw std::runtime_error("LD parsing error");
             ld.ranges.push_back({m[1],
                                  static_cast<uint32_t>(std::stoul(m[2])),

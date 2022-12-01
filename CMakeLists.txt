@@ -19,7 +19,7 @@ endif()
 set(Boost_USE_STATIC_LIBS       OFF)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
-find_package(Boost 1.60 COMPONENTS system program_options filesystem regex REQUIRED)
+find_package(Boost 1.60 COMPONENTS system program_options REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 if(NOT CMAKE_BUILD_TYPE)

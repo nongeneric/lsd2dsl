@@ -26,11 +26,11 @@ class ResourceFileSystem : public IFileSystem {
 public:
     ResourceFileSystem(const std::vector<std::string>& names) {
         for (auto& name : names) {
-            _paths.insert(fs::path(name));
+            _paths.insert(std::filesystem::u8path(name));
         }
     }
 
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path) override {
         return {};
     }
 
@@ -47,14 +47,14 @@ uint32_t calcBofOffset(duden::Dictionary& dict) {
     return std::distance(begin(head), it);
 }
 
-std::unique_ptr<IResourceArchiveReader> makeArchiveReader(fs::path inputPath,
+std::unique_ptr<IResourceArchiveReader> makeArchiveReader(std::filesystem::path inputPath,
                                                           const duden::ResourceArchive& archive) {
     if (archive.fsd.empty()) {
-        dictlsd::FileStream fIdx((inputPath / archive.idx).string());
-        auto fBof = std::make_shared<dictlsd::FileStream>((inputPath / archive.bof).string());
+        dictlsd::FileStream fIdx(inputPath / archive.idx);
+        auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / archive.bof);
         return std::make_unique<Archive>(&fIdx, fBof);
     } else {
-        auto fFsd = std::make_shared<dictlsd::FileStream>((inputPath / archive.fsd).string());
+        auto fFsd = std::make_shared<dictlsd::FileStream>(inputPath / archive.fsd);
         return std::make_unique<FsdFile>(fFsd);
     }
 }
@@ -76,12 +76,12 @@ std::string defaultArticleResolve(const std::map<int32_t, HeadingGroup>& groups,
     return printDsl(parseDudenText(context, heading));
 }
 
-void writeDSL(fs::path infPath,
-              fs::path outputPath,
+void writeDSL(std::filesystem::path infPath,
+              std::filesystem::path outputPath,
               int index,
               Log& log) {
     auto inputPath = infPath.parent_path();
-    duden::FileSystem fs(infPath.parent_path().string());
+    duden::FileSystem fs(infPath.parent_path());
     duden::Dictionary dict(&fs, infPath, index);
 
     std::string dslFileName = dict.ld().name;
@@ -93,8 +93,8 @@ void writeDSL(fs::path infPath,
     const auto& entries = dict.entries();
     auto groups = groupHicEntries(entries);
 
-    dsl::Writer writer(outputPath.string(), dslFileName);
-    auto overlayPath = writer.dslFilePath() + ".files.zip";
+    dsl::Writer writer(outputPath, dslFileName);
+    auto overlayPath = std::filesystem::u8path(writer.dslFilePath().u8string() + ".files.zip");
     ZipWriter zip(overlayPath);
 
     ResourceFiles resources;
@@ -104,15 +104,15 @@ void writeDSL(fs::path infPath,
 
         log.regular("unpacking %s", pack.bof);
 
-        dictlsd::FileStream fIndex((inputPath / pack.idx).string());
-        auto fBof = std::make_shared<dictlsd::FileStream>((inputPath / pack.bof).string());
+        dictlsd::FileStream fIndex(inputPath / pack.idx);
+        auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / pack.bof);
         Archive archive(&fIndex, fBof);
         std::vector<char> vec;
         archive.read(0, -1, vec);
         auto stream = std::make_unique<std::stringstream>();
         stream->write(vec.data(), vec.size());
         stream->seekg(0);
-        auto filename = fs::path(pack.bof).stem().string();
+        auto filename = std::filesystem::u8path(pack.bof).stem().u8string();
         resources[filename] = std::move(stream);
     }
 
@@ -130,7 +130,7 @@ void writeDSL(fs::path infPath,
         if (pack.fsi.empty())
             continue;
 
-        dictlsd::FileStream fFsi((inputPath / pack.fsi).string());
+        dictlsd::FileStream fFsi(inputPath / pack.fsi);
         auto entries = parseFsiFile(&fFsi);
 
         log.resetProgress(pack.fsi, entries.size());
@@ -181,8 +181,8 @@ void writeDSL(fs::path infPath,
             return vec;
         }
         auto [pack, offset, size] = it->second;
-        dictlsd::FileStream fIndex((inputPath / pack->idx).string());
-        auto fBof = std::make_shared<dictlsd::FileStream>((inputPath / pack->bof).string());
+        dictlsd::FileStream fIndex(inputPath / pack->idx);
+        auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / pack->bof);
         Archive archive(&fIndex, fBof);
         archive.read(offset, size, vec);
         return vec;

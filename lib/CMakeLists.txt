@@ -3,6 +3,7 @@ project(lib)
 find_package(Qt5WebKitWidgets REQUIRED)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 find_library(Z z)
 find_library(VORBISFILE vorbisfile)
 find_library(SNDFILE sndfile)
@@ -38,8 +39,6 @@ add_library(${PROJECT_NAME} STATIC
     lsd/LSAReader.cpp
     lsd/OggReader.h
     lsd/OggReader.cpp
-    lsd/UnicodePathFile.h
-    lsd/UnicodePathFile.cpp
     duden/Duden.cpp
     duden/Archive.cpp
     duden/Dictionary.cpp
@@ -77,4 +76,5 @@ target_link_libraries(${PROJECT_NAME}
     ${Z}
     ${VORBISFILE}
     ${SNDFILE}
+    fmt::fmt-header-only
 )

@@ -4,7 +4,6 @@
 #include "InfFile.h"
 #include "lib/duden/text/Reference.h"
 #include "lib/common/Log.h"
-#include "lib/common/filesystem.h"
 #include <functional>
 
 namespace duden {
@@ -14,8 +13,8 @@ enum class LogLevel {
     Verbose
 };
 
-void writeDSL(fs::path infPath,
-              fs::path outputPath,
+void writeDSL(std::filesystem::path infPath,
+              std::filesystem::path outputPath,
               int index,
               Log& progress);
 

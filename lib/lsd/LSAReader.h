@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <filesystem>
 
 namespace dictlsd {
 
@@ -23,11 +24,10 @@ class LSAReader {
 public:
     LSAReader(IRandomAccessStream* bstr);
     void collectHeadings();
-    void dump(std::string path,
-              Log& log);
+    void dump(std::filesystem::path path, Log& log);
     unsigned entriesCount() const;
 };
 
-void decodeLSA(std::string lsaPath, std::string outputPath, Log& log);
+void decodeLSA(std::filesystem::path lsaPath, std::filesystem::path outputPath, Log& log);
 
 }

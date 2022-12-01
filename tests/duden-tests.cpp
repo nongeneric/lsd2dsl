@@ -14,7 +14,6 @@
 #include "lib/duden/HtmlRenderer.h"
 #include "lib/duden/TableRenderer.h"
 #include "lib/common/bformat.h"
-#include "lib/common/filesystem.h"
 #include "test-utils.h"
 #include <QApplication>
 #include "zlib.h"
@@ -107,12 +106,12 @@ TEST(duden, HicNodeTest_ParseNonLeafs) {
     auto at = [&](int i) { return std::get<HicNode>(block[i]); };
 
     ASSERT_EQ(2, block.size());
-    EXPECT_EQ("Zusätze", at(0).heading);
+    EXPECT_EQ(u8"Zusätze", at(0).heading);
     EXPECT_EQ(13, at(0).count);
     EXPECT_EQ(-67283, at(0).delta);
     EXPECT_EQ(151, at(0).hicOffset);
 
-    EXPECT_EQ("Wörterverzeichnis", at(1).heading);
+    EXPECT_EQ(u8"Wörterverzeichnis", at(1).heading);
     EXPECT_EQ(10, at(1).count);
     EXPECT_EQ(-7912591, at(1).delta);
     EXPECT_EQ(667, at(1).hicOffset);
@@ -137,7 +136,7 @@ TEST(duden, ParseSingleItemFsiBlock) {
     auto entries = parseFsiBlock(&stream);
 
     ASSERT_EQ(1, entries.size());
-    ASSERT_EQ(u8"EURO.BMP", entries[0].name);
+    ASSERT_EQ("EURO.BMP", entries[0].name);
     ASSERT_EQ(0, entries[0].offset);
     ASSERT_EQ(1318, entries[0].size);
 }
@@ -148,7 +147,7 @@ TEST(duden, ParseSingleItemFsiBlockUnicode) {
     auto entries = parseFsiBlock(&stream);
 
     ASSERT_EQ(1, entries.size());
-    ASSERT_EQ("EURä.BMP", entries[0].name);
+    ASSERT_EQ(u8"EURä.BMP", entries[0].name);
     ASSERT_EQ(0, entries[0].offset);
     ASSERT_EQ(1318, entries[0].size);
 }
@@ -213,7 +212,7 @@ TEST(duden, ParseBFsiBlock) {
 
 TEST(duden, DecodeFixedTreeBofBlock) {
     std::vector<char> decoded;
-    std::fstream f(testPath("duden_testfiles/bofFixedDeflateBlock"));
+    std::ifstream f(testPath("duden_testfiles/bofFixedDeflateBlock"));
     f.seekg(0, std::ios_base::end);
     std::vector<char> buf(f.tellg());
     f.seekg(0);
@@ -240,11 +239,11 @@ public:
                   "du5neU.Ld"};
     }
 
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path path) override {
-        if (boost::algorithm::to_lower_copy(path.extension().string()) == ".ld") {
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path path) override {
+        if (boost::algorithm::to_lower_copy(path.extension().u8string()) == ".ld") {
             _lds.push_back(std::make_unique<std::string>());
             auto& ld = _lds.back();
-            *ld = "K" + path.stem().string();
+            *ld = "K" + path.stem().u8string();
             return std::make_unique<dictlsd::InMemoryStream>(ld->c_str(), ld->size());
         }
         throw std::runtime_error("");
@@ -407,7 +406,7 @@ class TestFileSystem4 : public IFileSystem {
     CaseInsensitiveSet _files;
 
 public:
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path) override {
         return std::make_unique<dictlsd::InMemoryStream>(_ld.c_str(), _ld.size());
     }
 
@@ -781,8 +780,8 @@ TEST(duden, ResolveAudioSReference) {
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     auto tree = printTree(run);
-    auto expected = "TextRun\n"
-                    "  InlineImageRun; name=speaker.bmp; secondary=à la longue.wav\n";
+    auto expected = u8"TextRun\n"
+                    u8"  InlineImageRun; name=speaker.bmp; secondary=à la longue.wav\n";
     ASSERT_EQ(expected, tree);
     ASSERT_EQ(u8"[s]à la longue.wav[/s]", printDsl(run));
 }
@@ -826,7 +825,7 @@ TEST(duden, ResolveAudioWReference2) {
                     "      PlainRun:  \"CCC\"\n";
 
     ASSERT_EQ(expected, tree);
-    ASSERT_EQ(u8"[s]AE000001.wav[/s] \"AAA\", [s]BE000001.wav[/s] \"BBB\", [s]CC000001.wav[/s] \"CCC\" ", printDsl(run));
+    ASSERT_EQ("[s]AE000001.wav[/s] \"AAA\", [s]BE000001.wav[/s] \"BBB\", [s]CC000001.wav[/s] \"CCC\" ", printDsl(run));
 }
 
 TEST(duden, ResolveAudioWReference3) {
@@ -848,7 +847,7 @@ TEST(duden, ResolveAudioWReference3) {
                     "    TextRun\n"
                     "      PlainRun:  \"BBB\"\n";
     ASSERT_EQ(expected, tree);
-    ASSERT_EQ(u8"[s]AE000001.wav[/s] \"A[i]AA[/i][i]\"[/i], [s]BE000001.wav[/s] \"BBB\" ", printDsl(run));
+    ASSERT_EQ("[s]AE000001.wav[/s] \"A[i]AA[/i][i]\"[/i], [s]BE000001.wav[/s] \"BBB\" ", printDsl(run));
 }
 
 class TestFileSystem3 : public IFileSystem {
@@ -856,13 +855,13 @@ class TestFileSystem3 : public IFileSystem {
 
 public:
     TestFileSystem3() {
-        fs::path root = "";
-        _files = {u8"123.bmp",
-                  u8"euro.bmp",
-                  u8"АбfD.BMP",
-                  u8"UNABKöMMLICH1V.WAV"};
+        std::filesystem::path root = "";
+        _files = {std::filesystem::u8path(u8"123.bmp"),
+                  std::filesystem::u8path(u8"euro.bmp"),
+                  std::filesystem::u8path(u8"АбfD.BMP"),
+                  std::filesystem::u8path(u8"UNABKöMMLICH1V.WAV")};
     }
-     std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path) override {
+     std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path) override {
         return {};
     }
 
@@ -902,7 +901,7 @@ TEST(duden, InlinePictureReference) {
     resolveReferences(context, run, ld, nullptr);
 
     ResourceFiles files;
-    files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"));
+    files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"), std::ios::binary);
     inlineReferences(context, run, files);
 
     auto picture = dynamic_cast<PictureReferenceRun*>(run->runs().front());
@@ -1146,7 +1145,7 @@ TEST(duden, InlineTableReference) {
     resolveReferences(context, run, ld, nullptr);
 
     ResourceFiles files;
-    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"));
+    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"), std::ios::binary);
     inlineReferences(context, run, files);
 
     auto tableRef = dynamic_cast<TableReferenceRun*>(run->runs().front());
@@ -1458,7 +1457,7 @@ TEST(duden, InlineRenderAndPrintPicture) {
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
-    files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"));
+    files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"), std::ios::binary);
     inlineReferences(context, run, files);
     std::string name;
     TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
@@ -1581,7 +1580,7 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
-    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"));
+    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"), std::ios::binary);
     inlineReferences(context, run, files);
     std::string name;
     TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
@@ -1654,7 +1653,7 @@ TEST(duden, HandleEmbeddedImagesInHtml2) {
     auto ld = parseLdFile(&stream);
     resolveReferences(context, run, ld, nullptr);
     ResourceFiles files;
-    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file_embedded_image"));
+    files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file_embedded_image"), std::ios::binary);
     inlineReferences(context, run, files);
     resolveReferences(context, run, ld, nullptr); // resolve inlined references
 

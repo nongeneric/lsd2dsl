@@ -23,7 +23,7 @@ void Dictionary::collectLeafs() {
     collect(collect, _hic.root);
 }
 
-Dictionary::Dictionary(IFileSystem* filesystem, fs::path infPath, int index)
+Dictionary::Dictionary(IFileSystem* filesystem, std::filesystem::path infPath, int index)
     : _filesystem(filesystem) {
     auto infStream = _filesystem->open(infPath.filename());
     auto infs = parseInfFile(infStream.get(), filesystem);
@@ -90,17 +90,17 @@ const HicFile& Dictionary::hic() const {
     return _hic;
 }
 
-FileSystem::FileSystem(fs::path root) : _root(root) {}
+FileSystem::FileSystem(std::filesystem::path root) : _root(root) {}
 
-std::unique_ptr<dictlsd::IRandomAccessStream> FileSystem::open(fs::path path) {
+std::unique_ptr<dictlsd::IRandomAccessStream> FileSystem::open(std::filesystem::path path) {
     auto absolute = _root / path;
-    return std::unique_ptr<IRandomAccessStream>(new FileStream(absolute.string()));
+    return std::unique_ptr<IRandomAccessStream>(new FileStream(absolute));
 }
 
 const CaseInsensitiveSet& FileSystem::files() {
     if (!_files.empty())
         return _files;
-    for (auto& p : fs::directory_iterator(_root)) {
+    for (auto& p : std::filesystem::directory_iterator(_root)) {
         _files.insert(p.path().filename());
     }
     return _files;

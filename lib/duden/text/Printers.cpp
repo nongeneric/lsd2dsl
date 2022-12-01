@@ -2,7 +2,6 @@
 
 #include "Table.h"
 #include "lib/common/bformat.h"
-#include "lib/common/filesystem.h"
 #include "lib/duden/text/Reference.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
@@ -298,7 +297,7 @@ class HtmlVisitor : public TextRunVisitor {
 
     void visit(InlineImageRun* run) override {
         auto image = _requestImage(run->name());
-        auto ext = fs::path(run->name()).extension().string();
+        auto ext = std::filesystem::u8path(run->name()).extension().u8string();
         if (ext.size() < 1)
             throw std::runtime_error("inlining resource without extension");
         boost::algorithm::to_lower(ext);

@@ -10,11 +10,11 @@
 inline constexpr int UNICODE_BIT = 1 << 11;
 inline constexpr int ZIP_VERSION = 36;
 
-ZipWriter::ZipWriter(std::string path) : _path(path) { }
+ZipWriter::ZipWriter(std::filesystem::path path) : _path(path) { }
 
 void ZipWriter::addFile(std::string name, const void* ptr, unsigned size) {
     if (!_zip) {
-        _zip = zipOpen64(_path.c_str(), false);
+        _zip = zipOpen64(_path.u8string().c_str(), false);
         if (!_zip)
             throw std::runtime_error("can't create zip file");
     }

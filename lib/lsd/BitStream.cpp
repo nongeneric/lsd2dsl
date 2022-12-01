@@ -1,5 +1,7 @@
 #include "BitStream.h"
 
+#include "tools.h"
+
 #include <bitset>
 #include <stdexcept>
 #include <assert.h>
@@ -130,19 +132,25 @@ void XoringStreamAdapter::seek(unsigned pos) {
     _key = 0x7f;
 }
 
-FileStream::FileStream(std::string path)
-    : _file(path, false) { }
+FileStream::FileStream(std::filesystem::path path)
+    : _file(openForReading(path)) { }
 
 unsigned FileStream::readSome(void *dest, unsigned byteCount) {
-    return _file.read(reinterpret_cast<char*>(dest), byteCount);
+    _file.read(reinterpret_cast<char*>(dest), byteCount);
+    auto bytesRead = _file.gcount();
+    _pos += bytesRead;
+    return bytesRead;
 }
 
 void FileStream::seek(unsigned pos) {
-    _file.seek(pos);
+    if (_pos != pos) {
+        _file.seekg(pos);
+        _pos = pos;
+    }
 }
 
 unsigned FileStream::tell() {
-    return _file.tell();
+    return _pos;
 }
 
 uint8_t read8(IRandomAccessStream* stream) {

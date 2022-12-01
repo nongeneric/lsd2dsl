@@ -3,6 +3,7 @@
 #include "LenTable.h"
 
 #include <boost/locale.hpp>
+#include <fmt/format.h>
 #include <map>
 #include <assert.h>
 
@@ -446,10 +447,26 @@ std::u16string langFromCode(int code) {
     return langMap[code];
 }
 
-void printLanguages(std::ostream& log) {
+void printLanguages() {
     for (auto pair : langMap) {
-        log << pair.first << " " << toUtf8(pair.second) << "\n";
+        fmt::print("{} {}\n", pair.first, toUtf8(pair.second));
     }
+}
+
+std::ofstream openForWriting(std::filesystem::path path) {
+    std::ofstream file(path, std::ios::binary);
+    if (!file.is_open())
+        throw std::runtime_error(
+            fmt::format("Can't open file for writing: {}", path.u8string()));
+    return file;
+}
+
+std::ifstream openForReading(std::filesystem::path path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open())
+        throw std::runtime_error(
+            fmt::format("Can't open file for reading: {}", path.u8string()));
+    return file;
 }
 
 }

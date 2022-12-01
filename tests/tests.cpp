@@ -17,8 +17,6 @@
 #include <algorithm>
 #include <vector>
 #include <fstream>
-#include <iostream>
-#include <fstream>
 
 using namespace dictlsd;
 
@@ -77,7 +75,7 @@ TEST(Tests, bitStreamTest) {
 }
 
 TEST(Tests, decoderTest) {
-    std::fstream f(testPath("simple_testdict1/test.lsd"), std::ios::in | std::ios::binary);
+    std::ifstream f(testPath("simple_testdict1/test.lsd"), std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1333];
     f.read(buf, 1333);
@@ -102,9 +100,8 @@ TEST(Tests, decoderTest) {
 }
 
 void assertFilesAreEqual(std::string path1, std::string path2) {
-    auto flags = std::ios::in | std::ios::binary;
-    std::ifstream file1(path1, flags);
-    std::ifstream file2(path2, flags);
+    std::ifstream file1(path1, std::ios::binary);
+    std::ifstream file2(path2, std::ios::binary);
     ASSERT_TRUE(file1.is_open());
     ASSERT_TRUE(file2.is_open());
     for (;;) {
@@ -169,7 +166,7 @@ TEST(Tests, overlayTest) {
 }
 
 TEST(Tests, extHeadingsTest) {
-    std::fstream f(testPath("simple_testdict1/testext.lsd"), std::ios::in | std::ios::binary);
+    std::ifstream f(testPath("simple_testdict1/testext.lsd"), std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1390];
     f.read(buf, 1390);
@@ -184,7 +181,7 @@ TEST(Tests, extHeadingsTest) {
 }
 
 TEST(Tests, unsortedHeadingsTest) {
-    std::fstream f(testPath("simple_testdict1/unsorted_testdict.lsd"), std::ios::in | std::ios::binary);
+    std::ifstream f(testPath("simple_testdict1/unsorted_testdict.lsd"), std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1280];
     f.read(buf, 1280);
@@ -207,7 +204,7 @@ TEST(Tests, unsortedHeadingsTest) {
 }
 
 TEST(Tests, collapseVariantHeadingsTest) {
-    std::fstream f(testPath("simple_testdict1/variants_testdict.lsd"), std::ios::in | std::ios::binary);
+    std::ifstream f(testPath("simple_testdict1/variants_testdict.lsd"), std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1291];
     f.read(buf, 1291);
@@ -228,7 +225,7 @@ TEST(Tests, collapseVariantHeadingsTest) {
 }
 
 TEST(Tests, collapseVariantHeadingsTest2) {
-    std::fstream f(testPath("simple_testdict1/variants_testdict2.lsd"), std::ios::in | std::ios::binary);
+    std::ifstream f(testPath("simple_testdict1/variants_testdict2.lsd"), std::ios::binary);
     ASSERT_TRUE(f.is_open());
     char buf[1306];
     f.read(buf, 1306);
@@ -249,20 +246,22 @@ TEST(Tests, collapseVariantHeadingsTest2) {
 
 TEST(Tests, unicodePath) {
     {
-        UnicodePathFile f(u8"éa", true);
+        auto f = openForWriting(u8"éa");
         f.write("abc", 3);
     }
 
     char buf[4] = {0};
-    UnicodePathFile f(u8"éa", false);
-    auto read = f.read(buf, 10);
+    std::ifstream f(u8"éa", std::ios::binary);
+    f.read(buf, 10);
+    auto read = f.gcount();
     ASSERT_EQ(3, read);
 }
 
 TEST(Tests, unicodePath2) {
     char buf[6] = {0};
-    UnicodePathFile f(testPath(u8"simple_testdict1/é"), false);
-    auto read = f.read(buf, 10);
+    std::ifstream f(testPath(u8"simple_testdict1/é"), std::ios::binary);
+    f.read(buf, 10);
+    auto read = f.gcount();
     ASSERT_EQ(5, read);
     ASSERT_EQ(std::string("1234\n"), buf);
 }
@@ -279,18 +278,18 @@ TEST(tests, outputDslName) {
     BitStreamAdapter bstr(&ras);
     LSDDictionary reader(&bstr);
     auto outPath = "outPath";
-    if (fs::exists(outPath)) {
-        fs::remove_all(outPath);
+    if (std::filesystem::exists(outPath)) {
+        std::filesystem::remove_all(outPath);
     }
-    fs::create_directories(outPath);
+    std::filesystem::create_directories(outPath);
     writeDSL(&reader, "overlay_x5.lsd", outPath, false, log);
 
-    std::set<std::string> fileNames;
-    for (auto& p : fs::directory_iterator(outPath)) {
-        fileNames.insert(p.path().filename().string());
+    std::set<std::filesystem::path> fileNames;
+    for (auto& p : std::filesystem::directory_iterator(outPath)) {
+        fileNames.insert(p.path().filename());
     }
 
-    std::set<std::string> expected {
+    std::set<std::filesystem::path> expected {
         "overlay_x5.dsl",
         "overlay_x5.dsl.files.zip"
     };

@@ -4,7 +4,6 @@
 #include "InfFile.h"
 #include "Archive.h"
 #include "LdFile.h"
-#include "lib/common/filesystem.h"
 #include "IFileSystem.h"
 #include <string_view>
 #include <string>
@@ -14,12 +13,12 @@
 namespace duden {
 
 class FileSystem : public IFileSystem {
-    fs::path _root;
+    std::filesystem::path _root;
     CaseInsensitiveSet _files;
 
 public:
-    FileSystem(fs::path root);
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(fs::path path) override;
+    FileSystem(std::filesystem::path root);
+    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path path) override;
     const CaseInsensitiveSet& files() override;
 };
 
@@ -35,7 +34,7 @@ class Dictionary {
     void collectLeafs();
 
 public:
-    Dictionary(IFileSystem* filesystem, fs::path infPath, int index);
+    Dictionary(IFileSystem* filesystem, std::filesystem::path infPath, int index);
     std::string annotation() const;
     std::vector<char> icon() const;
     unsigned articleCount() const;

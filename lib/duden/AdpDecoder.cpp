@@ -1,9 +1,9 @@
 #include "AdpDecoder.h"
-#include "lib/common/filesystem.h"
 #include <boost/algorithm/string.hpp>
 #include <array>
 #include <cmath>
 #include <algorithm>
+#include <filesystem>
 
 namespace {
 
@@ -40,11 +40,11 @@ void duden::decodeAdp(const std::vector<char>& input, std::vector<int16_t>& samp
 }
 
 bool duden::replaceAdpExtWithWav(std::string& name) {
-    auto asPath = fs::path(name);
-    auto ext = boost::to_lower_copy(asPath.extension().string());
+    auto asPath = std::filesystem::u8path(name);
+    auto ext = boost::to_lower_copy(asPath.extension().u8string());
     if (ext == ".adp") {
         asPath.replace_extension(".wav");
-        name = asPath.string();
+        name = asPath.u8string();
         return true;
     }
     return false;

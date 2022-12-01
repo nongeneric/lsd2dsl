@@ -8,7 +8,6 @@
 #include "lib/duden/Writer.h"
 #include "lib/duden/InfFile.h"
 #include "lib/common/bformat.h"
-#include "lib/common/filesystem.h"
 
 #include <QTableView>
 #include <QAbstractListModel>
@@ -49,7 +48,7 @@ protected:
     std::unique_ptr<BitStreamAdapter> _adapter;
 public:
     DictionaryEntry(QString path)
-        : _stream(new FileStream(path.toStdString())),
+        : _stream(new FileStream(std::filesystem::u8path(path.toStdString()))),
           _path(path),
           _fileName(QFileInfo(path).fileName()),
           _adapter(new BitStreamAdapter(_stream.get()))
@@ -102,7 +101,11 @@ public:
         return _reader.supported();
     }
     void dump(QString outDir, Log& log) override {
-        writeDSL(&_reader, fileName().toStdString(), outDir.toStdString(), false, log);
+        writeDSL(&_reader,
+                 std::filesystem::u8path(fileName().toStdString()),
+                 std::filesystem::u8path(outDir.toStdString()),
+                 false,
+                 log);
     }
 };
 
@@ -121,7 +124,9 @@ public:
     const std::vector<unsigned char> &icon() override { return _icon; }
     bool supported() override { return true; }
     void dump(QString outDir, Log& log) override {
-        decodeLSA(path().toStdString(), outDir.toStdString(), log);
+        decodeLSA(std::filesystem::u8path(path().toStdString()),
+                  std::filesystem::u8path(outDir.toStdString()),
+                  log);
     }
 };
 
@@ -135,7 +140,7 @@ class DudenDictionaryEntry : public DictionaryEntry {
 
 public:
     DudenDictionaryEntry(QString path, int index, duden::FileSystem* fs) : DictionaryEntry(path), _index(index) {
-        auto infPath = fs::path(path.toStdString());
+        auto infPath = std::filesystem::u8path(path.toStdString());
         duden::Dictionary dict(fs, infPath, index);
         _name = QString::fromStdString(dict.ld().name);
         _version = QString::fromStdString(bformat("%x", dict.inf().version));
@@ -153,7 +158,10 @@ public:
     const std::vector<unsigned char> &icon() override { return _icon; }
     bool supported() override { return _supported; }
     void dump(QString outDir, Log& log) override {
-        duden::writeDSL(path().toStdString(), outDir.toStdString(), _index, log);
+        duden::writeDSL(std::filesystem::u8path(path().toStdString()),
+                        std::filesystem::u8path(outDir.toStdString()),
+                        _index,
+                        log);
     }
 };
 
@@ -195,9 +203,9 @@ public:
                 } else if (ext == "lsa") {
                     _dicts.emplace_back(new LSADictionaryEntry(path));
                 } else if (ext == "inf") {
-                    auto infPath = fs::path(path.toStdString());
-                    dictlsd::FileStream infStream(infPath.string());
-                    duden::FileSystem fs(infPath.parent_path().string());
+                    auto infPath = std::filesystem::u8path(path.toStdString());
+                    dictlsd::FileStream infStream(infPath);
+                    duden::FileSystem fs(infPath.parent_path());
                     auto infs = duden::parseInfFile(&infStream, &fs);
                     for (size_t i = 0; i < infs.size(); ++i) {
                         _dicts.emplace_back(new DudenDictionaryEntry(path, i, &fs));

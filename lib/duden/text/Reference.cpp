@@ -30,9 +30,9 @@ class ReferenceResolverRewriter : public TextRunVisitor {
         if (!_filesystem)
             return;
         auto& files = _filesystem->files();
-        auto it = files.find(fs::path(file));
+        auto it = files.find(std::filesystem::u8path(file));
         if (it != end(files)) {
-            file = it->string();
+            file = it->u8string();
         }
     }
 

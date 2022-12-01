@@ -1,24 +1,24 @@
 #include "DslWriter.h"
 #include "ZipWriter.h"
 #include "lib/lsd/tools.h"
-#include "lib/common/bformat.h"
-#include "lib/common/filesystem.h"
+
+#include <fmt/format.h>
 
 using namespace dictlsd;
 
 void writeDSL(const LSDDictionary* reader,
-              std::string lsdName,
-              std::string outputPath,
+              std::filesystem::path lsdName,
+              std::filesystem::path outputPath,
               bool dumb,
               Log& log)
 {
-    dsl::Writer writer(outputPath, fs::path(lsdName).replace_extension().string());
-    fs::path overlayPath = writer.dslFilePath() + ".files.zip";
+    dsl::Writer writer(outputPath, lsdName.replace_extension().u8string());
+    std::filesystem::path overlayPath = std::filesystem::u8path(writer.dslFilePath().u8string() + ".files.zip");
 
     auto overlayHeadings = reader->readOverlayHeadings();
     if (overlayHeadings.size() > 0) {
         log.resetProgress("overlay", overlayHeadings.size());
-        ZipWriter zip(overlayPath.string());
+        ZipWriter zip(overlayPath);
         for (OverlayHeading heading : overlayHeadings) {
             std::vector<uint8_t> entry = reader->readOverlayEntry(heading);
             zip.addFile(toUtf8(heading.name), entry.data(), entry.size());
@@ -49,7 +49,7 @@ void writeDSL(const LSDDictionary* reader,
     }
     writer.writeNewLine();
 
-    log.resetProgress(writer.dslFileName(), headings.size());
+    log.resetProgress(writer.dslFileName().u8string(), headings.size());
     foreachReferenceSet(headings, [&](auto first, auto last) {
         for (auto it = first; it != last; ++it) {
             const std::u16string& headingText = it->dslText();
@@ -69,18 +69,21 @@ namespace dsl {
         _dsl->write((char*)line.c_str(), 2 * line.length());
     }
 
-    Writer::Writer(std::string outputPath, std::string name) {
-        _dslPath = fs::path(outputPath) / (fs::path(name).string() + ".dsl");
-        _dsl.reset(new UnicodePathFile(_dslPath.string(), true));
+    Writer::Writer(std::filesystem::path outputPath, std::string name) {
+        _dslPath = outputPath / (name + ".dsl");
+        _dsl = std::make_unique<std::ofstream>(_dslPath, std::ios::binary);
+        if (!_dsl->is_open())
+            throw std::runtime_error(
+                fmt::format("Can't open file for writing {}", _dslPath.u8string()));
         _dsl->write(_utf16bom, sizeof(_utf16bom));
     }
 
-    std::string Writer::dslFileName() const {
-        return _dslPath.filename().string();
+    std::filesystem::path Writer::dslFileName() const {
+        return _dslPath.filename();
     }
 
-    std::string Writer::dslFilePath() const {
-        return _dslPath.string();
+    std::filesystem::path Writer::dslFilePath() const {
+        return _dslPath;
     }
 
     void Writer::setName(std::u16string name) {
@@ -90,7 +93,7 @@ namespace dsl {
     void Writer::setAnnotation(std::u16string annotation) {
         auto path = _dslPath;
         path.replace_extension("ann");
-        UnicodePathFile anno(path.string(), true);
+        auto anno = openForWriting(path);
         anno.write(_utf16bom, sizeof(_utf16bom));
         anno.write((char*)annotation.c_str(), 2 * annotation.length());
     }
@@ -104,9 +107,9 @@ namespace dsl {
         auto path = _dslPath;
         path.replace_extension("bmp");
 
-        write(u"#ICON_FILE\t\"" + toUtf16(path.filename().string()) + u"\"\n");
+        write(u"#ICON_FILE\t\"" + toUtf16(path.filename().u8string()) + u"\"\n");
 
-        UnicodePathFile file(path.string(), true);
+        auto file = openForWriting(path);
         file.write(reinterpret_cast<const char*>(&icon[0]), icon.size());
     }
 

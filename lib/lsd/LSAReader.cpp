@@ -2,10 +2,8 @@
 
 #include "OggReader.h"
 #include "lib/common/WavWriter.h"
-#include "lib/common/filesystem.h"
 #include "BitStream.h"
 #include "tools.h"
-#include "UnicodePathFile.h"
 #include <stdexcept>
 #include <assert.h>
 #include <boost/algorithm/string.hpp>
@@ -59,7 +57,7 @@ void LSAReader::collectHeadings() {
     _oggOffset = _bstr->tell();
 }
 
-void LSAReader::dump(std::string path, Log& log) {
+void LSAReader::dump(std::filesystem::path path, Log& log) {
     _bstr->seek(_oggOffset);
     OggReader oggReader(_bstr);
     std::vector<short> samples;
@@ -83,7 +81,7 @@ void LSAReader::dump(std::string path, Log& log) {
         if (samples.size() != entry.sampleSize)
             throw std::runtime_error("error reading LSA");
 
-        UnicodePathFile file(path + "/" + name, true);
+        auto file = openForWriting(path / name);
         file.write(wav.data(), wav.size());
 
         log.advance();
@@ -94,14 +92,14 @@ unsigned LSAReader::entriesCount() const {
     return _entriesCount;
 }
 
-void decodeLSA(std::string lsaPath, std::string outputPath, Log& log) {
-    fs::path lsaOutputDir = outputPath / fs::path(lsaPath).filename().replace_extension("extracted");
-    fs::create_directories(lsaOutputDir);
+void decodeLSA(std::filesystem::path lsaPath, std::filesystem::path outputPath, Log& log) {
+    auto lsaOutputDir = outputPath / lsaPath.filename().replace_extension("extracted");
+    std::filesystem::create_directories(lsaOutputDir);
     FileStream bstr(lsaPath);
     LSAReader reader(&bstr);
     reader.collectHeadings();
-    log.resetProgress(fs::path(lsaPath).filename().string(), reader.entriesCount());
-    reader.dump(lsaOutputDir.string(), log);
+    log.resetProgress(lsaPath.filename().u8string(), reader.entriesCount());
+    reader.dump(lsaOutputDir, log);
 }
 
 }

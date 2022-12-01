@@ -6,6 +6,8 @@
 #include <string>
 #include <ostream>
 #include <vector>
+#include <fstream>
+#include <filesystem>
 
 namespace dictlsd {
 
@@ -21,9 +23,11 @@ uint32_t reverse32(uint32_t n);
 std::string toUtf8(std::u16string u16str);
 std::u16string toUtf16(std::string u8str);
 std::u16string langFromCode(int code);
-void printLanguages(std::ostream& log);
+void printLanguages();
 int majorVersion(unsigned dictVersion);
 int minorVersion(unsigned dictVersion);
 int revisionVersion(unsigned dictVersion);
+std::ofstream openForWriting(std::filesystem::path path);
+std::ifstream openForReading(std::filesystem::path path);
 
 }
