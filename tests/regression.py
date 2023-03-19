@@ -9,6 +9,7 @@ import hashlib
 import lxml.html
 import lxml.etree
 import re
+import zipfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lsd-dir', dest='lsd_dir')
@@ -26,6 +27,13 @@ class Reporter:
     _outputs = []
     _time = ''
     _html = '<table style="width:100%">'
+
+    def md5hash_zip(self, path):
+        with zipfile.ZipFile(path) as zip:
+            md5 = hashlib.md5()
+            for name in sorted(zip.namelist()):
+                md5.update(zip.read(name))
+            return md5.hexdigest()
 
     def md5hash(self, path):
         block = 2 << 20
@@ -70,10 +78,9 @@ class Reporter:
     def add_outputs(self, path):
         for root, dirnames, filenames in os.walk(path):
             for f in filenames:
-                if args.ignore_zip_hash and f.endswith('.zip'):
-                    md5 = ''
-                else:
-                    md5 = self.md5hash(f'{root}/{f}')
+                md5 = ''
+                if f.endswith('.zip') and not args.ignore_zip_hash:
+                    md5 = self.md5hash_zip(f'{root}/{f}')
                 self._outputs.append((f, os.path.getsize(f'{root}/{f}'), md5))
 
     def html(self):

@@ -81,7 +81,7 @@ void LSAReader::dump(std::filesystem::path path, Log& log) {
         if (samples.size() != entry.sampleSize)
             throw std::runtime_error("error reading LSA");
 
-        auto file = openForWriting(path / name);
+        auto file = openForWriting(path / std::filesystem::u8path(name));
         file.write(wav.data(), wav.size());
 
         log.advance();
