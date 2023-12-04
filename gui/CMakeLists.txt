@@ -9,11 +9,10 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS "-Wl,-subsystem,windows ${CMAKE_CXX_FLAGS}")
 endif()
 
-find_package(Qt5Widgets)
-find_package(Qt5Core)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 set(SRC
     main.cpp
     MainWindow.cpp
 )
 add_executable(lsd2dsl-qtgui ${SRC} ${QT_RESOURCES})
-target_link_libraries(lsd2dsl-qtgui Qt5::Core Qt5::Widgets lib)
+target_link_libraries(lsd2dsl-qtgui Qt6::Core Qt6::Widgets lib)

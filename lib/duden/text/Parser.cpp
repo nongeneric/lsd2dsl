@@ -13,8 +13,7 @@ std::string findColorName(uint32_t rgb) {
     static std::map<uint32_t, std::string> map;
     if (map.empty()) {
         for (auto name : QColor::colorNames()) {
-            QColor color;
-            color.setNamedColor(name);
+            auto color = QColor::fromString(name);
             map[color.rgb() & 0xffffff] = name.toStdString();
         }
     }

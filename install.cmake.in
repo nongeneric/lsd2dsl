@@ -2,7 +2,7 @@ include(GetPrerequisites)
 set(MINGW_ROOT /usr/x86_64-w64-mingw32/sys-root/mingw)
 set(gp_tool objdump)
 
-file(COPY "${MINGW_ROOT}/lib/qt5/plugins/platforms/qwindows.dll" DESTINATION ${CMAKE_INSTALL_PREFIX}/platforms)
+file(COPY "${MINGW_ROOT}/lib/qt6/plugins/platforms/qwindows.dll" DESTINATION ${CMAKE_INSTALL_PREFIX}/platforms)
 execute_process(COMMAND strip ${CMAKE_INSTALL_PREFIX}/platforms/qwindows.dll)
 
 file(COPY "@CMAKE_BINARY_DIR@/console/lsd2dsl.exe" DESTINATION ${CMAKE_INSTALL_PREFIX})
@@ -13,7 +13,7 @@ execute_process(COMMAND strip ${CMAKE_INSTALL_PREFIX}/lsd2dsl-qtgui.exe)
 
 get_prerequisites("${CMAKE_INSTALL_PREFIX}/lsd2dsl.exe" prereq 0 1 "" "${MINGW_ROOT}/bin")
 get_prerequisites("${CMAKE_INSTALL_PREFIX}/lsd2dsl-qtgui.exe" prereq 0 1 "" "${MINGW_ROOT}/bin")
-get_prerequisites("${MINGW_ROOT}/lib/qt5/plugins/platforms/qwindows.dll" prereq 0 1 "" "${MINGW_ROOT}/bin")
+get_prerequisites("${MINGW_ROOT}/lib/qt6/plugins/platforms/qwindows.dll" prereq 0 1 "" "${MINGW_ROOT}/bin")
 foreach(dll IN LISTS prereq)
     set(path "${MINGW_ROOT}/bin/${dll}")
     if(EXISTS ${path})

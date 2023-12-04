@@ -19,17 +19,20 @@
 #include "zlib.h"
 #include <boost/algorithm/string.hpp>
 #include <map>
+#include <qt5/QtWidgets/qapplication.h>
 
 using namespace duden;
 using namespace dictlsd;
 using namespace std::literals;
 
 class duden_qt : public ::testing::Test {
-    int _c = 0;
+    int _c = 1;
+    char _appName[8] = "testapp";
+    char* _args[1]{_appName};
     QApplication _app;
 
 public:
-    duden_qt() : _app(_c, nullptr) { }
+    duden_qt() : _app(_c, _args) { }
     ~duden_qt() = default;
 };
 
@@ -914,7 +917,7 @@ TEST(duden, InlinePictureReference) {
     ASSERT_EQ(u8"Die vom Fahrstrahl in gleichen Zeitintervallen überstrichenen Flächen (rosa) sind gleich groß", description->text());
 }
 
-TEST(duden, ParseTextTable1) {
+TEST_F(duden_qt, ParseTextTable1) {
     auto text = read_all_text(testPath("duden_testfiles/table1"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
@@ -990,6 +993,11 @@ TEST(duden, ParseTextTable1) {
                "      PlainRun: cell\n"
                "      SoftLineBreakRun\n";
     ASSERT_EQ(expected, cell);
+
+    auto html = printHtml(run);
+    auto vec = renderHtml(html);
+    std::ofstream f("/tmp/table.bmp");
+    f.write((char*)&vec[0], vec.size());
 }
 
 TEST(duden, ParseTextTableWithNestedTable) {

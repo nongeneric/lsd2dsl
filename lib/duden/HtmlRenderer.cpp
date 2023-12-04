@@ -3,9 +3,8 @@
 #include <QPainter>
 #include <QBuffer>
 #include <QEventLoop>
-#include <QWebFrame>
-#include <QWebPage>
-#include <QWebView>
+#include <QWebEnginePage>
+#include <QWebEngineView>
 #include <fstream>
 
 namespace duden {
@@ -42,26 +41,30 @@ auto tail = "</div></body></html>";
 }
 
 std::vector<uint8_t> renderHtml(const std::string& html) {
-    QWebPage page;
-    auto frame = page.mainFrame();
+    QWebEnginePage page;
     auto complete = head + html + tail;
 
     QEventLoop loop;
     bool alreadyLoaded = false;
-    QObject::connect(&page, &QWebPage::loadFinished, &loop, [&] {
+    QObject::connect(&page, &QWebEnginePage::loadFinished, &loop, [&] {
         alreadyLoaded = true;
         loop.quit();
     });
-    frame->setHtml(QString::fromStdString(complete));
+    page.setHtml(QString::fromStdString(complete));
 
     if (!alreadyLoaded)
         loop.exec();
+    assert(alreadyLoaded);
 
-    page.setViewportSize(page.mainFrame()->contentsSize());
-    auto size = page.viewportSize();
-    QImage img(size, QImage::Format_RGB32);
-    QPainter p(&img);
-    frame->render(&p);
+    QWebEngineView view(&page);
+    view.setHtml(QString::fromStdString(complete));
+    view.show();
+
+    //auto size = page.contentsSize();
+    QImage img(100,100, QImage::Format_RGB32);
+    QPainter p;
+    p.begin(&img);
+    view.render(&p);
     p.end();
 
     QByteArray array;

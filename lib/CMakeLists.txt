@@ -1,8 +1,7 @@
 project(lib)
 
-find_package(Qt5WebKitWidgets REQUIRED)
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Widgets REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets WebEngineWidgets Core5Compat)
+
 find_package(fmt CONFIG REQUIRED)
 find_library(Z z)
 find_library(VORBISFILE vorbisfile)
@@ -69,9 +68,10 @@ add_library(${PROJECT_NAME} STATIC
 
 target_link_libraries(${PROJECT_NAME}
     ${Boost_LIBRARIES}
-    Qt5::Core
-    Qt5::Widgets
-    Qt5::WebKitWidgets
+    Qt6::Core
+    Qt6::Core5Compat
+    Qt6::Widgets
+    Qt6::WebEngineWidgets
     minizip
     ${Z}
     ${VORBISFILE}

@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.14)
 
-project(lsd2dsl VERSION 0.5.6 LANGUAGES C CXX)
+project(lsd2dsl VERSION 0.5.7 LANGUAGES C CXX)
 
 configure_file (
     "${CMAKE_SOURCE_DIR}/lib/common/version.h.in"
