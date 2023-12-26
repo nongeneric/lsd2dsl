@@ -7,6 +7,7 @@
 #include "lib/duden/Archive.h"
 #include "lib/duden/AdpDecoder.h"
 #include "lib/duden/FsdFile.h"
+#include "lib/duden/HtmlRenderer.h"
 #include "lib/duden/text/TextRun.h"
 #include "lib/duden/text/Parser.h"
 #include "lib/duden/text/Printers.h"
@@ -166,27 +167,28 @@ void writeDSL(std::filesystem::path infPath,
 
     log.resetProgress("articles", groups.size());
 
-    int tableCount = 0;
+    std::vector<std::pair<std::string, std::string>> htmlTables;
 
-    TableRenderer tableRenderer([&](auto span, auto name) {
-        log.verbose("created %s", name);
-        ++tableCount;
-        zip.addFile(name, span.data(), span.size());
-    }, [&](auto name) {
-        log.verbose("table has embedded image %s", name);
-        auto it = resourceIndex.find(name);
-        std::vector<char> vec;
-        if (it == end(resourceIndex)) {
-            log.regular("embedded image %s doesn't exist", name);
+    TableRenderer tableRenderer(
+        [&](std::string fileName, std::string html) {
+            log.verbose("created %s", fileName);
+            htmlTables.emplace_back(std::move(fileName), std::move(html));
+        },
+        [&](auto name) {
+            log.verbose("table has embedded image %s", name);
+            auto it = resourceIndex.find(name);
+            std::vector<char> vec;
+            if (it == end(resourceIndex)) {
+                log.regular("embedded image %s doesn't exist", name);
+                return vec;
+            }
+            auto [pack, offset, size] = it->second;
+            dictlsd::FileStream fIndex(inputPath / pack->idx);
+            auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / pack->bof);
+            Archive archive(&fIndex, fBof);
+            archive.read(offset, size, vec);
             return vec;
-        }
-        auto [pack, offset, size] = it->second;
-        dictlsd::FileStream fIndex(inputPath / pack->idx);
-        auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / pack->bof);
-        Archive archive(&fIndex, fBof);
-        archive.read(offset, size, vec);
-        return vec;
-    });
+        });
 
     int articleCount = 0;
     int failedArticleCount = 0;
@@ -239,10 +241,26 @@ void writeDSL(std::filesystem::path infPath,
         }
     }
 
+    if (!htmlTables.empty()) {
+        log.resetProgress("rendering tables", htmlTables.size());
+        std::vector<std::string const*> htmlTablePtrs;
+        for (auto&& [fileName, html] : htmlTables) {
+            htmlTablePtrs.push_back(&html);
+        }
+        auto tableEntry = htmlTables.begin();
+        renderHtml([&](QImage const& image) {
+            assert(tableEntry != end(htmlTables));
+            log.advance();
+            auto bytes = qImageToPng(image);
+            zip.addFile(tableEntry->first, bytes.data(), bytes.size());
+            tableEntry++;
+        }, htmlTablePtrs, log);
+    }
+
     log.regular("done converting: %d articles (%d errors), %d tables, %d resources, %d audio files",
                 articleCount,
                 failedArticleCount,
-                tableCount,
+                htmlTables.size(),
                 resourceCount,
                 adpCount);
 }

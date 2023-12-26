@@ -6,10 +6,10 @@
 
 namespace duden {
 
-using SetImageCallback = std::function<void(const std::vector<uint8_t>&, std::string)>;
+using SaveHtmlCallback = std::function<void(std::string const&, std::string const&)>;
 
 class TableRenderer : TextRunVisitor {
-    SetImageCallback _setImage;
+    SaveHtmlCallback _saveHtml;
     RequestImageCallback _requestImage;
     int _id = 1;
 
@@ -17,7 +17,7 @@ class TableRenderer : TextRunVisitor {
     void visit(TableReferenceRun* run) override;
 
 public:
-    TableRenderer(SetImageCallback setImage, RequestImageCallback requestImage);
+    TableRenderer(SaveHtmlCallback saveHtml, RequestImageCallback requestImage);
     void render(TextRun* run);
 };
 

@@ -266,12 +266,6 @@ TEST(Tests, unicodePath2) {
     ASSERT_EQ(std::string("1234\n"), buf);
 }
 
-class TestLog : public Log {
-    void reportLog(std::string, bool) override { }
-    void reportProgress(int) override { }
-    void reportProgressReset(std::string) override { }
-};
-
 TEST(tests, outputDslName) {
     TestLog log;
     FileStream ras(testPath("simple_testdict1/overlay_x5.lsd"));

@@ -1,25 +1,27 @@
-#include <gtest/gtest.h>
-
+#include "lib/common/bformat.h"
 #include "lib/duden/Archive.h"
-#include "lib/duden/Duden.h"
-#include "lib/duden/InfFile.h"
 #include "lib/duden/Dictionary.h"
+#include "lib/duden/Duden.h"
+#include "lib/duden/HtmlRenderer.h"
+#include "lib/duden/InfFile.h"
 #include "lib/duden/LdFile.h"
-#include "lib/duden/text/TextRun.h"
-#include "lib/duden/text/Table.h"
+#include "lib/duden/TableRenderer.h"
+#include "lib/duden/Writer.h"
 #include "lib/duden/text/Parser.h"
 #include "lib/duden/text/Printers.h"
 #include "lib/duden/text/Reference.h"
-#include "lib/duden/Writer.h"
-#include "lib/duden/HtmlRenderer.h"
-#include "lib/duden/TableRenderer.h"
-#include "lib/common/bformat.h"
+#include "lib/duden/text/Table.h"
+#include "lib/duden/text/TextRun.h"
 #include "test-utils.h"
+#include <gtest/gtest.h>
+#include <qt5/QtWidgets/qapplication.h>
+#include <zlib.h>
+
 #include <QApplication>
-#include "zlib.h"
+
 #include <boost/algorithm/string.hpp>
 #include <map>
-#include <qt5/QtWidgets/qapplication.h>
+#include <fmt/format.h>
 
 using namespace duden;
 using namespace dictlsd;
@@ -918,6 +920,7 @@ TEST(duden, InlinePictureReference) {
 }
 
 TEST_F(duden_qt, ParseTextTable1) {
+    TestLog log;
     auto text = read_all_text(testPath("duden_testfiles/table1"));
     ParsingContext context;
     auto run = parseDudenText(context, text);
@@ -995,9 +998,41 @@ TEST_F(duden_qt, ParseTextTable1) {
     ASSERT_EQ(expected, cell);
 
     auto html = printHtml(run);
-    auto vec = renderHtml(html);
-    std::ofstream f("/tmp/table.bmp");
-    f.write((char*)&vec[0], vec.size());
+    renderHtml([&](QImage const& image) {
+        image.save("/tmp/table.png");
+    }, {&html}, log);
+}
+
+TEST_F(duden_qt, RenderMultipleHtmlPages) {
+    TestLog log;
+    std::string shortTable = R"(
+         <table>
+            <tr>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>5</td>
+                <td>6</td>
+            </tr>
+        </table>
+    )";
+    std::string longTable;
+    for (int i = 0; i < 10; ++i)
+        longTable += shortTable;
+
+    for (int batch = 0; batch < 100; batch += 10) {
+        std::vector<QImage> images;
+        renderHtml([&](QImage const& image) { images.push_back(image); },
+                   {&shortTable, &longTable, &shortTable, &longTable},
+                   log,
+                   batch);
+        ASSERT_EQ(4, images.size());
+        ASSERT_LT(images[0].height(), images[1].height());
+        ASSERT_LT(images[2].height(), images[3].height());
+    }
 }
 
 TEST(duden, ParseTextTableWithNestedTable) {

@@ -2,11 +2,18 @@
 
 #include "lib/common/version.h"
 #include "lib/common/bformat.h"
+#include "lib/common/Log.h"
 
 #include <filesystem>
 #include <vector>
 #include <stdint.h>
 #include <stdio.h>
+
+class TestLog : public Log {
+    void reportLog(std::string, bool) override { }
+    void reportProgress(int) override { }
+    void reportProgressReset(std::string) override { }
+};
 
 inline std::vector<uint8_t> read_all_bytes(std::filesystem::path path) {
     auto f = fopen(path.u8string().c_str(), "rb");

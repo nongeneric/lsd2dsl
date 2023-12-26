@@ -1,6 +1,6 @@
 project(lib)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets WebEngineWidgets Core5Compat)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets WebEngineWidgets Core5Compat Pdf)
 
 find_package(fmt CONFIG REQUIRED)
 find_library(Z z)
@@ -67,11 +67,12 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 target_link_libraries(${PROJECT_NAME}
-    ${Boost_LIBRARIES}
+    Boost::system
     Qt6::Core
     Qt6::Core5Compat
     Qt6::Widgets
     Qt6::WebEngineWidgets
+    Qt6::Pdf
     minizip
     ${Z}
     ${VORBISFILE}

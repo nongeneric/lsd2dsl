@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.14)
 
-project(lsd2dsl VERSION 0.5.7 LANGUAGES C CXX)
+project(lsd2dsl VERSION 0.6.0 LANGUAGES C CXX)
 
 configure_file (
     "${CMAKE_SOURCE_DIR}/lib/common/version.h.in"
@@ -20,17 +20,16 @@ set(Boost_USE_STATIC_LIBS       OFF)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost 1.60 COMPONENTS system program_options REQUIRED)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TYPE MATCHES Debug)
     add_compile_options(-fno-limit-debug-info)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Werror -Werror=return-type -Wall -Wextra -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-Werror -Werror=return-type -Wno-error=array-bounds -Wall -Wextra -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "-Wno-everything ${CMAKE_C_FLAGS}")
 
 add_subdirectory(lib)

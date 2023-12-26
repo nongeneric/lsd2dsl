@@ -1,11 +1,21 @@
 #pragma once
 
-#include <vector>
+#include "lib/common/Log.h"
+
+#include <QImage>
+
+#include <cstdint>
+#include <functional>
 #include <string>
-#include <stdint.h>
+#include <vector>
 
 namespace duden {
 
-std::vector<uint8_t> renderHtml(std::string const& html);
+void renderHtml(std::function<void(QImage const&)> handler,
+                std::vector<std::string const*> htmls,
+                Log& log,
+                unsigned batchSize = 1000);
+
+std::vector<uint8_t> qImageToPng(QImage const& image);
 
 } // namespace duden
