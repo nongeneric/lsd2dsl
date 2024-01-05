@@ -423,7 +423,7 @@ int lsd2dsl_main(int argc, char* argv[]) {
     return 0;
 }
 
-#ifdef __MINGW32__
+#ifdef WIN32
 int wmain(int argc, wchar_t* wargv[]) {
     std::vector<std::string> u8args;
     for (int i = 0; i < argc; ++i) {

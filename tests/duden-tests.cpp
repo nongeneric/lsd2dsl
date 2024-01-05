@@ -14,7 +14,6 @@
 #include "lib/duden/text/TextRun.h"
 #include "test-utils.h"
 #include <gtest/gtest.h>
-#include <qt5/QtWidgets/qapplication.h>
 #include <zlib.h>
 
 #include <QApplication>

@@ -3,40 +3,36 @@ project(lib)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets WebEngineWidgets Core5Compat Pdf)
 
 find_package(fmt CONFIG REQUIRED)
-find_library(Z z)
-find_library(VORBISFILE vorbisfile)
-find_library(SNDFILE sndfile)
+find_package(ZLIB REQUIRED)
+if(WIN32)
+    find_package(Vorbis CONFIG REQUIRED)
+    find_package(SndFile CONFIG REQUIRED)
+else()
+    find_library(VORBISFILE vorbisfile REQUIRED)
+    add_library(Vorbis::vorbisfile SHARED IMPORTED)
+    set_property(TARGET Vorbis::vorbisfile PROPERTY IMPORTED_LOCATION ${VORBISFILE})
+
+    find_library(SNDFILE sndfile REQUIRED)
+    add_library(SndFile::sndfile SHARED IMPORTED)
+    set_property(TARGET SndFile::sndfile PROPERTY IMPORTED_LOCATION ${SNDFILE})
+endif()
 
 add_subdirectory(minizip)
 
 add_library(${PROJECT_NAME} STATIC
-    lsd/lsd.h
     lsd/lsd.cpp
-    lsd/tools.h
     lsd/tools.cpp
-    lsd/LenTable.h
     lsd/LenTable.cpp
-    lsd/BitStream.h
     lsd/BitStream.cpp
-    lsd/ArticleHeading.h
     lsd/ArticleHeading.cpp
-    lsd/CachePage.h
     lsd/CachePage.cpp
-    lsd/DictionaryReader.h
     lsd/DictionaryReader.cpp
-    lsd/IDictionaryDecoder.h
     lsd/IDictionaryDecoder.cpp
-    lsd/UserDictionaryDecoder.h
     lsd/UserDictionaryDecoder.cpp
-    lsd/SystemDictionaryDecoder.h
     lsd/SystemDictionaryDecoder.cpp
-    lsd/AbbreviationDictionaryDecoder.h
     lsd/AbbreviationDictionaryDecoder.cpp
-    lsd/LSDOverlayReader.h
     lsd/LSDOverlayReader.cpp
-    lsd/LSAReader.h
     lsd/LSAReader.cpp
-    lsd/OggReader.h
     lsd/OggReader.cpp
     duden/Duden.cpp
     duden/Archive.cpp
@@ -55,15 +51,10 @@ add_library(${PROJECT_NAME} STATIC
     duden/text/Printers.cpp
     duden/text/Reference.cpp
     duden/unzip/inflate.c
-    common/ZipWriter.h
     common/ZipWriter.cpp
-    common/DslWriter.h
     common/DslWriter.cpp
-    common/WavWriter.h
     common/WavWriter.cpp
-    common/Log.h
     common/Log.cpp
-    common/version.h
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -74,8 +65,8 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::WebEngineWidgets
     Qt6::Pdf
     minizip
-    ${Z}
-    ${VORBISFILE}
-    ${SNDFILE}
+    Vorbis::vorbisfile
+    SndFile::sndfile
     fmt::fmt-header-only
+    ZLIB::ZLIB
 )

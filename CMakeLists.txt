@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.14)
+cmake_minimum_required (VERSION 3.21)
 
 project(lsd2dsl VERSION 0.6.0 LANGUAGES C CXX)
 
@@ -12,25 +12,18 @@ include_directories("${CMAKE_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
 
-if(WIN32)
-    set(Boost_ARCHITECTURE "-x64")
-endif()
-
-set(Boost_USE_STATIC_LIBS       OFF)
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost 1.60 COMPONENTS system program_options REQUIRED)
 
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_BUILD_TYPE MATCHES Debug)
-    add_compile_options(-fno-limit-debug-info)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Werror>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-error=array-bounds>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wall>)
+if(WIN32)
+    add_compile_definitions(WIN32)
 endif()
-
-set(CMAKE_CXX_FLAGS "-Werror -Werror=return-type -Wno-error=array-bounds -Wall -Wextra -Wno-implicit-fallthrough ${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "-Wno-everything ${CMAKE_C_FLAGS}")
 
 add_subdirectory(lib)
 add_subdirectory(tests)

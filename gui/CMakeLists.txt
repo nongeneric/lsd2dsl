@@ -1,18 +1,15 @@
-cmake_minimum_required(VERSION 3.11)
-
-project(qtgui)
+project(lsd2dsl-qtgui)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
-
-if(WIN32)
-    set(CMAKE_CXX_FLAGS "-Wl,-subsystem,windows ${CMAKE_CXX_FLAGS}")
-endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Pdf)
 set(SRC
     main.cpp
     MainWindow.cpp
 )
-add_executable(lsd2dsl-qtgui ${SRC} ${QT_RESOURCES})
-target_link_libraries(lsd2dsl-qtgui PRIVATE Qt6::Core Qt6::Widgets Qt6::Pdf lib)
+add_executable(${PROJECT_NAME} WIN32 ${SRC} ${QT_RESOURCES})
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Widgets Qt6::Pdf lib)
+
+install(TARGETS ${PROJECT_NAME} DESTINATION /)
+install(FILES $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> DESTINATION /)

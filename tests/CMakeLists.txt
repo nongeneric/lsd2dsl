@@ -1,6 +1,6 @@
 project(tests)
 
-find_library(GTEST gtest)
+find_package(GTest CONFIG REQUIRED)
 
 add_executable(tests tests.cpp duden-tests.cpp)
-target_link_libraries(tests lib ${GTEST})
+target_link_libraries(tests lib GTest::gtest)

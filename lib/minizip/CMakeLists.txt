@@ -1,7 +1,6 @@
-project(minizip)
+project(minizip LANGUAGES C)
 
 set(SOURCES
-    crypt.h
     ioapi.c
     miniunz.c
     minizip.c
@@ -15,11 +14,14 @@ if(WIN32)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES}
-    crypt.h
     ioapi.c
     miniunz.c
     minizip.c
     mztools.c
     unzip.c
     zip.c
+)
+
+target_link_libraries(${PROJECT_NAME}
+    ZLIB::ZLIB
 )
