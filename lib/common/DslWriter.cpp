@@ -110,7 +110,7 @@ namespace dsl {
         write(u"#ICON_FILE\t\"" + toUtf16(path.filename().u8string()) + u"\"\n");
 
         auto file = openForWriting(path);
-        file.write(reinterpret_cast<const char*>(&icon[0]), icon.size());
+        file.write(reinterpret_cast<const char*>(icon.data()), icon.size());
     }
 
     void Writer::writeNewLine() {

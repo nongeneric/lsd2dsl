@@ -143,9 +143,9 @@ void decodeBofIdx(std::filesystem::path bofPath,
         auto file = openForWriting(output / "decoded.dump");
         if (dudenEncoding) {
             auto text = duden::dudenToUtf8(std::string{begin(vec), end(vec)});
-            file.write(&text[0], text.size());
+            file.write(text.data(), text.size());
         } else {
-            file.write(&vec[0], vec.size());
+            file.write(vec.data(), vec.size());
         }
     } else {
         FileStream fFsi(fsiPath);
@@ -154,7 +154,7 @@ void decodeBofIdx(std::filesystem::path bofPath,
             auto file = openForWriting(output / entry.name);
             std::vector<char> vec;
             archive.read(entry.offset, entry.size, vec);
-            file.write(&vec[0], vec.size());
+            file.write(vec.data(), vec.size());
         }
     }
 }
@@ -211,7 +211,7 @@ void parseDudenText(std::filesystem::path textPath, std::filesystem::path output
     f.seekg(0, std::ios_base::end);
     std::string text(f.tellg(), ' ');
     f.seekg(0);
-    f.read(&text[0], text.size());
+    f.read(text.data(), text.size());
     if (dudenEncoding) {
         text = duden::dudenToUtf8(text);
     }
@@ -240,12 +240,12 @@ void decodeAdp(std::filesystem::path adpPath, std::filesystem::path outputPath) 
     input.seekg(0, std::ios_base::end);
     std::vector<char> inputVec(input.tellg());
     input.seekg(0);
-    input.read(&inputVec[0], inputVec.size());
+    input.read(inputVec.data(), inputVec.size());
     std::vector<int16_t> pcmVec;;
     duden::decodeAdp(inputVec, pcmVec);
     std::vector<char> wav;
     dictlsd::createWav(pcmVec, wav, duden::ADP_SAMPLE_RATE, duden::ADP_CHANNELS);
-    output.write(reinterpret_cast<char*>(&wav[0]), wav.size());
+    output.write(reinterpret_cast<char*>(wav.data()), wav.size());
 }
 
 class ConsoleLog : public Log {

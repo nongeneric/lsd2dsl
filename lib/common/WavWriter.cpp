@@ -72,7 +72,7 @@ void createWav(std::vector<int16_t> const& samples, std::vector<char> &wav, int 
     if (!outfile) {
         throw std::runtime_error("can't create wav");
     }
-    unsigned written = sf_writef_short(outfile, &samples[0], samples.size());
+    unsigned written = sf_writef_short(outfile, samples.data(), samples.size());
     if (written != samples.size())
         throw std::runtime_error("can't write wav file");
     sf_close(outfile);

@@ -63,7 +63,7 @@ void decodeBofBlock(const void* blockData,
                     std::vector<char>& output) {
     static std::vector<char> buffer(32 << 10);
     unsigned outputSize = buffer.size();
-    auto res = duden_inflate(blockData, blockSize, &buffer[0], &outputSize);
+    auto res = duden_inflate(blockData, blockSize, buffer.data(), &outputSize);
     if (res)
         throw std::runtime_error("inflate failed");
     output.assign(begin(buffer), begin(buffer) + outputSize);
@@ -198,7 +198,7 @@ std::string dudenToUtf8(std::string str) {
         }
     }
     static auto codec = QTextCodec::codecForName("UTF32LE");
-    auto utf8 = codec->toUnicode((const char*)&utf[0], utf.size() * sizeof(uint32_t)).toUtf8();
+    auto utf8 = codec->toUnicode((const char*)utf.data(), utf.size() * sizeof(uint32_t)).toUtf8();
     return {utf8.begin(), utf8.end()};
 }
 
@@ -360,7 +360,7 @@ std::tuple<uint32_t, uint32_t, uint8_t> readHeader(dictlsd::IRandomAccessStream 
 
 HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
     std::string magic(0x22, 0);
-    stream->readSome(&magic[0], magic.size());
+    stream->readSome(magic.data(), magic.size());
     if (magic != "compressed PC-Bibliothek Hierarchy")
         throw std::runtime_error("not a HIC file");
     read8(stream);
@@ -373,7 +373,7 @@ HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
         version == 4 ? readHeader<Hic4Header>(stream) :
         readHeader<Hic5Header>(stream);
     std::string name(namelen - 1, 0);
-    stream->readSome(&name[0], name.size());
+    stream->readSome(name.data(), name.size());
     read8(stream);
     HicFile hicFile{name, version, {}};
 

@@ -215,12 +215,8 @@ TEST(duden, ParseBFsiBlock) {
 }
 
 TEST(duden, DecodeFixedTreeBofBlock) {
+    auto buf = read_all_bytes(testPath("duden_testfiles/bofFixedDeflateBlock"));
     std::vector<char> decoded;
-    std::ifstream f(testPath("duden_testfiles/bofFixedDeflateBlock"));
-    f.seekg(0, std::ios_base::end);
-    std::vector<char> buf(f.tellg());
-    f.seekg(0);
-    f.read(&buf[0], buf.size());
     decodeBofBlock(&buf[0], buf.size(), decoded);
     ASSERT_EQ(0x2000, decoded.size());
     ASSERT_EQ(0xa29a3559, crc32(0, (const Bytef*)&decoded[0], decoded.size()));

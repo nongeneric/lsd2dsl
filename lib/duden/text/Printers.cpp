@@ -302,7 +302,7 @@ class HtmlVisitor : public TextRunVisitor {
             throw std::runtime_error("inlining resource without extension");
         boost::algorithm::to_lower(ext);
         ext = ext.substr(1);
-        auto array = QByteArray::fromRawData(reinterpret_cast<char*>(&image[0]), image.size());
+        auto array = QByteArray::fromRawData(reinterpret_cast<char*>(image.data()), image.size());
         auto base64 = array.toBase64();
         std::string str(base64.data(), base64.size());
         _result += bformat("<img src=\"data:image/%s;base64,%s\">", ext, str);

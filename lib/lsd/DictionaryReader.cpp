@@ -51,13 +51,13 @@ DictionaryReader::DictionaryReader(IBitStream *bstr)
     bstr->readSome(&nameLen, 1);
     _name = readUnicodeString(bstr, nameLen, false);
     auto firstHeading = readUnicodeString(bstr, bstr->read(8), false); (void)firstHeading;
-    auto lastHeading = readUnicodeString(bstr, bstr->read(8), false); (void)lastHeading;    
+    auto lastHeading = readUnicodeString(bstr, bstr->read(8), false); (void)lastHeading;
     auto capitals = readUnicodeString(bstr, reverse32(bstr->read(32)), false); (void)capitals;
     if (_header.version > 0x120000) {
         uint16_t iconLen;
         bstr->readSome(&iconLen, 2);
         _icon.resize(iconLen);
-        bstr->readSome(&_icon[0], iconLen);
+        bstr->readSome(_icon.data(), iconLen);
     }
     if (_header.version > 0x140000) {
         bstr->seek(bstr->tell() + 4); // checksum

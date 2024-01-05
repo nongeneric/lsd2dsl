@@ -74,7 +74,7 @@ std::vector<OverlayHeading> LSDOverlayReader::readHeadings() {
 std::vector<uint8_t> LSDOverlayReader::readEntry(OverlayHeading const& heading) {
     _bstr->seek(heading.offset + _reader->overlayDataOffset());
     std::vector<uint8_t> slice(heading.streamSize);
-    _bstr->readSome(&slice[0], heading.streamSize);
+    _bstr->readSome(slice.data(), heading.streamSize);
     std::vector<uint8_t> res;
     zlibInflate(res, slice, heading.inflatedSize);
     return res;

@@ -9,7 +9,7 @@ void FsdFile::read(uint32_t plainOffset, uint32_t size, std::vector<char>& outpu
     output.resize(size);
     std::fill(begin(output), end(output), 0);
     _stream->seek(plainOffset);
-    _stream->readSome(&output[0], size);
+    _stream->readSome(output.data(), size);
 }
 
 unsigned FsdFile::decodedSize() const {

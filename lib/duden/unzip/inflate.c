@@ -1,6 +1,7 @@
 #include "inflate.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
@@ -1017,8 +1018,9 @@ int duden_inflate(const void* input,
                   unsigned inputSize,
                   void* output,
                   unsigned* outputSize) {
-    Uz_Globs globs = {};
+    Uz_Globs globs;
     Uz_Globs* pG = &globs;
+    memzero(&globs, sizeof(globs));
 
     G.inptr = G.inbuf = (const uch*)input;
     G.incnt = inputSize;

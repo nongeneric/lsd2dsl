@@ -22,7 +22,7 @@ std::array<int, 8> valueTable {
 
 void duden::decodeAdp(const std::vector<char>& input, std::vector<int16_t>& samples) {
     samples.resize(input.size() * 2);
-    auto outptr = &samples[0];
+    auto outptr = samples.data();
     double sample = 0;
     int index = 0;
     for (uint8_t byte : input) {

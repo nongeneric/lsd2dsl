@@ -15,8 +15,8 @@ bool Archive::readBlock(uint32_t index) {
         return false;
     _bofBuf.resize(size);
     _bof->seek(offset);
-    _bof->readSome(&_bofBuf[0], _bofBuf.size());
-    decodeBofBlock(&_bofBuf[0], _bofBuf.size(), _decodedBofBlock);
+    _bof->readSome(_bofBuf.data(), _bofBuf.size());
+    decodeBofBlock(_bofBuf.data(), _bofBuf.size(), _decodedBofBlock);
     if (_decodedBofBlock.size() > g_DecodedBofBlockSize)
         throw std::runtime_error("bof block is too large");
     _lastBlock = index;
