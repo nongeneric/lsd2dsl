@@ -26,16 +26,22 @@ using namespace duden;
 using namespace common;
 using namespace std::literals;
 
-class duden_qt : public ::testing::Test {
-    int _c = 1;
-    char _appName[8] = "testapp";
-    char* _args[1]{_appName};
-    QApplication _app;
+struct duden_qt : public ::testing::Test {
+    static void SetUpTestSuite() {
+        static int c = 1;
+        static char appName[8] = "testapp";
+        static char* args[1]{appName};
+        _qapp = std::make_unique<QApplication>(c, args);
+    }
 
-public:
-    duden_qt() : _app(_c, _args) { }
-    ~duden_qt() = default;
+    static void TearDownTestSuite() {
+        _qapp.reset();
+    }
+
+    static std::unique_ptr<QApplication> _qapp;
 };
+
+std::unique_ptr<QApplication> duden_qt::_qapp;
 
 TEST(duden, HicNodeTest1) {
     FileStream stream(testPath("duden_testfiles/HicNode99"));
@@ -1621,7 +1627,7 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"), std::ios::binary);
     inlineReferences(context, run, files);
     std::string name;
-    TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
+    TableRenderer renderer([&](auto n, auto) { name = n; }, [](auto){return std::vector<char>();});
     renderer.render(run);
     auto expected = bformat(
                 "\n----------\n"
