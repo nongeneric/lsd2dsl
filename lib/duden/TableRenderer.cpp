@@ -1,7 +1,7 @@
 #include "TableRenderer.h"
 
 #include "HtmlRenderer.h"
-#include "lib/common/bformat.h"
+#include "common/bformat.h"
 
 namespace duden {
 

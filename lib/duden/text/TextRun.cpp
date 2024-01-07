@@ -2,8 +2,8 @@
 
 #include "Table.h"
 #include "Parser.h"
-#include "lib/common/bformat.h"
-#include "lib/duden/Duden.h"
+#include "common/bformat.h"
+#include "duden/Duden.h"
 #include <boost/algorithm/string.hpp>
 #include <assert.h>
 #include <algorithm>

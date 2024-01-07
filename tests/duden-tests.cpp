@@ -1,17 +1,17 @@
-#include "lib/common/bformat.h"
-#include "lib/duden/Archive.h"
-#include "lib/duden/Dictionary.h"
-#include "lib/duden/Duden.h"
-#include "lib/duden/HtmlRenderer.h"
-#include "lib/duden/InfFile.h"
-#include "lib/duden/LdFile.h"
-#include "lib/duden/TableRenderer.h"
-#include "lib/duden/Writer.h"
-#include "lib/duden/text/Parser.h"
-#include "lib/duden/text/Printers.h"
-#include "lib/duden/text/Reference.h"
-#include "lib/duden/text/Table.h"
-#include "lib/duden/text/TextRun.h"
+#include "common/bformat.h"
+#include "duden/Archive.h"
+#include "duden/Dictionary.h"
+#include "duden/Duden.h"
+#include "duden/HtmlRenderer.h"
+#include "duden/InfFile.h"
+#include "duden/LdFile.h"
+#include "duden/TableRenderer.h"
+#include "duden/Writer.h"
+#include "duden/text/Parser.h"
+#include "duden/text/Printers.h"
+#include "duden/text/Reference.h"
+#include "duden/text/Table.h"
+#include "duden/text/TextRun.h"
 #include "test-utils.h"
 #include <gtest/gtest.h>
 #include <zlib.h>
@@ -23,7 +23,7 @@
 #include <fmt/format.h>
 
 using namespace duden;
-using namespace dictlsd;
+using namespace common;
 using namespace std::literals;
 
 class duden_qt : public ::testing::Test {
@@ -239,12 +239,12 @@ public:
                   "du5neU.Ld"};
     }
 
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path path) override {
+    std::unique_ptr<common::IRandomAccessStream> open(std::filesystem::path path) override {
         if (boost::algorithm::to_lower_copy(path.extension().u8string()) == ".ld") {
             _lds.push_back(std::make_unique<std::string>());
             auto& ld = _lds.back();
             *ld = "K" + path.stem().u8string();
-            return std::make_unique<dictlsd::InMemoryStream>(ld->c_str(), ld->size());
+            return std::make_unique<InMemoryStream>(ld->c_str(), ld->size());
         }
         throw std::runtime_error("");
     }
@@ -406,8 +406,8 @@ class TestFileSystem4 : public IFileSystem {
     CaseInsensitiveSet _files;
 
 public:
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path) override {
-        return std::make_unique<dictlsd::InMemoryStream>(_ld.c_str(), _ld.size());
+    std::unique_ptr<common::IRandomAccessStream> open(std::filesystem::path) override {
+        return std::make_unique<InMemoryStream>(_ld.c_str(), _ld.size());
     }
 
     CaseInsensitiveSet& files() override {
@@ -861,7 +861,7 @@ public:
                   std::filesystem::u8path(u8"АбfD.BMP"),
                   std::filesystem::u8path(u8"UNABKöMMLICH1V.WAV")};
     }
-     std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path) override {
+     std::unique_ptr<common::IRandomAccessStream> open(std::filesystem::path) override {
         return {};
     }
 

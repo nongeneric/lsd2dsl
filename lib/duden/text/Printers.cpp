@@ -1,8 +1,8 @@
 #include "Printers.h"
 
 #include "Table.h"
-#include "lib/common/bformat.h"
-#include "lib/duden/text/Reference.h"
+#include "common/bformat.h"
+#include "duden/text/Reference.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
 #include <boost/range/algorithm.hpp>

@@ -20,7 +20,7 @@ std::string fixFileNameCase(const std::string& name, const CaseInsensitiveSet& f
 
 } // namespace
 
-std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSystem* filesystem) {
+std::vector<InfFile> parseInfFile(common::IRandomAccessStream* stream, IFileSystem* filesystem) {
     std::string line;
     uint32_t version = 0;
     CaseInsensitiveSet files;

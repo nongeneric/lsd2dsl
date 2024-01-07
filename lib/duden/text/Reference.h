@@ -1,8 +1,8 @@
 #pragma once
 
 #include "TextRun.h"
-#include "lib/duden/LdFile.h"
-#include "lib/duden/IFileSystem.h"
+#include "duden/LdFile.h"
+#include "duden/IFileSystem.h"
 #include <functional>
 
 namespace duden {

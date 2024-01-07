@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/lsd/BitStream.h"
+#include "common/BitStream.h"
 #include <optional>
 #include <memory>
 #include <set>
@@ -18,7 +18,7 @@ template <class T>
 using CaseInsensitiveMap = std::map<std::filesystem::path, T, CaseInsensitiveLess>;
 
 struct IFileSystem {
-    virtual std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path path) = 0;
+    virtual std::unique_ptr<common::IRandomAccessStream> open(std::filesystem::path path) = 0;
     virtual const CaseInsensitiveSet& files() = 0;
     ~IFileSystem() = default;
 };

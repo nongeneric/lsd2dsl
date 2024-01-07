@@ -1,7 +1,7 @@
 #include "Duden.h"
 
-#include "lib/common/bformat.h"
-#include "lib/common/overloaded.h"
+#include "common/bformat.h"
+#include "common/overloaded.h"
 
 #include "assert.h"
 #include "unzip/inflate.h"
@@ -216,7 +216,7 @@ static void decodeHeadingPrefixes(std::vector<HicEntry>& block) {
     }
 }
 
-static void parseHicNodeHeadings(dictlsd::IRandomAccessStream* stream, std::vector<HicEntry>& block) {
+static void parseHicNodeHeadings(common::IRandomAccessStream* stream, std::vector<HicEntry>& block) {
     for (auto& entry : block) {
         std::visit(overloaded{[=](auto& typed) { readLine(stream, typed.heading, '\0'); }}, entry);
     }
@@ -228,7 +228,7 @@ static void parseHicNodeHeadings(dictlsd::IRandomAccessStream* stream, std::vect
     }
 }
 
-std::vector<HicEntry> parseHicNode6(dictlsd::IRandomAccessStream* stream) {
+std::vector<HicEntry> parseHicNode6(common::IRandomAccessStream* stream) {
     auto count = read8(stream);
     assert(count);
     std::vector<HicEntry> block;
@@ -253,7 +253,7 @@ std::vector<HicEntry> parseHicNode6(dictlsd::IRandomAccessStream* stream) {
     return block;
 }
 
-std::vector<HicEntry> parseHicNode45(dictlsd::IRandomAccessStream* stream) {
+std::vector<HicEntry> parseHicNode45(common::IRandomAccessStream* stream) {
     auto count = read8(stream);
     std::vector<HicEntry> block;
     for (auto i = 0u; i < count; ++i) {
@@ -276,7 +276,7 @@ std::vector<HicEntry> parseHicNode45(dictlsd::IRandomAccessStream* stream) {
     return block;
 }
 
-std::vector<uint32_t> parseIndex(dictlsd::IRandomAccessStream* stream) {
+std::vector<uint32_t> parseIndex(common::IRandomAccessStream* stream) {
     std::vector<uint32_t> res;
     for (;;) {
         uint32_t index;
@@ -294,7 +294,7 @@ static std::tuple<std::string, uint32_t> parseFsiEntry(std::string raw) {
     return {m[1], static_cast<uint32_t>(std::stol(m[2]))};
 }
 
-static std::tuple<bool, std::string> parseFsiString(dictlsd::IRandomAccessStream *stream) {
+static std::tuple<bool, std::string> parseFsiString(common::IRandomAccessStream *stream) {
     std::string res;
     for (;;) {
         auto ch = read8(stream);
@@ -308,7 +308,7 @@ static std::tuple<bool, std::string> parseFsiString(dictlsd::IRandomAccessStream
     return {};
 }
 
-std::vector<FsiEntry> parseFsiBlock(dictlsd::IRandomAccessStream* stream) {
+std::vector<FsiEntry> parseFsiBlock(common::IRandomAccessStream* stream) {
     auto type = read16(stream);
     assert(type == 0xc || type == 0xb);
     read32(stream);
@@ -338,7 +338,7 @@ std::vector<FsiEntry> parseFsiBlock(dictlsd::IRandomAccessStream* stream) {
     return res;
 }
 
-std::set<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream) {
+std::set<FsiEntry> parseFsiFile(common::IRandomAccessStream* stream) {
     const auto blockSize = 0x400;
     std::set<FsiEntry> res;
     stream->seek(0x12);
@@ -352,13 +352,13 @@ std::set<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream) {
 }
 
 template <class T>
-std::tuple<uint32_t, uint32_t, uint8_t> readHeader(dictlsd::IRandomAccessStream *stream) {
+std::tuple<uint32_t, uint32_t, uint8_t> readHeader(common::IRandomAccessStream *stream) {
     T header;
     stream->readSome(reinterpret_cast<char*>(&header), sizeof header);
     return {header.headingCount, header.blockCount, header.namelen};
 }
 
-HicFile parseHicFile(dictlsd::IRandomAccessStream *stream) {
+HicFile parseHicFile(common::IRandomAccessStream *stream) {
     std::string magic(0x22, 0);
     stream->readSome(magic.data(), magic.size());
     if (magic != "compressed PC-Bibliothek Hierarchy")

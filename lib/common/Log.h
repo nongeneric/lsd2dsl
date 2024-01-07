@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/common/bformat.h"
+#include "bformat.h"
 #include <string>
 #include <functional>
 

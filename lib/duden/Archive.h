@@ -11,7 +11,7 @@ namespace duden {
 
 class Archive : public IResourceArchiveReader {
     std::vector<uint32_t> _index;
-    std::shared_ptr<dictlsd::IRandomAccessStream> _bof;
+    std::shared_ptr<common::IRandomAccessStream> _bof;
     std::vector<char> _bofBuf;
     std::vector<char> _decodedBofBlock;
     unsigned _lastBlock = -1;
@@ -20,8 +20,8 @@ class Archive : public IResourceArchiveReader {
     bool readBlock(uint32_t index);
 
 public:
-    Archive(dictlsd::IRandomAccessStream* index,
-            std::shared_ptr<dictlsd::IRandomAccessStream> bof);
+    Archive(common::IRandomAccessStream* index,
+            std::shared_ptr<common::IRandomAccessStream> bof);
     void read(uint32_t plainOffset, uint32_t size, std::vector<char>& output) override;
     unsigned decodedSize() const override;
 };

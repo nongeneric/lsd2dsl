@@ -9,7 +9,11 @@ set(SRC
     MainWindow.cpp
 )
 add_executable(${PROJECT_NAME} WIN32 ${SRC} ${QT_RESOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Widgets Qt6::Pdf lib)
+target_link_libraries(${PROJECT_NAME} PRIVATE lingvo Qt6::Core Qt6::Widgets Qt6::Pdf)
+
+if(ENABLE_DUDEN)
+    target_link_libraries(${PROJECT_NAME} PRIVATE duden)
+endif()
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /)
 install(FILES $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> DESTINATION /)

@@ -1,12 +1,12 @@
 #include "Reference.h"
 
-#include "lib/duden/Duden.h"
+#include "duden/Duden.h"
 #include "Parser.h"
-#include "lib/common/bformat.h"
-#include "lib/duden/AdpDecoder.h"
+#include "common/bformat.h"
+#include "duden/AdpDecoder.h"
 #include <boost/algorithm/string.hpp>
 
-#include "lib/duden/text/Printers.h"
+#include "duden/text/Printers.h"
 
 namespace duden {
 

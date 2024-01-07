@@ -1,19 +1,19 @@
 #include "Writer.h"
-#include "lib/common/DslWriter.h"
-#include "lib/common/ZipWriter.h"
+#include "common/DslWriter.h"
+#include "common/ZipWriter.h"
 #include "TableRenderer.h"
-#include "lib/common/bformat.h"
-#include "lib/duden/Duden.h"
-#include "lib/duden/Archive.h"
-#include "lib/duden/AdpDecoder.h"
-#include "lib/duden/FsdFile.h"
-#include "lib/duden/HtmlRenderer.h"
-#include "lib/duden/text/TextRun.h"
-#include "lib/duden/text/Parser.h"
-#include "lib/duden/text/Printers.h"
-#include "lib/duden/text/Reference.h"
-#include "lib/lsd/tools.h"
-#include "lib/common/WavWriter.h"
+#include "common/bformat.h"
+#include "duden/Duden.h"
+#include "duden/Archive.h"
+#include "duden/AdpDecoder.h"
+#include "duden/FsdFile.h"
+#include "duden/HtmlRenderer.h"
+#include "duden/text/TextRun.h"
+#include "duden/text/Parser.h"
+#include "duden/text/Printers.h"
+#include "duden/text/Reference.h"
+#include "lingvo/tools.h"
+#include "common/WavWriter.h"
 
 namespace duden {
 
@@ -31,7 +31,7 @@ public:
         }
     }
 
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path) override {
+    std::unique_ptr<common::IRandomAccessStream> open(std::filesystem::path) override {
         return {};
     }
 
@@ -51,11 +51,11 @@ uint32_t calcBofOffset(duden::Dictionary& dict) {
 std::unique_ptr<IResourceArchiveReader> makeArchiveReader(std::filesystem::path inputPath,
                                                           const duden::ResourceArchive& archive) {
     if (archive.fsd.empty()) {
-        dictlsd::FileStream fIdx(inputPath / archive.idx);
-        auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / archive.bof);
+        common::FileStream fIdx(inputPath / archive.idx);
+        auto fBof = std::make_shared<common::FileStream>(inputPath / archive.bof);
         return std::make_unique<Archive>(&fIdx, fBof);
     } else {
-        auto fFsd = std::make_shared<dictlsd::FileStream>(inputPath / archive.fsd);
+        auto fFsd = std::make_shared<common::FileStream>(inputPath / archive.fsd);
         return std::make_unique<FsdFile>(fFsd);
     }
 }
@@ -105,8 +105,8 @@ void writeDSL(std::filesystem::path infPath,
 
         log.regular("unpacking %s", pack.bof);
 
-        dictlsd::FileStream fIndex(inputPath / pack.idx);
-        auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / pack.bof);
+        common::FileStream fIndex(inputPath / pack.idx);
+        auto fBof = std::make_shared<common::FileStream>(inputPath / pack.bof);
         Archive archive(&fIndex, fBof);
         std::vector<char> vec;
         archive.read(0, -1, vec);
@@ -117,7 +117,7 @@ void writeDSL(std::filesystem::path infPath,
         resources[filename] = std::move(stream);
     }
 
-    writer.setName(dictlsd::toUtf16(dict.ld().name));
+    writer.setName(toUtf16(dict.ld().name));
     writer.setLanguage(dict.ld().sourceLanguageCode, dict.ld().targetLanguageCode);
 
     std::map<std::string, std::tuple<const ResourceArchive*, uint32_t, uint32_t>> resourceIndex;
@@ -131,7 +131,7 @@ void writeDSL(std::filesystem::path infPath,
         if (pack.fsi.empty())
             continue;
 
-        dictlsd::FileStream fFsi(inputPath / pack.fsi);
+        common::FileStream fFsi(inputPath / pack.fsi);
         auto entries = parseFsiFile(&fFsi);
 
         log.resetProgress(pack.fsi, entries.size());
@@ -153,7 +153,7 @@ void writeDSL(std::filesystem::path infPath,
             auto name = entry.name;
             if (replaceAdpExtWithWav(name)) {
                 decodeAdp(vec, samples);
-                dictlsd::createWav(samples, vec, ADP_SAMPLE_RATE, ADP_CHANNELS);
+                common::createWav(samples, vec, ADP_SAMPLE_RATE, ADP_CHANNELS);
                 adpCount++;
             }
 
@@ -183,8 +183,8 @@ void writeDSL(std::filesystem::path infPath,
                 return vec;
             }
             auto [pack, offset, size] = it->second;
-            dictlsd::FileStream fIndex(inputPath / pack->idx);
-            auto fBof = std::make_shared<dictlsd::FileStream>(inputPath / pack->bof);
+            common::FileStream fIndex(inputPath / pack->idx);
+            auto fBof = std::make_shared<common::FileStream>(inputPath / pack->bof);
             Archive archive(&fIndex, fBof);
             archive.read(offset, size, vec);
             return vec;
@@ -207,7 +207,7 @@ void writeDSL(std::filesystem::path infPath,
         for (const auto& heading : group.headings) {
             headingRun = parseDudenText(context, heading);
             auto dslHeading = printDslHeading(headingRun);
-            writer.writeHeading(dictlsd::toUtf16(dslHeading));
+            writer.writeHeading(toUtf16(dslHeading));
         }
 
         try {
@@ -232,11 +232,11 @@ void writeDSL(std::filesystem::path infPath,
                 dedupHeading(headingRun, articleRun);
             }
             auto dslArticle = printDsl(articleRun);
-            writer.writeArticle(dictlsd::toUtf16(dslArticle));
+            writer.writeArticle(toUtf16(dslArticle));
             ++articleCount;
         } catch (std::exception& e) {
             log.regular("failed to parse article [%s] with error: %s", group.headings.front(), e.what());
-            writer.writeArticle(dictlsd::toUtf16("<Parsing error>"));
+            writer.writeArticle(toUtf16("<Parsing error>"));
             failedArticleCount++;
         }
     }

@@ -1,6 +1,6 @@
 #include "ZipWriter.h"
 
-#include "lib/minizip/zip.h"
+#include "minizip/zip.h"
 #include <fmt/format.h>
 #include <zlib.h>
 

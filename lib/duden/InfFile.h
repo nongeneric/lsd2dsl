@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/lsd/BitStream.h"
+#include "common/BitStream.h"
 #include "IFileSystem.h"
 
 namespace duden {
@@ -26,6 +26,6 @@ struct InfFile {
     std::vector<ResourceArchive> resources;
 };
 
-std::vector<InfFile> parseInfFile(dictlsd::IRandomAccessStream* stream, IFileSystem* filesystem);
+std::vector<InfFile> parseInfFile(common::IRandomAccessStream* stream, IFileSystem* filesystem);
 
 } // namespace duden

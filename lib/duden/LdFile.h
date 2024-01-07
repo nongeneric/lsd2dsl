@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/lsd/BitStream.h"
+#include "common/BitStream.h"
 #include <vector>
 #include <string>
 #include "stdint.h"
@@ -29,7 +29,7 @@ struct LdFile {
     std::vector<ReferenceRange> ranges;
 };
 
-LdFile parseLdFile(dictlsd::IRandomAccessStream* stream);
+LdFile parseLdFile(common::IRandomAccessStream* stream);
 void updateLanguageCodes(std::vector<LdFile*> lds);
 
 } // namespace duden

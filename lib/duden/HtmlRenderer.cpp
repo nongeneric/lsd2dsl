@@ -1,6 +1,6 @@
 #include "HtmlRenderer.h"
 
-#include "lib/common/Stopwatch.h"
+#include "common/Stopwatch.h"
 
 #include <QBuffer>
 #include <QEventLoop>

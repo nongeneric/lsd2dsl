@@ -5,7 +5,7 @@
 
 namespace duden {
 
-LdFile parseLdFile(dictlsd::IRandomAccessStream* stream) {
+LdFile parseLdFile(common::IRandomAccessStream* stream) {
     LdFile ld;
 
     ld.references.push_back({"WEB", "Web", "W"});

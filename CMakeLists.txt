@@ -2,12 +2,14 @@ cmake_minimum_required (VERSION 3.21)
 
 project(lsd2dsl VERSION 0.6.0 LANGUAGES C CXX)
 
+option(ENABLE_DUDEN "Enable Duden support, requires Qt6WebEngine" ON)
+
 configure_file (
     "${CMAKE_SOURCE_DIR}/lib/common/version.h.in"
-    "${CMAKE_BINARY_DIR}/lib/common/version.h"
+    "${CMAKE_BINARY_DIR}/common/version.h"
 )
 
-include_directories("${PROJECT_SOURCE_DIR}")
+include_directories("${PROJECT_SOURCE_DIR}/lib")
 include_directories("${CMAKE_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
@@ -23,6 +25,9 @@ add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-error=array-bounds>)
 add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wall>)
 if(WIN32)
     add_compile_definitions(WIN32)
+endif()
+if(ENABLE_DUDEN)
+    add_compile_definitions(ENABLE_DUDEN)
 endif()
 
 add_subdirectory(lib)

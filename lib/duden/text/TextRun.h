@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/duden/LdFile.h"
-#include "lib/duden/IFileSystem.h"
+#include "duden/LdFile.h"
+#include "duden/IFileSystem.h"
 #include <vector>
 #include <string>
 #include <memory>

@@ -1,24 +1,28 @@
-#include "lib/common/DslWriter.h"
-#include "lib/common/Log.h"
-#include "lib/common/ZipWriter.h"
-#include "lib/common/bformat.h"
-#include "lib/common/overloaded.h"
-#include "lib/common/version.h"
-#include "lib/common/WavWriter.h"
-#include "lib/duden/AdpDecoder.h"
-#include "lib/duden/Dictionary.h"
-#include "lib/duden/Duden.h"
-#include "lib/duden/HtmlRenderer.h"
-#include "lib/duden/InfFile.h"
-#include "lib/duden/Writer.h"
-#include "lib/duden/text/Parser.h"
-#include "lib/duden/text/Printers.h"
-#include "lib/duden/text/TextRun.h"
-#include "lib/lsd/LSAReader.h"
-#include "lib/lsd/lsd.h"
-#include "lib/lsd/tools.h"
+#include "common/DslWriter.h"
+#include "common/Log.h"
+#include "common/ZipWriter.h"
+#include "common/bformat.h"
+#include "common/overloaded.h"
+#include "common/version.h"
+#include "common/WavWriter.h"
+#include "lingvo/LSAReader.h"
+#include "lingvo/lsd.h"
+#include "lingvo/tools.h"
+#include "lingvo/WriteDsl.h"
 
+#ifdef ENABLE_DUDEN
 #include <QApplication>
+#include "duden/AdpDecoder.h"
+#include "duden/Dictionary.h"
+#include "duden/Duden.h"
+#include "duden/HtmlRenderer.h"
+#include "duden/InfFile.h"
+#include "duden/Writer.h"
+#include "duden/text/Parser.h"
+#include "duden/text/Printers.h"
+#include "duden/text/TextRun.h"
+#endif
+
 #include <boost/program_options.hpp>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -30,7 +34,7 @@
 #include <string_view>
 
 namespace po = boost::program_options;
-using namespace dictlsd;
+using namespace lingvo;
 
 struct Entry {
     std::u16string heading;
@@ -44,8 +48,8 @@ int parseLSD(std::filesystem::path lsdPath,
              bool dumb,
              Log& log)
 {
-    FileStream ras(lsdPath);
-    BitStreamAdapter bstr(&ras);
+    common::FileStream ras(lsdPath);
+    common::BitStreamAdapter bstr(&ras);
     LSDDictionary reader(&bstr);
     LSDHeader header = reader.header();
 
@@ -75,15 +79,16 @@ int parseLSD(std::filesystem::path lsdPath,
     }
 
     if (!outputPath.empty()) {
-        writeDSL(&reader, lsdPath.filename(), outputPath, dumb, log);
+        lingvo::writeDSL(&reader, lsdPath.filename(), outputPath, dumb, log);
     }
 
     return 0;
 }
 
+#ifdef ENABLE_DUDEN
 int printDudenInfo(std::filesystem::path infPath, Log& log) {
     duden::FileSystem fs(infPath.parent_path());
-    FileStream infStream(infPath);
+    common::FileStream infStream(infPath);
 
     auto infs = duden::parseInfFile(&infStream, &fs);
     for (size_t i = 0; i < infs.size(); ++i) {
@@ -110,7 +115,7 @@ int printDudenInfo(std::filesystem::path infPath, Log& log) {
 }
 
 int parseDuden(std::filesystem::path infPath, std::filesystem::path outputPath, Log& log) {
-    FileStream infStream(infPath);
+    common::FileStream infStream(infPath);
     duden::FileSystem fs(infPath.parent_path());
     auto infs = duden::parseInfFile(&infStream, &fs);
 
@@ -133,8 +138,8 @@ void decodeBofIdx(std::filesystem::path bofPath,
                   std::filesystem::path fsiPath,
                   bool dudenEncoding,
                   std::filesystem::path output) {
-    FileStream fIdx(idxPath);
-    auto fBof = std::make_shared<FileStream>(bofPath);
+    common::FileStream fIdx(idxPath);
+    auto fBof = std::make_shared<common::FileStream>(bofPath);
     duden::Archive archive(&fIdx, fBof);
     std::vector<char> vec;
 
@@ -148,7 +153,7 @@ void decodeBofIdx(std::filesystem::path bofPath,
             file.write(vec.data(), vec.size());
         }
     } else {
-        FileStream fFsi(fsiPath);
+        common::FileStream fFsi(fsiPath);
         auto entries = duden::parseFsiFile(&fFsi);
         for (auto& entry : entries) {
             auto file = openForWriting(output / entry.name);
@@ -161,7 +166,7 @@ void decodeBofIdx(std::filesystem::path bofPath,
 
 void decodeHic(std::filesystem::path hicPath,
                std::filesystem::path output) {
-    FileStream fHic(hicPath);
+    common::FileStream fHic(hicPath);
     auto hic = duden::parseHicFile(&fHic);
     auto f = openForWriting(output / "hic.dump");
     int leafNum = 0;
@@ -226,7 +231,7 @@ void parseDudenText(std::filesystem::path textPath, std::filesystem::path output
 }
 
 void parseFsi(std::filesystem::path fsiPath, std::filesystem::path output) {
-    FileStream fFsi(fsiPath);
+    common::FileStream fFsi(fsiPath);
     auto entries = duden::parseFsiFile(&fFsi);
     auto file = openForWriting(output / "fsi.dump");
     for (auto& entry : entries) {
@@ -244,9 +249,10 @@ void decodeAdp(std::filesystem::path adpPath, std::filesystem::path outputPath) 
     std::vector<int16_t> pcmVec;;
     duden::decodeAdp(inputVec, pcmVec);
     std::vector<char> wav;
-    dictlsd::createWav(pcmVec, wav, duden::ADP_SAMPLE_RATE, duden::ADP_CHANNELS);
+    common::createWav(pcmVec, wav, duden::ADP_SAMPLE_RATE, duden::ADP_CHANNELS);
     output.write(reinterpret_cast<char*>(wav.data()), wav.size());
 }
+#endif
 
 class ConsoleLog : public Log {
     bool _verbose;
@@ -299,17 +305,22 @@ public:
 };
 
 int lsd2dsl_main(int argc, char* argv[]) {
+#ifdef ENABLE_DUDEN
     QApplication a(argc, argv);
+    bool dudenEncoding, dudenPrintInfo;
+#endif
     std::string lsdPathStr, lsaPathStr, dudenPathStr, outputPathStr;
     std::string bofPathStr, idxPathStr, fsiPathStr, hicPathStr, adpPathStr, textPathStr;
     int sourceFilter = -1, targetFilter = -1;
-    bool isDumb, dudenEncoding, dudenPrintInfo, verbose;
+    bool isDumb, verbose;
     po::options_description console_desc("Allowed options");
     try {
         console_desc.add_options()
             ("help", "produce help message")
             ("lsd", po::value(&lsdPathStr), "LSD dictionary to decode")
+#ifdef ENABLE_DUDEN
             ("duden", po::value(&dudenPathStr), "Duden dictionary to decode (.inf file)")
+#endif
             ("lsa", po::value(&lsaPathStr), "LSA sound archive to decode")
             ("source-filter", po::value<int>(&sourceFilter),
                 "ignore dictionaries with source language != source-filter")
@@ -351,8 +362,10 @@ int lsd2dsl_main(int argc, char* argv[]) {
         }
         isDumb = console_vm.count("dumb");
         verbose = console_vm.count("verbose");
+#ifdef ENABLE_DUDEN
         dudenEncoding = console_vm.count("duden-utf");
         dudenPrintInfo = console_vm.count("duden-info");
+#endif
         po::notify(console_vm);
     } catch(std::exception& e) {
         fmt::print("can't parse program options:\n{}\n\n{}", e.what(), fmt::streamed(console_desc));
@@ -394,6 +407,7 @@ int lsd2dsl_main(int argc, char* argv[]) {
         if (!lsaPath.empty()) {
             decodeLSA(lsaPath, outputPath, log);
         }
+#ifdef ENABLE_DUDEN
         if (!dudenPath.empty()) {
             if (dudenPrintInfo) {
                 return printDudenInfo(dudenPath, log);
@@ -415,6 +429,7 @@ int lsd2dsl_main(int argc, char* argv[]) {
         if (!adpPath.empty()) {
             decodeAdp(adpPath, outputPath);
         }
+#endif
     } catch (std::exception& exc) {
         fmt::print("an error occurred while processing dictionary: {}\n", exc.what());
         return 1;

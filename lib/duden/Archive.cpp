@@ -23,8 +23,8 @@ bool Archive::readBlock(uint32_t index) {
     return true;
 }
 
-Archive::Archive(dictlsd::IRandomAccessStream* index,
-                 std::shared_ptr<dictlsd::IRandomAccessStream> bof)
+Archive::Archive(common::IRandomAccessStream* index,
+                 std::shared_ptr<common::IRandomAccessStream> bof)
     : _bof(bof) {
     _index = parseIndex(index);
     _decodedSize = _index.back();

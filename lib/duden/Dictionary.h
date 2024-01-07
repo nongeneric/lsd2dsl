@@ -18,7 +18,7 @@ class FileSystem : public IFileSystem {
 
 public:
     FileSystem(std::filesystem::path root);
-    std::unique_ptr<dictlsd::IRandomAccessStream> open(std::filesystem::path path) override;
+    std::unique_ptr<common::IRandomAccessStream> open(std::filesystem::path path) override;
     const CaseInsensitiveSet& files() override;
 };
 
@@ -28,7 +28,7 @@ class Dictionary {
     HicFile _hic;
     LdFile _ld;
     std::unique_ptr<Archive> _articles;
-    std::unique_ptr<dictlsd::IRandomAccessStream> _articlesBof;
+    std::unique_ptr<common::IRandomAccessStream> _articlesBof;
     std::vector<HicLeaf> _leafs;
 
     void collectLeafs();

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "lib/common/version.h"
-#include "lib/common/bformat.h"
-#include "lib/common/Log.h"
+#include "common/version.h"
+#include "common/bformat.h"
+#include "common/Log.h"
 
 #include <filesystem>
 #include <vector>

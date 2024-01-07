@@ -1,18 +1,12 @@
 #pragma once
 
 #include "Log.h"
-#include "lib/lsd/lsd.h"
 #include <functional>
 #include <string>
 #include <vector>
 #include <string_view>
 #include <fstream>
-
-void writeDSL(const dictlsd::LSDDictionary* reader,
-              std::filesystem::path lsdName,
-              std::filesystem::path outputPath,
-              bool dumb,
-              Log& log);
+#include <filesystem>
 
 namespace dsl {
 

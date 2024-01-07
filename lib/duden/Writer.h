@@ -2,8 +2,8 @@
 
 #include "Dictionary.h"
 #include "InfFile.h"
-#include "lib/duden/text/Reference.h"
-#include "lib/common/Log.h"
+#include "duden/text/Reference.h"
+#include "common/Log.h"
 #include <functional>
 
 namespace duden {

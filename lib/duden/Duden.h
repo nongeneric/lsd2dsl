@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/lsd/BitStream.h"
+#include "common/BitStream.h"
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -62,15 +62,15 @@ struct FsiEntry {
     }
 };
 
-std::vector<HicEntry> parseHicNode45(dictlsd::IRandomAccessStream* stream);
-std::vector<HicEntry> parseHicNode6(dictlsd::IRandomAccessStream* stream);
+std::vector<HicEntry> parseHicNode45(common::IRandomAccessStream* stream);
+std::vector<HicEntry> parseHicNode6(common::IRandomAccessStream* stream);
 void decodeBofBlock(const void* blockData,
                     uint32_t blockSize,
                     std::vector<char>& output);
-std::vector<uint32_t> parseIndex(dictlsd::IRandomAccessStream* stream);
-std::vector<FsiEntry> parseFsiBlock(dictlsd::IRandomAccessStream* stream);
-std::set<FsiEntry> parseFsiFile(dictlsd::IRandomAccessStream* stream);
-HicFile parseHicFile(dictlsd::IRandomAccessStream* stream);
+std::vector<uint32_t> parseIndex(common::IRandomAccessStream* stream);
+std::vector<FsiEntry> parseFsiBlock(common::IRandomAccessStream* stream);
+std::set<FsiEntry> parseFsiFile(common::IRandomAccessStream* stream);
+HicFile parseHicFile(common::IRandomAccessStream* stream);
 std::string dudenToUtf8(std::string str);
 std::string win1252toUtf8(std::string str);
 

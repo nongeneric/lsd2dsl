@@ -3,7 +3,7 @@
 
 namespace duden {
 
-FsdFile::FsdFile(std::shared_ptr<dictlsd::IRandomAccessStream> stream) : _stream(stream) {}
+FsdFile::FsdFile(std::shared_ptr<common::IRandomAccessStream> stream) : _stream(stream) {}
 
 void FsdFile::read(uint32_t plainOffset, uint32_t size, std::vector<char>& output) {
     output.resize(size);

@@ -3,7 +3,7 @@
 #include <QtGui/QColor>
 #include <regex>
 #include <stack>
-#include "lib/common/bformat.h"
+#include "common/bformat.h"
 
 namespace duden {
 

@@ -1,5 +1,5 @@
 #include "IFileSystem.h"
-#include "lib/common/bformat.h"
+#include "common/bformat.h"
 #include <QString>
 #include <algorithm>
 

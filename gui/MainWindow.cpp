@@ -1,13 +1,17 @@
 #include "MainWindow.h"
-#include "lib/common/version.h"
+#include "common/version.h"
 
-#include "lib/common/DslWriter.h"
-#include "lib/lsd/lsd.h"
-#include "lib/lsd/LSAReader.h"
-#include "lib/lsd/tools.h"
-#include "lib/duden/Writer.h"
-#include "lib/duden/InfFile.h"
-#include "lib/common/bformat.h"
+#include "common/DslWriter.h"
+#include "lingvo/lsd.h"
+#include "lingvo/LSAReader.h"
+#include "lingvo/tools.h"
+#include "lingvo/WriteDsl.h"
+#include "common/bformat.h"
+
+#ifdef ENABLE_DUDEN
+#include "duden/Writer.h"
+#include "duden/InfFile.h"
+#endif
 
 #include <QTableView>
 #include <QAbstractListModel>
@@ -38,20 +42,20 @@
 #include <algorithm>
 #include <assert.h>
 
-using namespace dictlsd;
+using namespace lingvo;
 
 class DictionaryEntry {
-    std::unique_ptr<FileStream> _stream;
+    std::unique_ptr<common::FileStream> _stream;
     QString _path;
     QString _fileName;
 protected:
-    std::unique_ptr<BitStreamAdapter> _adapter;
+    std::unique_ptr<common::BitStreamAdapter> _adapter;
 public:
     DictionaryEntry(QString path)
-        : _stream(new FileStream(std::filesystem::u8path(path.toStdString()))),
+        : _stream(new common::FileStream(std::filesystem::u8path(path.toStdString()))),
           _path(path),
           _fileName(QFileInfo(path).fileName()),
-          _adapter(new BitStreamAdapter(_stream.get()))
+          _adapter(new common::BitStreamAdapter(_stream.get()))
     { }
     virtual ~DictionaryEntry() = default;
     QString path() { return _path; }
@@ -101,7 +105,7 @@ public:
         return _reader.supported();
     }
     void dump(QString outDir, Log& log) override {
-        writeDSL(&_reader,
+        lingvo::writeDSL(&_reader,
                  std::filesystem::u8path(fileName().toStdString()),
                  std::filesystem::u8path(outDir.toStdString()),
                  false,
@@ -130,6 +134,7 @@ public:
     }
 };
 
+#ifdef ENABLE_DUDEN
 class DudenDictionaryEntry : public DictionaryEntry {
     QString _name;
     QString _version;
@@ -164,6 +169,7 @@ public:
                         log);
     }
 };
+#endif
 
 class LSDListModel : public QAbstractListModel {
     std::vector<std::unique_ptr<DictionaryEntry>> _dicts;
@@ -200,17 +206,21 @@ public:
                 QString ext = QFileInfo(path).suffix().toLower();
                 if (ext == "lsd") {
                     _dicts.emplace_back(new LSDDictionaryEntry(path));
-                } else if (ext == "lsa") {
+                }
+                if (ext == "lsa") {
                     _dicts.emplace_back(new LSADictionaryEntry(path));
-                } else if (ext == "inf") {
+                }
+#ifdef ENABLE_DUDEN
+                if (ext == "inf") {
                     auto infPath = std::filesystem::u8path(path.toStdString());
-                    dictlsd::FileStream infStream(infPath);
+                    common::FileStream infStream(infPath);
                     duden::FileSystem fs(infPath.parent_path());
                     auto infs = duden::parseInfFile(&infStream, &fs);
                     for (size_t i = 0; i < infs.size(); ++i) {
                         _dicts.emplace_back(new DudenDictionaryEntry(path, i, &fs));
                     }
                 }
+#endif
             } catch(std::exception& e) {
                 QMessageBox::warning(nullptr, QString(e.what()), path);
             }

@@ -1,5 +1,7 @@
 project(minizip LANGUAGES C)
 
+find_package(ZLIB REQUIRED)
+
 set(SOURCES
     ioapi.c
     miniunz.c

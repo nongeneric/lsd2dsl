@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <assert.h>
 
-namespace dictlsd {
+namespace common {
 
 struct vio_vec {
     std::vector<char>* vec;

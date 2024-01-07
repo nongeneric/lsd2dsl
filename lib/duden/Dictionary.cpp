@@ -1,9 +1,7 @@
 #include "Dictionary.h"
 #include <boost/algorithm/string.hpp>
-#include "lib/common/overloaded.h"
-#include "lib/common/bformat.h"
-
-using namespace dictlsd;
+#include "common/overloaded.h"
+#include "common/bformat.h"
 
 namespace duden {
 
@@ -92,9 +90,9 @@ const HicFile& Dictionary::hic() const {
 
 FileSystem::FileSystem(std::filesystem::path root) : _root(root) {}
 
-std::unique_ptr<dictlsd::IRandomAccessStream> FileSystem::open(std::filesystem::path path) {
+std::unique_ptr<common::IRandomAccessStream> FileSystem::open(std::filesystem::path path) {
     auto absolute = _root / path;
-    return std::unique_ptr<IRandomAccessStream>(new FileStream(absolute));
+    return std::make_unique<common::FileStream>(absolute);
 }
 
 const CaseInsensitiveSet& FileSystem::files() {
