@@ -1,22 +1,26 @@
 #include "TableRenderer.h"
 
 #include "HtmlRenderer.h"
-#include "common/bformat.h"
+#include <fmt/format.h>
 
 namespace duden {
 
-TableRenderer::TableRenderer(SaveHtmlCallback saveHtml,
-                             RequestImageCallback requestImage)
-    : _saveHtml(saveHtml), _requestImage(requestImage) {}
+TableRenderer::TableRenderer(RequestImageCallback requestImage)
+    : _requestImage(requestImage) {}
 
 void TableRenderer::render(TextRun* run) {
     run->accept(this);
 }
 
 void TableRenderer::visit(TableRun* run) {
-    auto name = bformat("rendered_table_%04d.png", _id++);
-    _saveHtml(name, printHtml(run, _requestImage));
+    auto html = printHtml(run, _requestImage);
+    if (auto it = _htmlToNameMap.find(html); it != end(_htmlToNameMap)) {
+        run->setRenderedName(it->second);
+        return;
+    }
+    auto name = fmt::format("rendered_table_{:04d}.png", _id++);
     run->setRenderedName(name);
+    _htmlToNameMap.emplace(std::move(html), std::move(name));
 }
 
 void TableRenderer::visit(TableReferenceRun* run) {

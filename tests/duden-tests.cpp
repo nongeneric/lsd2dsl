@@ -1503,8 +1503,7 @@ TEST(duden, InlineRenderAndPrintPicture) {
     ResourceFiles files;
     files["btb_pic"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/duden_encoded_pic"), std::ios::binary);
     inlineReferences(context, run, files);
-    std::string name;
-    TableRenderer renderer([&](auto, auto n) { name = n; }, [](auto){return std::vector<char>();});
+    TableRenderer renderer([](auto){return std::vector<char>();});
     renderer.render(run);
     auto expected = "\n----------\n"
                     "[b]2. keplersches Gesetz:[/b]\n"
@@ -1626,9 +1625,10 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     ResourceFiles files;
     files["btb_tab"] = std::make_unique<std::ifstream>(testPath("duden_testfiles/tab_file"), std::ios::binary);
     inlineReferences(context, run, files);
-    std::string name;
-    TableRenderer renderer([&](auto n, auto) { name = n; }, [](auto){return std::vector<char>();});
+    TableRenderer renderer([](auto){return std::vector<char>();});
     renderer.render(run);
+    ASSERT_EQ(1, renderer.getHtmls().size());
+    auto name = renderer.getHtmls().begin()->second;
     auto expected = bformat(
                 "\n----------\n"
                 "Tabelle: table name\n"
@@ -1637,6 +1637,18 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
                 "Footer 1[br]\n"
                 "Footer 2[br]\n[br]\n"
                 "----------\n", name);
+    ASSERT_EQ(expected, printDsl(run));
+}
+
+TEST_F(duden_qt, RenderIdenticalTablesOnce) {
+    auto text = read_all_text(testPath("duden_testfiles/table1"));
+    ParsingContext context;
+    auto run = parseDudenText(context, text + "\n" + text);
+    TableRenderer renderer([](auto){return std::vector<char>();});
+    renderer.render(run);
+    ASSERT_EQ(1, renderer.getHtmls().size());
+    auto expected = "\n[s]rendered_table_0001.png[/s] \n"
+                    "[s]rendered_table_0001.png[/s] ";
     ASSERT_EQ(expected, printDsl(run));
 }
 

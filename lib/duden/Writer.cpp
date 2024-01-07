@@ -167,14 +167,7 @@ void writeDSL(std::filesystem::path infPath,
 
     log.resetProgress("articles", groups.size());
 
-    std::vector<std::pair<std::string, std::string>> htmlTables;
-
-    TableRenderer tableRenderer(
-        [&](std::string fileName, std::string html) {
-            log.verbose("created %s", fileName);
-            htmlTables.emplace_back(std::move(fileName), std::move(html));
-        },
-        [&](auto name) {
+    TableRenderer tableRenderer([&](auto name) {
             log.verbose("table has embedded image %s", name);
             auto it = resourceIndex.find(name);
             std::vector<char> vec;
@@ -241,10 +234,12 @@ void writeDSL(std::filesystem::path infPath,
         }
     }
 
+    auto const& htmlTables = tableRenderer.getHtmls();
+
     if (!htmlTables.empty()) {
         log.resetProgress("rendering tables", htmlTables.size());
         std::vector<std::string const*> htmlTablePtrs;
-        for (auto&& [fileName, html] : htmlTables) {
+        for (auto&& [html, _] : htmlTables) {
             htmlTablePtrs.push_back(&html);
         }
         auto tableEntry = htmlTables.begin();

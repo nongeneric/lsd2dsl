@@ -3,22 +3,22 @@
 #include "text/TextRun.h"
 #include "text/Printers.h"
 #include <functional>
+#include <unordered_map>
 
 namespace duden {
 
-using SaveHtmlCallback = std::function<void(std::string const&, std::string const&)>;
-
 class TableRenderer : TextRunVisitor {
-    SaveHtmlCallback _saveHtml;
     RequestImageCallback _requestImage;
     int _id = 1;
+    std::unordered_map<std::string, std::string> _htmlToNameMap;
 
     void visit(TableRun* run) override;
     void visit(TableReferenceRun* run) override;
 
 public:
-    TableRenderer(SaveHtmlCallback saveHtml, RequestImageCallback requestImage);
+    TableRenderer(RequestImageCallback requestImage);
     void render(TextRun* run);
+    auto const& getHtmls() const { return _htmlToNameMap; }
 };
 
 }
