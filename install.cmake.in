@@ -1,6 +1,7 @@
 include(GetPrerequisites)
 
 set(VCPKG_ROOT @VCPKG_INSTALLED_DIR@/@VCPKG_TARGET_TRIPLET@)
+set(ENABLE_DUDEN @ENABLE_DUDEN@)
 
 function(install_boost_deps)
     get_prerequisites(${ARGV0} _prereq 0 1 "" "${VCPKG_ROOT}/bin")
@@ -12,11 +13,18 @@ function(install_boost_deps)
     endforeach()
 endfunction()
 
+if(ENABLE_DUDEN)
+    file(COPY "@Qt6_ROOT@/resources" DESTINATION ${CMAKE_INSTALL_PREFIX})
+    file(COPY "@Qt6_ROOT@/translations/qtwebengine_locales" DESTINATION ${CMAKE_INSTALL_PREFIX}/translations)
+    file(COPY "@Qt6_ROOT@/bin/QtWebEngineProcess.exe" DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+
 file(COPY "@Qt6_ROOT@/plugins/platforms/qwindows.dll" DESTINATION ${CMAKE_INSTALL_PREFIX}/platforms)
 file(COPY "${VCPKG_ROOT}/bin/FLAC.dll" DESTINATION ${CMAKE_INSTALL_PREFIX})
 file(COPY "${VCPKG_ROOT}/bin/zlib1.dll" DESTINATION ${CMAKE_INSTALL_PREFIX})
 file(COPY "${VCPKG_ROOT}/bin/opus.dll" DESTINATION ${CMAKE_INSTALL_PREFIX})
 file(COPY "${VCPKG_ROOT}/bin/mpg123.dll" DESTINATION ${CMAKE_INSTALL_PREFIX})
 file(COPY "${VCPKG_ROOT}/bin/libmp3lame.dll" DESTINATION ${CMAKE_INSTALL_PREFIX})
+file(COPY "${VCPKG_ROOT}/bin/vorbisenc.dll" DESTINATION ${CMAKE_INSTALL_PREFIX})
 install_boost_deps(${CMAKE_INSTALL_PREFIX}/lsd2dsl.exe)
 install_boost_deps(${CMAKE_INSTALL_PREFIX}/lsd2dsl-gui.exe)

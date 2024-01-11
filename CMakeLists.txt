@@ -36,13 +36,17 @@ add_subdirectory(console)
 add_subdirectory(gui)
 
 if(WIN32)
+    if(ENABLE_DUDEN)
+        set(CPACK_PACKAGE_FILE_NAME "lsd2dsl-${lsd2dsl_VERSION}-duden-win64")
+    else()
+        set(CPACK_PACKAGE_FILE_NAME "lsd2dsl-${lsd2dsl_VERSION}-win64")
+    endif()
     configure_file (
         "${CMAKE_SOURCE_DIR}/install.cmake.in"
         "${CMAKE_BINARY_DIR}/install.cmake"
         @ONLY
     )
     install(SCRIPT "${CMAKE_BINARY_DIR}/install.cmake")
-    set(CPACK_PACKAGE_FILE_NAME "lsd2dsl-${lsd2dsl_VERSION}-win64")
     set(CPACK_GENERATOR "ZIP")
     include(CPack)
 endif()

@@ -433,7 +433,9 @@ MainWindow::MainWindow(QWidget *parent)
     auto topDock = new QDockWidget(this, Qt::FramelessWindowHint);
     topDock->setTitleBarWidget(new QWidget());
     topDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    auto dragDropLabel = new QLabel("Drag and drop Lingvo LSD/LSA or Duden INF files here");
+    auto text = bformat("Drag and drop Lingvo LSD/LSA %sfiles here",
+                        g_enableDuden ? "or Duden INF " : "");
+    auto dragDropLabel = new QLabel(QString::fromStdString(text));
     dragDropLabel->setMargin(5);
     topDock->setMinimumHeight(30);
     topDock->setMaximumHeight(30);

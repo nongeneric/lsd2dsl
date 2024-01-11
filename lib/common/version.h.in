@@ -1,11 +1,17 @@
 #pragma once
 
-constexpr inline auto g_version = "@PROJECT_VERSION@";
-constexpr inline auto g_sourceDir = "@CMAKE_SOURCE_DIR@";
+constexpr auto g_version = "@PROJECT_VERSION@";
+constexpr auto g_sourceDir = "@CMAKE_SOURCE_DIR@";
+constexpr bool g_enableDuden =
+#ifdef ENABLE_DUDEN
+    true;
+#else
+    false;
+#endif
 
 constexpr bool g_debug =
 #ifdef NDEBUG
-false;
+    false;
 #else
-true;
+    true;
 #endif

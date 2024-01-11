@@ -247,7 +247,7 @@ void writeDSL(std::filesystem::path infPath,
             assert(tableEntry != end(htmlTables));
             log.advance();
             auto bytes = qImageToPng(image);
-            zip.addFile(tableEntry->first, bytes.data(), bytes.size());
+            zip.addFile(tableEntry->second, bytes.data(), bytes.size());
             tableEntry++;
         }, htmlTablePtrs, log);
     }
