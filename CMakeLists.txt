@@ -12,7 +12,7 @@ configure_file (
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 include_directories("${CMAKE_BINARY_DIR}")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(Boost 1.60 COMPONENTS system program_options REQUIRED)
 
@@ -23,6 +23,11 @@ endif()
 add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Werror>)
 add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-error=array-bounds>)
 add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wall>)
+
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-char8_t>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-deprecated-declarations>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/Zc:char8_t->)
+
 if(WIN32)
     add_compile_definitions(WIN32)
 endif()

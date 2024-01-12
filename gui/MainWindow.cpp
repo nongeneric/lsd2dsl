@@ -354,29 +354,29 @@ void MainWindow::convert(bool selectedOnly) {
     auto converter = new ConvertWithProgress(dicts, dir);
     converter->moveToThread(thread);
 
-    connect(converter, &ConvertWithProgress::statusUpdated, this, [=](int percentage) {
+    connect(converter, &ConvertWithProgress::statusUpdated, this, [this](int percentage) {
         _dictProgress->setValue(percentage);
     });
-    connect(converter, &ConvertWithProgress::progressReset, this, [=](QString name) {
+    connect(converter, &ConvertWithProgress::progressReset, this, [this](QString name) {
         _progressName->setText("processing " + name);
     });
-    connect(converter, &ConvertWithProgress::nextDictionary, this, [=](QString name) {
+    connect(converter, &ConvertWithProgress::nextDictionary, this, [this](QString name) {
         _progress->setValue(_progress->value() + 1);
         _dictProgress->setValue(0);
         _currentDict->setText(name + "...");
     });
-    auto enable = [=]{
+    auto enable = [this] {
         _tableView->setEnabled(true);
         _convertAllButton->setEnabled(true);
         updateConvertSelected();
     };
-    connect(converter, &ConvertWithProgress::done, this, [=] {
+    connect(converter, &ConvertWithProgress::done, this, [=, this] {
         _currentDict->setText("");
         _progressName->setText("");
         _progress->setValue(_progress->maximum());
         enable();
     });
-    connect(converter, &ConvertWithProgress::error, this, [=](QString dict, QString message) {
+    connect(converter, &ConvertWithProgress::error, this, [=, this](QString dict, QString message) {
         QMessageBox::critical(this, "An error occurred",
             QString("Decompiling of %1 failed with error\n%2").arg(dict, message));
         _progress->setValue(0);
@@ -456,17 +456,17 @@ MainWindow::MainWindow(QWidget *parent)
     _convertAllButton->setEnabled(false);
     _convertSelectedButton->setEnabled(false);
 
-    connect(_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, [=] {
+    connect(_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, [this] {
         updateConvertSelected();
     });
-    auto updateRowCount = [=]() {
+    auto updateRowCount = [=, this] {
         totalLabel->setText(QString::number(_model->rowCount(QModelIndex())));
         _convertAllButton->setEnabled(_model->rowCount(QModelIndex()) > 0);
     };
     connect(_model, &QAbstractItemModel::rowsInserted, updateRowCount);
     connect(_model, &QAbstractItemModel::rowsRemoved, updateRowCount);
-    connect(_convertAllButton, &QPushButton::clicked, [=] { convert(false); });
-    connect(_convertSelectedButton, &QPushButton::clicked, [=] { convert(true); });
+    connect(_convertAllButton, &QPushButton::clicked, [this] { convert(false); });
+    connect(_convertSelectedButton, &QPushButton::clicked, [this] { convert(true); });
 }
 
 MainWindow::~MainWindow() { }

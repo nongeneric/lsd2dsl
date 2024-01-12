@@ -19,13 +19,13 @@ protected:
 public:
     virtual ~Log() = default;
 
-    template <class F, class... T>
-    void regular(F format, T&&... args) {
+    template <class... T>
+    void regular(fmt::format_string<T...> format, T&&... args) {
         reportLog(fmt::format(format, std::forward<T>(args)...), false);
     }
 
-    template <class F, class... T>
-    void verbose(F format, T&&... args) {
+    template <class... T>
+    void verbose(fmt::format_string<T...> format, T&&... args) {
         reportLog(fmt::format(format, std::forward<T>(args)...), true);
     }
 
