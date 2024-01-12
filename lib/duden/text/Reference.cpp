@@ -2,7 +2,6 @@
 
 #include "duden/Duden.h"
 #include "Parser.h"
-#include "common/bformat.h"
 #include "duden/AdpDecoder.h"
 #include <boost/algorithm/string.hpp>
 

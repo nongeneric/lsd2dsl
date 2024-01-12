@@ -2,7 +2,6 @@
 
 #include "Table.h"
 #include "Parser.h"
-#include "common/bformat.h"
 #include "duden/Duden.h"
 #include <boost/algorithm/string.hpp>
 #include <assert.h>

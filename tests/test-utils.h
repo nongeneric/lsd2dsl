@@ -1,8 +1,9 @@
 #pragma once
 
 #include "common/version.h"
-#include "common/bformat.h"
 #include "common/Log.h"
+
+#include <fmt/format.h>
 
 #include <filesystem>
 #include <vector>
@@ -37,5 +38,5 @@ inline std::string read_all_text(std::filesystem::path path) {
 }
 
 inline std::filesystem::path testPath(const char* relative) {
-    return std::filesystem::u8path(bformat("%s/tests/%s", g_sourceDir, relative));
+    return std::filesystem::u8path(fmt::format("{}/tests/{}", g_sourceDir, relative));
 }

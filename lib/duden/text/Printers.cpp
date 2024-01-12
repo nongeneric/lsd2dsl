@@ -1,8 +1,8 @@
 #include "Printers.h"
 
 #include "Table.h"
-#include "common/bformat.h"
 #include "duden/text/Reference.h"
+#include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
 #include <boost/range/algorithm.hpp>
@@ -28,7 +28,7 @@ class TreeVisitor : public TextRunVisitor {
 
     template <class T>
     void print(TextRun* run, T label) {
-        _result += bformat("%s%s\n", spaces(run), label);
+        _result += fmt::format("{}{}\n", spaces(run), label);
     }
 
 public:
@@ -43,7 +43,7 @@ public:
     }
 
     void visit(PlainRun* run) override {
-        print(run, bformat("PlainRun: %s", run->text()));
+        print(run, fmt::format("PlainRun: {}", run->text()));
         TextRunVisitor::visit(run);
     }
     void visit(ReferenceRun* run) override {
@@ -68,10 +68,10 @@ public:
 
     void visit(ColorFormattingRun* run) override {
         print(run,
-              bformat("ColorFormattingRun; rgb=%06x; name=%s; tilde=%d",
-                      run->rgb(),
-                      run->name(),
-                      run->tilde()));
+              fmt::format("ColorFormattingRun; rgb={:06x}; name={}; tilde={:d}",
+                          run->rgb(),
+                          run->name(),
+                          run->tilde()));
         TextRunVisitor::visit(run);
     }
 
@@ -101,31 +101,29 @@ public:
     }
 
     void visit(ArticleReferenceRun* run) override {
-        print(run,
-              bformat("ArticleReferenceRun; offset=%d",
-                      run->offset()));
+        print(run, fmt::format("ArticleReferenceRun; offset={}", run->offset()));
         TextRunVisitor::visit(run);
     }
 
     void visit(IdRun* run) override {
-        print(run, bformat("IdRun: %d", run->id()));
+        print(run, fmt::format("IdRun: {}", run->id()));
         TextRunVisitor::visit(run);
     }
 
     void visit(TabRun* run) override {
-        print(run, bformat("TabRun: %d", run->column()));
+        print(run, fmt::format("TabRun: {}", run->column()));
         TextRunVisitor::visit(run);
     }
 
     void visit(ReferencePlaceholderRun* run) override {
-        auto range = run->range() ? bformat("; range=%d-%d", run->range()->from, run->range()->to)
+        auto range = run->range() ? fmt::format("; range={}-{}", run->range()->from, run->range()->to)
                    : "";
         print(run,
-              bformat("ReferencePlaceholderRun; code=%s; num=%d; num2=%d%s",
-                      run->id().code,
-                      run->id().num,
-                      run->id().num2,
-                      range));
+              fmt::format("ReferencePlaceholderRun; code={}; num={}; num2={}{}",
+                          run->id().code,
+                          run->id().num,
+                          run->id().num2,
+                          range));
         TextRunVisitor::visit(run);
     }
 
@@ -141,7 +139,7 @@ public:
 
     void visit(TableRun* run) override {
         print(run,
-              bformat("TableRun%s%s",
+              fmt::format("TableRun{}{}",
                       run->table() ? "" : " (null Table)",
                       run->renderedName().empty() ? "" : " " + run->renderedName()));
         TextRunVisitor::visit(run);
@@ -149,7 +147,7 @@ public:
 
     void visit(TableTag* run) override {
         print(run,
-              bformat("TableTag %d; from=%d; to=%d",
+              fmt::format("TableTag {}; from={}; to={}",
                       (int)run->type(),
                       run->from(),
                       run->to()));
@@ -163,7 +161,7 @@ public:
 
     void visit(TableReferenceRun* run) override {
         print(run,
-              bformat("TableReferenceRun; offset=%d; file=%s",
+              fmt::format("TableReferenceRun; offset={}; file={}",
                       run->offset(),
                       run->fileName()));
         TextRunVisitor::visit(run);
@@ -171,7 +169,7 @@ public:
 
     void visit(PictureReferenceRun* run) override {
         print(run,
-              bformat("PictureReferenceRun; offset=%d; file=%s; cr=%s; image=%s",
+              fmt::format("PictureReferenceRun; offset={}; file={}; cr={}; image={}",
                       run->offset(),
                       run->fileName(),
                       run->copyright(),
@@ -180,15 +178,13 @@ public:
     }
 
     void visit(WebReferenceRun* run) override {
-        print(run,
-              bformat("WebReferenceRun; link=%s",
-                      run->link()));
+        print(run, fmt::format("WebReferenceRun; link={}", run->link()));
         TextRunVisitor::visit(run);
     }
 
     void visit(InlineImageRun* run) override {
         print(run,
-              bformat("InlineImageRun; name=%s; secondary=%s",
+              fmt::format("InlineImageRun; name={}; secondary={}",
                       run->name(),
                       run->secondary()));
     }
@@ -196,17 +192,15 @@ public:
     void visit(InlineSoundRun* run) override {
         std::vector<std::string> pairs;
         for (auto& name : run->names()) {
-            pairs.push_back(bformat("(%s)", name.file));
+            pairs.push_back(fmt::format("({})", name.file));
         }
-        auto names = bformat("[%s]", boost::algorithm::join(pairs, ", "));
-        print(run, bformat("InlineSoundRun; name=%s", names));
+        auto names = fmt::format("[{}]", boost::algorithm::join(pairs, ", "));
+        print(run, fmt::format("InlineSoundRun; name={}", names));
         TextRunVisitor::visit(run);
     }
 
     void visit(StickyRun* run) override {
-        print(run,
-              bformat("StickyRun; num=%s",
-                      run->num()));
+        print(run, fmt::format("StickyRun; num={}", run->num()));
     }
 
     const std::string& result() const { return _result; }
@@ -283,7 +277,7 @@ class HtmlVisitor : public TextRunVisitor {
                     continue;
                 auto cell = table->cell(r, c);
                 auto hspan = table->hspan(r, c);
-                _result += bformat("<td style=\"width: %d%%;\" colspan=\"%d\" rowspan=\"%d\">",
+                _result += fmt::format("<td style=\"width: {}%;\" colspan=\"{}\" rowspan=\"{}\">",
                                    columnWidth * hspan,
                                    hspan,
                                    table->vspan(r, c));
@@ -305,7 +299,7 @@ class HtmlVisitor : public TextRunVisitor {
         auto array = QByteArray::fromRawData(reinterpret_cast<char*>(image.data()), image.size());
         auto base64 = array.toBase64();
         std::string str(base64.data(), base64.size());
-        _result += bformat("<img src=\"data:image/%s;base64,%s\">", ext, str);
+        _result += fmt::format("<img src=\"data:image/{};base64,{}\">", ext, str);
     }
 
     void visit(LineBreakRun*) override {
@@ -402,7 +396,7 @@ class DslVisitor : public TextRunVisitor {
     void visit(TableRun* run) override {
         assert(!run->renderedName().empty() &&
                "trying to print TableRun without rendering first");
-        _result += bformat("\n[s]%s[/s]", run->renderedName());
+        _result += fmt::format("\n[s]{}[/s]", run->renderedName());
     }
 
     void visit(TableReferenceRun* run) override {
@@ -424,7 +418,7 @@ class DslVisitor : public TextRunVisitor {
         _result += "\n";
         TextRunVisitor::visit(run->description());
         _result += "\n";
-        _result += bformat("[s]%s[/s]", run->imageFileName());
+        _result += fmt::format("[s]{}[/s]", run->imageFileName());
         _result += "\n";
         _result += run->copyright();
         _result += "\n";
@@ -443,15 +437,15 @@ class DslVisitor : public TextRunVisitor {
         auto tail = headingCaption.substr(captionBody + trimmedCaption.size());
 
         if (headingName == trimmedCaption) {
-            _result += bformat("%s[ref]%s[/ref]%s", head, headingName, tail);
+            _result += fmt::format("{}[ref]{}[/ref]{}", head, headingName, tail);
         } else {
-            _result += bformat("%s[ref]%s[/ref] (%s)%s", head, headingName, trimmedCaption, tail);
+            _result += fmt::format("{}[ref]{}[/ref] ({}){}", head, headingName, trimmedCaption, tail);
         }
     }
 
     void visit(InlineImageRun* run) override {
         const auto& file = run->secondary().empty() ? run->name() : run->secondary();
-        _result += bformat("[s]%s[/s]", file);
+        _result += fmt::format("[s]{}[/s]", file);
     }
 
     void visit(InlineSoundRun* run) override {
@@ -460,7 +454,7 @@ class DslVisitor : public TextRunVisitor {
             if (i != 0) {
                 _result += ", ";
             }
-            _result += bformat("[s]%s[/s]", names[i].file);
+            _result += fmt::format("[s]{}[/s]", names[i].file);
             if (names[i].label) {
                 TextRunVisitor::visit(names[i].label);
             }

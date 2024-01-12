@@ -1,6 +1,7 @@
 #pragma once
 
-#include "bformat.h"
+#include <fmt/format.h>
+
 #include <string>
 #include <functional>
 
@@ -20,12 +21,12 @@ public:
 
     template <class F, class... T>
     void regular(F format, T&&... args) {
-        reportLog(bformat(format, std::forward<T>(args)...), false);
+        reportLog(fmt::format(format, std::forward<T>(args)...), false);
     }
 
     template <class F, class... T>
     void verbose(F format, T&&... args) {
-        reportLog(bformat(format, std::forward<T>(args)...), true);
+        reportLog(fmt::format(format, std::forward<T>(args)...), true);
     }
 
     void resetProgress(std::string name, int total);

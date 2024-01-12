@@ -1,7 +1,6 @@
 #include "Dictionary.h"
 #include <boost/algorithm/string.hpp>
 #include "common/overloaded.h"
-#include "common/bformat.h"
 
 namespace duden {
 

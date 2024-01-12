@@ -1,4 +1,3 @@
-#include "common/bformat.h"
 #include "duden/Archive.h"
 #include "duden/Dictionary.h"
 #include "duden/Duden.h"
@@ -1629,11 +1628,11 @@ TEST_F(duden_qt, InlineRenderAndPrintTable) {
     renderer.render(run);
     ASSERT_EQ(1, renderer.getHtmls().size());
     auto name = renderer.getHtmls().begin()->second;
-    auto expected = bformat(
+    auto expected = fmt::format(
                 "\n----------\n"
                 "Tabelle: table name\n"
                 "[b]Table: Name[/b] \n"
-                "[s]%s[/s] "
+                "[s]{}[/s] "
                 "Footer 1[br]\n"
                 "Footer 2[br]\n[br]\n"
                 "----------\n", name);

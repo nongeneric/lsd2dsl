@@ -1,7 +1,6 @@
 #include "common/DslWriter.h"
 #include "common/Log.h"
 #include "common/ZipWriter.h"
-#include "common/bformat.h"
 #include "common/overloaded.h"
 #include "common/version.h"
 #include "common/WavWriter.h"
@@ -53,11 +52,11 @@ int parseLSD(std::filesystem::path lsdPath,
     LSDDictionary reader(&bstr);
     LSDHeader header = reader.header();
 
-    log.regular("Version:  %x", header.version);
-    log.regular("Headings: %d", header.entriesCount);
-    log.regular("Source:   %d (%s)", header.sourceLanguage, toUtf8(langFromCode(header.sourceLanguage)));
-    log.regular("Target:   %d (%s)", header.targetLanguage, toUtf8(langFromCode(header.targetLanguage)));
-    log.regular("Name:     %s", toUtf8(reader.name()));
+    log.regular("Version:  {:x}", header.version);
+    log.regular("Headings: {}", header.entriesCount);
+    log.regular("Source:   {} ({})", header.sourceLanguage, toUtf8(langFromCode(header.sourceLanguage)));
+    log.regular("Target:   {} ({})", header.targetLanguage, toUtf8(langFromCode(header.targetLanguage)));
+    log.regular("Name:     {}", toUtf8(reader.name()));
 
     if (!reader.supported()) {
         log.regular("Unsupported dictionary version");
@@ -93,22 +92,22 @@ int printDudenInfo(std::filesystem::path infPath, Log& log) {
     auto infs = duden::parseInfFile(&infStream, &fs);
     for (size_t i = 0; i < infs.size(); ++i) {
         duden::Dictionary dict(&fs, infPath, i);
-        log.regular("Dictionary: %s", dict.ld().name);
-        log.regular("  Version: %x", dict.inf().version);
+        log.regular("Dictionary: {}", dict.ld().name);
+        log.regular("  Version: {:x}", dict.inf().version);
 
         auto ld = dict.ld();
-        log.regular("  Source: %s", ld.sourceLanguage);
+        log.regular("  Source: {}", ld.sourceLanguage);
         log.regular("  Primary:");
-        log.regular("    BOF: %s", dict.inf().primary.bof);
-        log.regular("    HIC: %s", dict.inf().primary.hic);
-        log.regular("    IDX: %s", dict.inf().primary.idx);
+        log.regular("    BOF: {}", dict.inf().primary.bof);
+        log.regular("    HIC: {}", dict.inf().primary.hic);
+        log.regular("    IDX: {}", dict.inf().primary.idx);
         for (auto& resource : dict.inf().resources) {
             log.regular("  Resource:");
-            log.regular("    BOF: %s", resource.bof);
+            log.regular("    BOF: {}", resource.bof);
             if (!resource.fsi.empty()) {
-                log.regular("    FSI: %s", resource.fsi);
+                log.regular("    FSI: {}", resource.fsi);
             }
-            log.regular("    IDX: %s", resource.idx);
+            log.regular("    IDX: {}", resource.idx);
         }
     }
     return 0;
@@ -173,11 +172,11 @@ void decodeHic(std::filesystem::path hicPath,
     std::vector<duden::HicLeaf> leafs;
     auto print = [&](auto& print, auto page, int level) -> void {
         std::string space(level * 4, ' ');
-        f << bformat("%spage %x\n", space, page->offset);
+        f << fmt::format("{}page {:x}\n", space, page->offset);
         for (auto& entry : page->entries) {
             std::visit(overloaded{
                 [&](duden::HicLeaf& leaf) {
-                    f << bformat("%s%04d LEAF %02d  %08x  %s\n",
+                    f << fmt::format("{}{:04d} LEAF {:02d}  {:08x}  {}\n",
                                space, leafNum++,
                                static_cast<int>(leaf.type),
                                leaf.textOffset,
@@ -185,7 +184,7 @@ void decodeHic(std::filesystem::path hicPath,
                     leafs.push_back(leaf);
                 },
                 [&](duden::HicNode& node) {
-                    f << bformat("%sNODE %d (%x)  %d  %s\n",
+                    f << fmt::format("{}NODE {} ({:x})  {}  {}\n",
                                space,
                                node.delta,
                                -node.delta,
@@ -200,7 +199,7 @@ void decodeHic(std::filesystem::path hicPath,
 
     f << "\ngroups:\n\n";
     for (auto& [offset, info] : duden::groupHicEntries(leafs)) {
-        f << bformat("%08x, %d\n", offset, info.articleSize);
+        f << fmt::format("{:08x}, {}\n", offset, info.articleSize);
         for (auto& heading : info.headings) {
             f << heading << "\n";
         }
@@ -235,7 +234,7 @@ void parseFsi(std::filesystem::path fsiPath, std::filesystem::path output) {
     auto entries = duden::parseFsiFile(&fFsi);
     auto file = openForWriting(output / "fsi.dump");
     for (auto& entry : entries) {
-        file << bformat("%08x  %08x  %s\n", entry.offset, entry.size, entry.name);
+        file << fmt::format("{:08x}  {:08x}  {}\n", entry.offset, entry.size, entry.name);
     }
 }
 
@@ -275,12 +274,11 @@ protected:
     void reportProgress(int percentage) override {
         int left = static_cast<int>(percentage / 100.f * _bar.size());
         int right = _bar.size() - left;
-        fmt::print("{}",
-                   bformat("\r%s %3d%% [%s%s]",
-                           _progressName,
-                           percentage,
-                           std::string_view(_bar).substr(0, left),
-                           std::string_view(_empty).substr(0, right)));
+        fmt::print("\r{} {:3d}% [{}{}]",
+                   _progressName,
+                   percentage,
+                   std::string_view(_bar).substr(0, left),
+                   std::string_view(_empty).substr(0, right));
         if (percentage == 100) {
             fmt::print("\n");
             std::fflush(stdout);

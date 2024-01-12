@@ -276,7 +276,7 @@ public:
                 std::function<void(QImage const&)> handler,
                 unsigned batchSize) {
         auto batches = groupTables(htmls, batchSize);
-        _log.verbose("split %d htmls into %d batches\n", htmls.size(), batches.size());
+        _log.verbose("split {} htmls into {} batches\n", htmls.size(), batches.size());
 
         for (auto const& batch : batches) {
             QString completeHtml = head;
@@ -296,11 +296,11 @@ public:
                 }
             });
 
-            _log.verbose("appendMs = %d\n", _appendMs);
-            _log.verbose("cropMs = %d\n", _cropMs);
-            _log.verbose("printPdfMs = %d\n", _printPdfMs);
-            _log.verbose("renderPdfMs = %d\n", _renderPdfMs);
-            _log.verbose("loadHtmlMs = %d\n", _loadHtmlMs);
+            _log.verbose("appendMs = {}\n", _appendMs);
+            _log.verbose("cropMs = {}\n", _cropMs);
+            _log.verbose("printPdfMs = {}\n", _printPdfMs);
+            _log.verbose("renderPdfMs = {}\n", _renderPdfMs);
+            _log.verbose("loadHtmlMs = {}\n", _loadHtmlMs);
         }
     }
 };

@@ -1,6 +1,5 @@
 #include "Duden.h"
 
-#include "common/bformat.h"
 #include "common/overloaded.h"
 
 #include "assert.h"

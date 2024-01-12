@@ -1,7 +1,8 @@
 #include "LenTable.h"
 #include "common/BitStream.h"
 #include "tools.h"
-#include "common/bformat.h"
+
+#include <fmt/format.h>
 
 #include <assert.h>
 #include <algorithm>
@@ -99,10 +100,10 @@ void LenTable::Read(common::IBitStream &bitstr) {
 std::string dumpNode(int childIdx, int nodeIdx, std::string edgelabel) {
     if (childIdx != 0) {
         if (childIdx > 0) {
-            return bformat("%d -> %d [label=\" %s \"]\n",
+            return fmt::format("{} -> {} [label=\" {} \"]\n",
                            childIdx - 1, nodeIdx, edgelabel);
         } else {
-            return bformat("sym_%d -> %d [label=\" %s \"]\n",
+            return fmt::format("sym_{} -> {} [label=\" {} \"]\n",
                            -1 - childIdx, nodeIdx, edgelabel);
         }
     }

@@ -1,9 +1,9 @@
 #include "Parser.h"
 #include "Table.h"
+#include <fmt/format.h>
 #include <QtGui/QColor>
 #include <regex>
 #include <stack>
-#include "common/bformat.h"
 
 namespace duden {
 
@@ -83,7 +83,7 @@ class Parser {
                 actual = *_ptr;
             }
             throw std::runtime_error(
-                bformat("parsing error, expected \"%s\", but was \"%s\"", str, actual));
+                fmt::format("parsing error, expected \"{}\", but was \"{}\"", str, actual));
         }
     }
 

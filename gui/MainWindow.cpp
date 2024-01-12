@@ -6,7 +6,6 @@
 #include "lingvo/LSAReader.h"
 #include "lingvo/tools.h"
 #include "lingvo/WriteDsl.h"
-#include "common/bformat.h"
 
 #ifdef ENABLE_DUDEN
 #include "duden/Writer.h"
@@ -148,7 +147,7 @@ public:
         auto infPath = std::filesystem::u8path(path.toStdString());
         duden::Dictionary dict(fs, infPath, index);
         _name = QString::fromStdString(dict.ld().name);
-        _version = QString::fromStdString(bformat("%x", dict.inf().version));
+        _version = QString::fromStdString(fmt::format("{:x}", dict.inf().version));
         _supported = dict.inf().supported;
         auto source = dict.ld().sourceLanguageCode;
         _source = QString("%1 (%2)").arg(source).arg(printLanguage(source));
@@ -433,8 +432,8 @@ MainWindow::MainWindow(QWidget *parent)
     auto topDock = new QDockWidget(this, Qt::FramelessWindowHint);
     topDock->setTitleBarWidget(new QWidget());
     topDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    auto text = bformat("Drag and drop Lingvo LSD/LSA %sfiles here",
-                        g_enableDuden ? "or Duden INF " : "");
+    auto text = fmt::format("Drag and drop Lingvo LSD/LSA {}files here",
+                            g_enableDuden ? "or Duden INF " : "");
     auto dragDropLabel = new QLabel(QString::fromStdString(text));
     dragDropLabel->setMargin(5);
     topDock->setMinimumHeight(30);

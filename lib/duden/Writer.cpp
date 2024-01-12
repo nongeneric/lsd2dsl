@@ -2,7 +2,6 @@
 #include "common/DslWriter.h"
 #include "common/ZipWriter.h"
 #include "TableRenderer.h"
-#include "common/bformat.h"
 #include "duden/Duden.h"
 #include "duden/Archive.h"
 #include "duden/AdpDecoder.h"
@@ -87,9 +86,9 @@ void writeDSL(std::filesystem::path infPath,
 
     std::string dslFileName = dict.ld().name;
 
-    log.regular("Version:  %x (HIC %d)", dict.inf().version, dict.hic().version);
-    log.regular("Name:     %s", dict.ld().name);
-    log.regular("Articles: %d", dict.articleCount());
+    log.regular("Version:  {:x} (HIC {})", dict.inf().version, dict.hic().version);
+    log.regular("Name:     {}", dict.ld().name);
+    log.regular("Articles: {}", dict.articleCount());
 
     const auto& entries = dict.entries();
     auto groups = groupHicEntries(entries);
@@ -103,7 +102,7 @@ void writeDSL(std::filesystem::path infPath,
         if (!pack.fsi.empty())
             continue;
 
-        log.regular("unpacking %s", pack.bof);
+        log.regular("unpacking {}", pack.bof);
 
         common::FileStream fIndex(inputPath / pack.idx);
         auto fBof = std::make_shared<common::FileStream>(inputPath / pack.bof);
@@ -143,9 +142,9 @@ void writeDSL(std::filesystem::path infPath,
         std::vector<int16_t> samples;
         for (auto& entry : entries) {
             resourceIndex[entry.name] = {&pack, entry.offset, entry.size};
-            log.verbose("unpacking [%03d/%03d] %s", i, entries.size(), entry.name);
+            log.verbose("unpacking [{:03d}/{:03d}] {}", i, entries.size(), entry.name);
             if (entry.offset >= reader->decodedSize()) {
-                log.regular("resource %s has invalid offset %x", entry.name, entry.offset);
+                log.regular("resource {} has invalid offset {:x}", entry.name, entry.offset);
                 continue;
             }
             reader->read(entry.offset, entry.size, vec);
@@ -168,11 +167,11 @@ void writeDSL(std::filesystem::path infPath,
     log.resetProgress("articles", groups.size());
 
     TableRenderer tableRenderer([&](auto name) {
-            log.verbose("table has embedded image %s", name);
+            log.verbose("table has embedded image {}", name);
             auto it = resourceIndex.find(name);
             std::vector<char> vec;
             if (it == end(resourceIndex)) {
-                log.regular("embedded image %s doesn't exist", name);
+                log.regular("embedded image {} doesn't exist", name);
                 return vec;
             }
             auto [pack, offset, size] = it->second;
@@ -215,7 +214,7 @@ void writeDSL(std::filesystem::path infPath,
             resolveArticleReferences(articleRun, [&](auto offset, auto& hint) {
                 auto heading = defaultArticleResolve(groups, offset, hint, context);
                 if (heading.empty()) {
-                    log.regular("Article [%s] references unknown article %d", firstHeading, offset - 1);
+                    log.regular("Article [{}] references unknown article {}", firstHeading, offset - 1);
                     heading = "unknown";
                 }
                 return heading;
@@ -228,7 +227,7 @@ void writeDSL(std::filesystem::path infPath,
             writer.writeArticle(toUtf16(dslArticle));
             ++articleCount;
         } catch (std::exception& e) {
-            log.regular("failed to parse article [%s] with error: %s", group.headings.front(), e.what());
+            log.regular("failed to parse article [{}] with error: {}", group.headings.front(), e.what());
             writer.writeArticle(toUtf16("<Parsing error>"));
             failedArticleCount++;
         }
@@ -237,7 +236,7 @@ void writeDSL(std::filesystem::path infPath,
     auto const& htmlTables = tableRenderer.getHtmls();
 
     if (!htmlTables.empty()) {
-        log.resetProgress("rendering tables", htmlTables.size());
+        log.resetProgress("tables", htmlTables.size());
         std::vector<std::string const*> htmlTablePtrs;
         for (auto&& [html, _] : htmlTables) {
             htmlTablePtrs.push_back(&html);
@@ -252,7 +251,7 @@ void writeDSL(std::filesystem::path infPath,
         }, htmlTablePtrs, log);
     }
 
-    log.regular("done converting: %d articles (%d errors), %d tables, %d resources, %d audio files",
+    log.regular("done converting: {} articles ({} errors), {} tables, {} resources, {} audio files",
                 articleCount,
                 failedArticleCount,
                 htmlTables.size(),
