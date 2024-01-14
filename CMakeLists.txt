@@ -20,12 +20,12 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Werror>)
-add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-error=array-bounds>)
-add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wall>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Werror>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wno-error=array-bounds>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall>)
 
-add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-char8_t>)
-add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-deprecated-declarations>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-fno-char8_t>)
+add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wno-deprecated-declarations>)
 add_compile_options($<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/Zc:char8_t->)
 
 if(WIN32)

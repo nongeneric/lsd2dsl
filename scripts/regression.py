@@ -10,32 +10,25 @@ import lxml.html
 import lxml.etree
 import re
 import zipfile
+import shutil
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--lsd-dir', dest='lsd_dir')
-parser.add_argument('--lsa-dir', dest='lsa_dir')
-parser.add_argument('--duden-dir', dest='duden_dir')
-parser.add_argument('--lsd2dsl-path', dest='lsd2dsl_path', required=True)
-parser.add_argument('--report-path', dest='report_path', required=True)
-parser.add_argument('--ignore-zip-hash', dest='ignore_zip_hash', action='store_true')
+parser.add_argument('--tmp-dir')
+parser.add_argument('--lsd-dir')
+parser.add_argument('--lsa-dir')
+parser.add_argument('--duden-dir')
+parser.add_argument('--lsd2dsl-path', required=True)
+parser.add_argument('--report-path', required=True)
 args = parser.parse_args()
 
-tmp_dir = '/tmp/lsd2dsl-regression'
-
 class Reporter:
-    _props = []
-    _outputs = []
-    _time = ''
-    _html = '<table style="width:100%">'
+    def __init__(self):
+        self._props = []
+        self._outputs = []
+        self._time = ''
+        self._html = ['<table style="width:100%">']
 
-    def md5hash_zip(self, path):
-        with zipfile.ZipFile(path) as zip:
-            md5 = hashlib.md5()
-            for name in sorted(zip.namelist()):
-                md5.update(zip.read(name))
-            return md5.hexdigest()
-
-    def md5hash(self, path):
+    def md5hash_file(self, path):
         block = 2 << 20
         md5 = hashlib.md5()
         with open(path, 'rb') as f:
@@ -46,29 +39,34 @@ class Reporter:
                 md5.update(buf)
         return md5.hexdigest()
 
+    def md5hash_content(self, content):
+        md5 = hashlib.md5()
+        md5.update(content)
+        return md5.hexdigest()
+
     def finish_dict(self, path, result):
-        self._html += '<tr>'
+        self._html.append('<tr>')
 
         colors = {
             0: '#90ee90',
             1: '#ee9090',
             2: 'yellow'
         }
-        self._html += f'<td style="background:{colors[result]}">'
-        self._html += f'<b>{path}</b><br>'
-        self._html += '</td>'
+        self._html.append(f'<td style="background:{colors[result]}">')
+        self._html.append(f'<b>{path}</b><br>')
+        self._html.append('</td>')
 
-        self._html += '<td>'
+        self._html.append('<td>')
         for name, value in sorted(self._props):
-            self._html += f'{name}: {value}<br>\n'
-        self._html += '</td>'
+            self._html.append(f'{name}: {value}<br>\n')
+        self._html.append('</td>')
 
-        self._html += '<td>'
+        self._html.append('<td>')
         for path, size, h in sorted(self._outputs):
-            self._html += f'{path} <b>{size} ({size//(1<<20)} MB)</b> {h}<br>\n'
-        self._html += '</td>'
+            self._html.append(f'{path} <b>{size} ({size//(1<<20)} MB)</b> {h}<br>\n')
+        self._html.append('</td>')
 
-        self._html += '</tr>'
+        self._html.append('</tr>')
         self._props = []
         self._outputs = []
 
@@ -78,19 +76,33 @@ class Reporter:
     def add_outputs(self, path):
         for root, dirnames, filenames in os.walk(path):
             for f in filenames:
-                md5 = ''
-                if f.endswith('.zip') and not args.ignore_zip_hash:
-                    md5 = self.md5hash_zip(f'{root}/{f}')
-                self._outputs.append((f, os.path.getsize(f'{root}/{f}'), md5))
+                fullpath = os.path.join(root, f)
+                if f.endswith('.zip'):
+                    with zipfile.ZipFile(fullpath) as zip:
+                        for name in sorted(zip.namelist()):
+                            content = zip.read(name)
+                            if re.match(r'rendered_table_\d{4}\.(png|bmp)', name):
+                                md5 = 'table'
+                                filesize = 0
+                            else:
+                                md5 = self.md5hash_content(content)
+                                filesize = len(content)
+                            self._outputs.append((os.path.join(f, name), filesize, md5))
+                else:
+                    self._outputs.append((f, os.path.getsize(fullpath), self.md5hash_file(fullpath)))
 
     def html(self):
-        self._html += "</table>"
-        root = lxml.html.fromstring(self._html)
+        self._html.append("</table>")
+        root = lxml.html.fromstring(''.join(self._html))
         return lxml.etree.tostring(root, encoding='unicode', pretty_print=True)
+
+    def savetofile(self, path):
+        with open(path, 'w', encoding="utf-8") as report:
+            report.write(self.html())
 
 def clear_dir(path):
     if os.path.exists(path):
-        subprocess.check_call(['rm', '-rf', path])
+        shutil.rmtree(path)
     os.makedirs(path)
 
 def get_files(path, ext):
@@ -150,14 +162,14 @@ def lsdpath_to_dslpath(lsdpath, temp):
 def process_dicts(reporter, extension, path, parser):
     for i, f in enumerate(get_files(path, extension)):
         print(f'{i}: {f}')
-        clear_dir(tmp_dir)
-        code, elapsed, props = parser(args.lsd2dsl_path, tmp_dir, f)
+        clear_dir(args.tmp_dir)
+        code, elapsed, props = parser(args.lsd2dsl_path, args.tmp_dir, f)
         errors = 0
         for name, value in props:
             if name == 'errors':
                 errors = int(value)
             reporter.add_prop(name, value)
-        reporter.add_outputs(tmp_dir)
+        reporter.add_outputs(args.tmp_dir)
         result = 1 if code == 1 or errors > 20 else 2 if errors > 0 else 0
         reporter.finish_dict(f, result)
 
@@ -166,15 +178,16 @@ if not args.lsd2dsl_path:
     exit(0)
 
 reporter = Reporter()
-
 if args.duden_dir:
     process_dicts(reporter, '.inf', args.duden_dir, convert_inf)
+reporter.savetofile(f'{args.report_path}.duden.html')
 
+reporter = Reporter()
 if args.lsd_dir:
     process_dicts(reporter, '.lsd', args.lsd_dir, convert_lsd)
+reporter.savetofile(f'{args.report_path}.lsd.html')
 
+reporter = Reporter()
 if args.lsa_dir:
     process_dicts(reporter, '.lsa', args.lsa_dir, convert_lsa)
-
-with open(args.report_path, 'w') as report:
-    report.write(reporter.html())
+reporter.savetofile(f'{args.report_path}.lsa.html')

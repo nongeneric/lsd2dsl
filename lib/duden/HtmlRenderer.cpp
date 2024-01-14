@@ -25,6 +25,8 @@ namespace duden {
 
 namespace {
 
+static constexpr auto g_pdfRenderScale = 2u;
+
 auto head = R"(
     <!DOCTYPE html>
     <html>
@@ -212,7 +214,7 @@ class HtmlRenderer {
 
         std::vector<QImage> printedPages;
         for (int p = 0; p < pdf.pageCount(); ++p) {
-            auto image = pdf.render(p, pdf.pagePointSize(p).toSize() * 2);
+            auto image = pdf.render(p, pdf.pagePointSize(p).toSize() * g_pdfRenderScale);
             printedPages.push_back(std::move(image));
         }
 
