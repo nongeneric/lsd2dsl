@@ -9,8 +9,10 @@
 #include "lingvo/tools.h"
 #include "lingvo/WriteDsl.h"
 
-#ifdef ENABLE_DUDEN
+#include "MainWindow.h"
 #include <QApplication>
+
+#ifdef ENABLE_DUDEN
 #include "duden/AdpDecoder.h"
 #include "duden/Dictionary.h"
 #include "duden/Duden.h"
@@ -302,7 +304,16 @@ public:
     ConsoleLog(bool verbose) : _verbose(verbose), _bar(50, '='), _empty(_bar.size(), ' ') {}
 };
 
+int lsd2dsl_gui(int argc, char* argv[]) {
+    QApplication app(argc, argv);
+    MainWindow w;
+    w.show();
+    return app.exec();
+}
+
 int lsd2dsl_main(int argc, char* argv[]) {
+    if (argc < 2)
+        return lsd2dsl_gui(argc, argv);
 #ifdef ENABLE_DUDEN
     QApplication a(argc, argv);
     bool dudenEncoding, dudenPrintInfo;

@@ -37,8 +37,7 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(tests)
-add_subdirectory(console)
-add_subdirectory(gui)
+add_subdirectory(app)
 
 if(WIN32)
     if(ENABLE_DUDEN)
