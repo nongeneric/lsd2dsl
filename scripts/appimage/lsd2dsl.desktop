@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=lsd2dsl
+GenericName=lsd2dsl
+Comment=lsd2dsl
+TryExec=lsd2dsl
+Exec=lsd2dsl
+Icon=lsd2dsl
+Categories=Utility;TextTools
+Keywords=lsd;
+X-Desktop-File-Install-Version=0.26
