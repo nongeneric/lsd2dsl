@@ -6,6 +6,7 @@
 
 #include <zlib.h>
 #include <stdexcept>
+#include <assert.h>
 
 namespace lingvo {
 

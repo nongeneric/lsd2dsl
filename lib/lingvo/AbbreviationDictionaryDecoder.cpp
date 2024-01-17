@@ -4,6 +4,8 @@
 #include "UserDictionaryDecoder.h"
 #include "tools.h"
 
+#include <assert.h>
+
 namespace lingvo {
 
 std::u16string readXoredPrefix(common::IBitStream* bstr, int len) {

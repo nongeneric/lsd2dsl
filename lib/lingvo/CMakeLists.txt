@@ -7,9 +7,12 @@ find_package(ZLIB REQUIRED)
 if(WIN32)
     find_package(Vorbis CONFIG REQUIRED)
 else()
+    find_library(OGG ogg REQUIRED)
+    find_library(VORBIS vorbis REQUIRED)
     find_library(VORBISFILE vorbisfile REQUIRED)
     add_library(Vorbis::vorbisfile SHARED IMPORTED)
     set_property(TARGET Vorbis::vorbisfile PROPERTY IMPORTED_LOCATION ${VORBISFILE})
+    target_link_libraries(Vorbis::vorbisfile INTERFACE ${VORBIS} ${OGG})
 endif()
 
 add_library(${PROJECT_NAME} STATIC

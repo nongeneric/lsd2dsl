@@ -2,6 +2,8 @@
 #include "common/BitStream.h"
 #include "tools.h"
 
+#include <assert.h>
+
 namespace lingvo {
 
 SystemDictionaryDecoder::SystemDictionaryDecoder(bool xoring)
